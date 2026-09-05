@@ -686,6 +686,23 @@ export const ClientPortalShell: React.FC = () => {
           </div>
         </div>
       )}
+
+      {/* Add Employee Modal for Client */}
+      <AddEmployeeModal
+        isOpen={showAddEmployee}
+        onClose={() => setShowAddEmployee(false)}
+        onEmployeeCreated={() => fetchData()}
+        preselectedClientId={user?.clientId}
+        defaultClientId={user?.clientId}
+      />
+
+      {/* Employee Detail Drawer */}
+      <EmployeeDetailDrawer
+        employeeId={selectedEmpId}
+        onClose={() => setSelectedEmpId(null)}
+        onRefresh={() => fetchData()}
+      />
     </div>
   );
 };
+

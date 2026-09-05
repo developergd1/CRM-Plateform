@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
+import { prisma, getEmployeeLookup } from '@/lib/prisma';
 import { getSessionUser } from '@/lib/auth';
 import { isAdminOrHR } from '@/lib/rbac';
 import { logAuditEvent } from '@/lib/audit';
@@ -10,11 +10,10 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
     const employee = await prisma.employee.findFirst({
-      where: {
-        OR: [{ id: params.id }, { employeeId: params.id }],
-      },
+      where: getEmployeeLookup(params.id),
       include: { user: { include: { role: true } }, client: true },
     });
+
 
     if (!employee) {
       return NextResponse.json({ error: 'Employee not found' }, { status: 404 });

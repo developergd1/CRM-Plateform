@@ -9,3 +9,35 @@ export const prisma =
   });
 
 if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = prisma;
+
+/**
+ * Returns true if the string is a valid 24-character hexadecimal MongoDB ObjectId.
+ */
+export function isValidObjectId(id: string | null | undefined): boolean {
+  if (!id || typeof id !== 'string') return false;
+  return /^[0-9a-fA-F]{24}$/.test(id);
+}
+
+/**
+ * Safe lookup filter for Employee that prevents MongoDB ObjectId casting crashes
+ * when searching by custom string employeeId (e.g. GI-EMP-000002).
+ */
+export function getEmployeeLookup(identifier: string) {
+  if (!identifier) return { employeeId: '__none__' };
+  if (isValidObjectId(identifier)) {
+    return { OR: [{ id: identifier }, { employeeId: identifier }] };
+  }
+  return { employeeId: identifier };
+}
+
+/**
+ * Safe lookup filter for Client that prevents MongoDB ObjectId casting crashes
+ * when searching by custom string clientId (e.g. CLI-00001).
+ */
+export function getClientLookup(identifier: string) {
+  if (!identifier) return { clientId: '__none__' };
+  if (isValidObjectId(identifier)) {
+    return { OR: [{ id: identifier }, { clientId: identifier }] };
+  }
+  return { clientId: identifier };
+}

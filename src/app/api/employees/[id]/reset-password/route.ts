@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import bcrypt from 'bcryptjs';
-import { prisma } from '@/lib/prisma';
+import { prisma, getEmployeeLookup } from '@/lib/prisma';
 import { getSessionUser } from '@/lib/auth';
 import { isAdminOrHR } from '@/lib/rbac';
 import { logAuditEvent } from '@/lib/audit';
@@ -21,14 +21,13 @@ export async function POST(
     }
 
     const employee = await prisma.employee.findFirst({
-      where: {
-        OR: [{ id: targetId }, { employeeId: targetId }],
-      },
+      where: getEmployeeLookup(targetId),
       include: {
         user: true,
         client: true,
       },
     });
+
 
     if (!employee) {
       return NextResponse.json({ error: 'Employee not found' }, { status: 404 });

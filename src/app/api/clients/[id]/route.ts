@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import bcrypt from 'bcryptjs';
-import { prisma } from '@/lib/prisma';
+import { prisma, getClientLookup } from '@/lib/prisma';
 import { getSessionUser } from '@/lib/auth';
 import { isAdminOrHR } from '@/lib/rbac';
 import { logAuditEvent } from '@/lib/audit';
@@ -11,9 +11,7 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
     if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
     const client = await prisma.client.findFirst({
-      where: {
-        OR: [{ id: params.id }, { clientId: params.id }],
-      },
+      where: getClientLookup(params.id),
       include: {
         user: {
           select: {
@@ -64,15 +62,14 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
     }
 
     const existing = await prisma.client.findFirst({
-      where: {
-        OR: [{ id: params.id }, { clientId: params.id }],
-      },
+      where: getClientLookup(params.id),
       include: { user: true },
     });
 
     if (!existing) {
       return NextResponse.json({ error: 'Client not found' }, { status: 404 });
     }
+
 
     const data = await req.json();
     const {
@@ -147,11 +144,10 @@ export async function DELETE(req: NextRequest, { params }: { params: { id: strin
     }
 
     const existing = await prisma.client.findFirst({
-      where: {
-        OR: [{ id: params.id }, { clientId: params.id }],
-      },
+      where: getClientLookup(params.id),
       include: { user: true, employees: true },
     });
+
 
     if (!existing) {
       return NextResponse.json({ error: 'Client not found' }, { status: 404 });

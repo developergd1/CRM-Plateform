@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import bcrypt from 'bcryptjs';
-import { prisma } from '@/lib/prisma';
+import { prisma, getEmployeeLookup } from '@/lib/prisma';
 import { getSessionUser } from '@/lib/auth';
 import { isAdminOrHR } from '@/lib/rbac';
 import { logAuditEvent, maskPAN } from '@/lib/audit';
@@ -11,9 +11,7 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
     if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
     const employee = await prisma.employee.findFirst({
-      where: {
-        OR: [{ id: params.id }, { employeeId: params.id }],
-      },
+      where: getEmployeeLookup(params.id),
       include: {
         client: true,
         department: true,
@@ -63,14 +61,13 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
     }
 
     const existing = await prisma.employee.findFirst({
-      where: {
-        OR: [{ id: params.id }, { employeeId: params.id }],
-      },
+      where: getEmployeeLookup(params.id),
     });
 
     if (!existing) {
       return NextResponse.json({ error: 'Employee not found' }, { status: 404 });
     }
+
 
     const data = await req.json();
     const {
@@ -175,11 +172,10 @@ export async function DELETE(req: NextRequest, { params }: { params: { id: strin
     if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
     const existing = await prisma.employee.findFirst({
-      where: {
-        OR: [{ id: params.id }, { employeeId: params.id }],
-      },
+      where: getEmployeeLookup(params.id),
       include: { user: true, client: true },
     });
+
 
     if (!existing) {
       return NextResponse.json({ error: 'Employee not found' }, { status: 404 });

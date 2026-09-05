@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import bcrypt from 'bcryptjs';
-import { prisma } from '@/lib/prisma';
+import { prisma, getClientLookup } from '@/lib/prisma';
 import { getSessionUser } from '@/lib/auth';
 import { isAdminOrHR } from '@/lib/rbac';
 import { logAuditEvent, maskPAN } from '@/lib/audit';
@@ -36,9 +36,7 @@ export async function GET(req: NextRequest) {
     } else if (clientId) {
       // Admin filtered by specific client
       const clientRecord = await prisma.client.findFirst({
-        where: {
-          OR: [{ id: clientId }, { clientId: clientId }],
-        },
+        where: getClientLookup(clientId),
       });
       if (clientRecord) {
         where.clientId = clientRecord.id;
@@ -46,6 +44,7 @@ export async function GET(req: NextRequest) {
         where.clientId = clientId;
       }
     }
+
 
     if (status) {
       if (status === 'BLOCKED') {
