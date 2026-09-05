@@ -1,5 +1,5 @@
 datasource db {
-  provider = "sqlite"
+  provider = "mongodb"
   url      = env("DATABASE_URL")
 }
 
@@ -12,10 +12,10 @@ generator client {
 // ----------------------------------------------------
 
 model User {
-  id               String       @id @default(uuid())
+  id               String       @id @default(auto()) @map("_id") @db.ObjectId
   email            String       @unique
   passwordHash     String
-  roleId           String
+  roleId           String       @db.ObjectId
   role             Role         @relation(fields: [roleId], references: [id])
   isActive         Boolean      @default(true)
   isSuspended      Boolean      @default(false)
@@ -33,13 +33,12 @@ model User {
   auditLogs        AuditLog[]
   sessions         ActiveUserSession[]
 
-  @@index([email])
   @@index([roleId])
 }
 
 model ActiveUserSession {
-  id               String       @id @default(uuid())
-  userId           String
+  id               String       @id @default(auto()) @map("_id") @db.ObjectId
+  userId           String       @db.ObjectId
   user             User         @relation(fields: [userId], references: [id], onDelete: Cascade)
   sessionToken     String       @unique
   ipAddress        String?
@@ -50,13 +49,12 @@ model ActiveUserSession {
   createdAt        DateTime     @default(now())
   lastActiveAt     DateTime     @default(now())
 
-  @@index([sessionToken])
   @@index([userId])
 }
 
 model Role {
-  id               String           @id @default(uuid())
-  name             String           @unique // SUPER_ADMIN, ADMIN_HR, MANAGER_TL, EMPLOYEE
+  id               String           @id @default(auto()) @map("_id") @db.ObjectId
+  name             String           @unique // SUPER_ADMIN, ADMIN_HR, MANAGER_TL, EMPLOYEE, ADMIN, CLIENT
   displayName      String
   description      String?
   isSystem         Boolean          @default(true)
@@ -67,7 +65,7 @@ model Role {
 }
 
 model Permission {
-  id               String           @id @default(uuid())
+  id               String           @id @default(auto()) @map("_id") @db.ObjectId
   code             String           @unique
   module           String
   description      String
@@ -75,9 +73,9 @@ model Permission {
 }
 
 model RolePermission {
-  id               String           @id @default(uuid())
-  roleId           String
-  permissionId     String
+  id               String           @id @default(auto()) @map("_id") @db.ObjectId
+  roleId           String           @db.ObjectId
+  permissionId     String           @db.ObjectId
   role             Role             @relation(fields: [roleId], references: [id], onDelete: Cascade)
   permission       Permission       @relation(fields: [permissionId], references: [id], onDelete: Cascade)
 
@@ -89,7 +87,7 @@ model RolePermission {
 // ----------------------------------------------------
 
 model Department {
-  id               String       @id @default(uuid())
+  id               String       @id @default(auto()) @map("_id") @db.ObjectId
   name             String       @unique
   code             String       @unique
   description      String?
@@ -100,9 +98,9 @@ model Department {
 }
 
 model Team {
-  id               String       @id @default(uuid())
+  id               String       @id @default(auto()) @map("_id") @db.ObjectId
   name             String
-  departmentId     String
+  departmentId     String       @db.ObjectId
   department       Department   @relation(fields: [departmentId], references: [id])
   leadEmployeeId   String?
   employees        Employee[]
@@ -113,13 +111,13 @@ model Team {
 }
 
 model Employee {
-  id                 String            @id @default(uuid())
+  id                 String            @id @default(auto()) @map("_id") @db.ObjectId
   employeeId         String            @unique // e.g. GI-EMP-000001
-  userId             String            @unique
+  userId             String            @unique @db.ObjectId
   user               User              @relation(fields: [userId], references: [id], onDelete: Cascade)
   
   // Client Relation (Phase 1: Selected Client)
-  clientId           String?
+  clientId           String?           @db.ObjectId
   client             Client?           @relation("ClientEmployees", fields: [clientId], references: [id])
 
   // Personal Information (Phase 1 Specs)
@@ -138,10 +136,10 @@ model Employee {
   emergencyName      String?
 
   // Employment Information (Phase 1 Specs)
-  departmentId       String?
+  departmentId       String?           @db.ObjectId
   department         Department?       @relation(fields: [departmentId], references: [id])
   departmentName     String?           // Direct text or relation name
-  teamId             String?
+  teamId             String?           @db.ObjectId
   team               Team?             @relation(fields: [teamId], references: [id])
   designation        String
   jobLocation        String            @default("Headquarters")
@@ -171,8 +169,8 @@ model Employee {
   updatedAt          DateTime          @updatedAt
 
   // Manager Hierarchy
-  reportingManagerId String?
-  reportingManager   Employee?         @relation("ManagerSubordinates", fields: [reportingManagerId], references: [id])
+  reportingManagerId String?           @db.ObjectId
+  reportingManager   Employee?         @relation("ManagerSubordinates", fields: [reportingManagerId], references: [id], onDelete: NoAction, onUpdate: NoAction)
   subordinates       Employee[]        @relation("ManagerSubordinates")
 
   // Relationships
@@ -194,8 +192,6 @@ model Employee {
   tasksCreated       ClientTask[]      @relation("TaskCreator")
   notifications      Notification[]
 
-  @@index([employeeId])
-  @@index([phone])
   @@index([status])
   @@index([clientId])
   @@index([departmentId])
@@ -206,8 +202,8 @@ model Employee {
 // ----------------------------------------------------
 
 model EmployeeBlockHistory {
-  id                 String       @id @default(uuid())
-  employeeId         String
+  id                 String       @id @default(auto()) @map("_id") @db.ObjectId
+  employeeId         String       @db.ObjectId
   employee           Employee     @relation(fields: [employeeId], references: [id], onDelete: Cascade)
   actionType         String       // BLOCK or UNBLOCK
   reason             String
@@ -227,7 +223,7 @@ model EmployeeBlockHistory {
 // ----------------------------------------------------
 
 model Client {
-  id                 String                  @id @default(uuid())
+  id                 String                  @id @default(auto()) @map("_id") @db.ObjectId
   clientId           String                  @unique // e.g. CLI-00001
   
   // Phase 1 Fields
@@ -241,7 +237,7 @@ model Client {
   dateAdded          DateTime                @default(now())
 
   // Authentication & Governance (Phase 1)
-  userId             String?                 @unique
+  userId             String?                 @unique @db.ObjectId
   user               User?                   @relation(fields: [userId], references: [id], onDelete: SetNull)
   canBlockEmployees  Boolean                 @default(false)
   canDeleteEmployees Boolean                 @default(false)
@@ -258,10 +254,10 @@ model Client {
   stage              String                  @default("NEW")
   
   // Ownership
-  createdById        String?
-  createdBy          Employee?               @relation("ClientCreator", fields: [createdById], references: [id])
-  assignedEmployeeId String?
-  assignedEmployee   Employee?               @relation("ClientOwner", fields: [assignedEmployeeId], references: [id])
+  createdById        String?                 @db.ObjectId
+  createdBy          Employee?               @relation("ClientCreator", fields: [createdById], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  assignedEmployeeId String?                 @db.ObjectId
+  assignedEmployee   Employee?               @relation("ClientOwner", fields: [assignedEmployeeId], references: [id], onDelete: NoAction, onUpdate: NoAction)
   
   lastContactedAt    DateTime?
   nextFollowUpDate   DateTime?
@@ -279,7 +275,6 @@ model Client {
   tasks              ClientTask[]
   pipelineHistory    ClientPipelineHistory[]
 
-  @@index([clientId])
   @@index([mobile])
   @@index([status])
   @@index([industry])
@@ -288,14 +283,14 @@ model Client {
 }
 
 model ClientAssignment {
-  id                 String       @id @default(uuid())
-  clientId           String
+  id                 String       @id @default(auto()) @map("_id") @db.ObjectId
+  clientId           String       @db.ObjectId
   client             Client       @relation(fields: [clientId], references: [id], onDelete: Cascade)
-  fromEmployeeId     String?
-  toEmployeeId       String
-  toEmployee         Employee     @relation("AssignedToHistory", fields: [toEmployeeId], references: [id])
-  assignedById       String
-  assignedBy         Employee     @relation("AssignedByHistory", fields: [assignedById], references: [id])
+  fromEmployeeId     String?      @db.ObjectId
+  toEmployeeId       String       @db.ObjectId
+  toEmployee         Employee     @relation("AssignedToHistory", fields: [toEmployeeId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  assignedById       String       @db.ObjectId
+  assignedBy         Employee     @relation("AssignedByHistory", fields: [assignedById], references: [id], onDelete: NoAction, onUpdate: NoAction)
   assignmentReason   String?
   assignedAt         DateTime     @default(now())
 
@@ -304,8 +299,8 @@ model ClientAssignment {
 }
 
 model ClientPipelineHistory {
-  id                 String        @id @default(uuid())
-  clientId           String
+  id                 String        @id @default(auto()) @map("_id") @db.ObjectId
+  clientId           String        @db.ObjectId
   client             Client        @relation(fields: [clientId], references: [id], onDelete: Cascade)
   fromStage          String
   toStage            String
@@ -318,12 +313,12 @@ model ClientPipelineHistory {
 }
 
 model ClientActivity {
-  id                 String       @id @default(uuid())
+  id                 String       @id @default(auto()) @map("_id") @db.ObjectId
   activityId         String       @unique
-  clientId           String
+  clientId           String       @db.ObjectId
   client             Client       @relation(fields: [clientId], references: [id], onDelete: Cascade)
-  actorEmployeeId    String
-  actorEmployee      Employee     @relation(fields: [actorEmployeeId], references: [id])
+  actorEmployeeId    String       @db.ObjectId
+  actorEmployee      Employee     @relation(fields: [actorEmployeeId], references: [id], onDelete: NoAction, onUpdate: NoAction)
   activityType       String
   title              String
   description        String?
@@ -340,11 +335,11 @@ model ClientActivity {
 }
 
 model ClientNote {
-  id                 String       @id @default(uuid())
-  clientId           String
+  id                 String       @id @default(auto()) @map("_id") @db.ObjectId
+  clientId           String       @db.ObjectId
   client             Client       @relation(fields: [clientId], references: [id], onDelete: Cascade)
-  authorId           String
-  author             Employee     @relation(fields: [authorId], references: [id])
+  authorId           String       @db.ObjectId
+  author             Employee     @relation(fields: [authorId], references: [id], onDelete: NoAction, onUpdate: NoAction)
   content            String
   isPinned           Boolean      @default(false)
   createdAt          DateTime     @default(now())
@@ -354,14 +349,14 @@ model ClientNote {
 }
 
 model ClientTask {
-  id                 String        @id @default(uuid())
+  id                 String        @id @default(auto()) @map("_id") @db.ObjectId
   taskId             String        @unique
-  clientId           String
+  clientId           String        @db.ObjectId
   client             Client        @relation(fields: [clientId], references: [id], onDelete: Cascade)
-  assignedToId       String
-  assignedTo         Employee      @relation("TaskAssignee", fields: [assignedToId], references: [id])
-  createdById        String
-  createdBy          Employee      @relation("TaskCreator", fields: [createdById], references: [id])
+  assignedToId       String        @db.ObjectId
+  assignedTo         Employee      @relation("TaskAssignee", fields: [assignedToId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  createdById        String        @db.ObjectId
+  createdBy          Employee      @relation("TaskCreator", fields: [createdById], references: [id], onDelete: NoAction, onUpdate: NoAction)
   taskType           String
   title              String
   description        String?
@@ -385,9 +380,9 @@ model ClientTask {
 // ----------------------------------------------------
 
 model EmployeeDocument {
-  id                 String                     @id @default(uuid())
+  id                 String                     @id @default(auto()) @map("_id") @db.ObjectId
   documentId         String                     @unique
-  employeeId         String
+  employeeId         String                     @db.ObjectId
   employee           Employee                   @relation(fields: [employeeId], references: [id], onDelete: Cascade)
   documentType       String
   title              String
@@ -411,8 +406,8 @@ model EmployeeDocument {
 }
 
 model DocumentAccessLog {
-  id                 String           @id @default(uuid())
-  documentId         String
+  id                 String           @id @default(auto()) @map("_id") @db.ObjectId
+  documentId         String           @db.ObjectId
   document           EmployeeDocument @relation(fields: [documentId], references: [id], onDelete: Cascade)
   accessedByEmployeeId String
   actionType         String
@@ -429,8 +424,8 @@ model DocumentAccessLog {
 // ----------------------------------------------------
 
 model Attendance {
-  id                 String            @id @default(uuid())
-  employeeId         String
+  id                 String            @id @default(auto()) @map("_id") @db.ObjectId
+  employeeId         String            @db.ObjectId
   employee           Employee          @relation(fields: [employeeId], references: [id], onDelete: Cascade)
   date               String
   checkInTime        DateTime?
@@ -455,8 +450,8 @@ model Attendance {
 }
 
 model AttendanceBreak {
-  id                 String       @id @default(uuid())
-  attendanceId       String
+  id                 String       @id @default(auto()) @map("_id") @db.ObjectId
+  attendanceId       String       @db.ObjectId
   attendance         Attendance   @relation(fields: [attendanceId], references: [id], onDelete: Cascade)
   breakStartTime     DateTime     @default(now())
   breakEndTime       DateTime?
@@ -468,11 +463,11 @@ model AttendanceBreak {
 }
 
 model WorkSession {
-  id                 String        @id @default(uuid())
+  id                 String        @id @default(auto()) @map("_id") @db.ObjectId
   sessionId          String        @unique
-  userId             String
+  userId             String        @db.ObjectId
   user               User          @relation(fields: [userId], references: [id], onDelete: Cascade)
-  employeeId         String
+  employeeId         String        @db.ObjectId
   employee           Employee      @relation(fields: [employeeId], references: [id], onDelete: Cascade)
   loginTimestamp     DateTime      @default(now())
   logoutTimestamp    DateTime?
@@ -486,7 +481,6 @@ model WorkSession {
   updatedAt          DateTime      @updatedAt
 
   @@index([employeeId])
-  @@index([sessionId])
   @@index([status])
 }
 
@@ -495,8 +489,8 @@ model WorkSession {
 // ----------------------------------------------------
 
 model LeaveRequest {
-  id                 String       @id @default(uuid())
-  employeeId         String
+  id                 String       @id @default(auto()) @map("_id") @db.ObjectId
+  employeeId         String       @db.ObjectId
   employee           Employee     @relation(fields: [employeeId], references: [id], onDelete: Cascade)
   leaveType          String
   startDate          String
@@ -515,12 +509,12 @@ model LeaveRequest {
 }
 
 model Asset {
-  id                 String       @id @default(uuid())
+  id                 String       @id @default(auto()) @map("_id") @db.ObjectId
   assetTag           String       @unique
   name               String
   assetType          String
   serialNumber       String       @unique
-  assignedEmployeeId String?
+  assignedEmployeeId String?      @db.ObjectId
   assignedEmployee   Employee?    @relation(fields: [assignedEmployeeId], references: [id])
   assignedDate       DateTime?
   returnDate         DateTime?
@@ -531,7 +525,6 @@ model Asset {
   updatedAt          DateTime     @updatedAt
 
   @@index([assignedEmployeeId])
-  @@index([assetTag])
 }
 
 // ----------------------------------------------------
@@ -539,8 +532,8 @@ model Asset {
 // ----------------------------------------------------
 
 model Notification {
-  id                 String       @id @default(uuid())
-  recipientId        String
+  id                 String       @id @default(auto()) @map("_id") @db.ObjectId
+  recipientId        String       @db.ObjectId
   recipient          Employee     @relation(fields: [recipientId], references: [id], onDelete: Cascade)
   title              String
   message            String
@@ -556,8 +549,8 @@ model Notification {
 }
 
 model AuditLog {
-  id                 String       @id @default(uuid())
-  actorUserId        String?
+  id                 String       @id @default(auto()) @map("_id") @db.ObjectId
+  actorUserId        String?      @db.ObjectId
   actorUser          User?        @relation(fields: [actorUserId], references: [id])
   actorEmployeeId    String?
   action             String
@@ -578,7 +571,7 @@ model AuditLog {
 }
 
 model SystemSetting {
-  id                 String       @id @default(uuid())
+  id                 String       @id @default(auto()) @map("_id") @db.ObjectId
   key                String       @unique
   value              String
   category           String
