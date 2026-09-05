@@ -120,3 +120,79 @@ export async function getSessionUser(req?: NextRequest): Promise<AuthUser | null
     return null;
   }
 }
+
+/**
+ * Auto-initializes official Admin account and roles if the database is newly connected and empty.
+ */
+export async function ensureDefaultAdmin() {
+  try {
+    const userCount = await prisma.user.count();
+    if (userCount === 0) {
+      const adminRole = await prisma.role.upsert({
+        where: { name: 'ADMIN' },
+        update: {},
+        create: {
+          name: 'ADMIN',
+          displayName: 'Administrator',
+          description: 'Platform Administrator with full governance control',
+          isSystem: true,
+        },
+      });
+
+      await prisma.role.upsert({
+        where: { name: 'CLIENT' },
+        update: {},
+        create: {
+          name: 'CLIENT',
+          displayName: 'Client',
+          description: 'Corporate Client portal',
+          isSystem: true,
+        },
+      });
+
+      await prisma.role.upsert({
+        where: { name: 'EMPLOYEE' },
+        update: {},
+        create: {
+          name: 'EMPLOYEE',
+          displayName: 'Employee',
+          description: 'Employee workspace',
+          isSystem: true,
+        },
+      });
+
+      const bcrypt = await import('bcryptjs');
+      const passwordHash = await bcrypt.default.hash('Admin@123', 10);
+
+      const adminUser = await prisma.user.create({
+        data: {
+          email: 'admin@growthindia.in',
+          passwordHash,
+          roleId: adminRole.id,
+          isActive: true,
+          isSuspended: false,
+        },
+      });
+
+      await prisma.employee.create({
+        data: {
+          employeeId: 'GI-EMP-000001',
+          userId: adminUser.id,
+          fullName: 'System Administrator',
+          phone: '+91 98000 00000',
+          personalEmail: 'admin@growthindia.in',
+          departmentName: 'General Operations',
+          designation: 'Platform Head',
+          jobLocation: 'Headquarters',
+          employmentType: 'Full-Time',
+          status: 'ACTIVE',
+          isBlocked: false,
+          createdBy: 'SYSTEM',
+        },
+      });
+    }
+  } catch (err) {
+    console.error('ensureDefaultAdmin error:', err);
+  }
+}
+

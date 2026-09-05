@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import bcrypt from 'bcryptjs';
 import { prisma } from '@/lib/prisma';
-import { createToken, AUTH_COOKIE_NAME } from '@/lib/auth';
+import { createToken, AUTH_COOKIE_NAME, ensureDefaultAdmin } from '@/lib/auth';
 import { logAuditEvent } from '@/lib/audit';
 
 export async function POST(req: NextRequest) {
@@ -35,6 +35,25 @@ export async function POST(req: NextRequest) {
         },
       },
     });
+
+    // If no user exists and admin login is attempted, auto-seed clean default admin & roles
+    if (!user && (lookupLower === 'admin@growthindia.in' || lookupUpper === 'GI-EMP-000001' || portalType === 'ADMIN')) {
+      await ensureDefaultAdmin();
+      user = await prisma.user.findFirst({
+        where: { email: 'admin@growthindia.in' },
+        include: {
+          role: true,
+          employeeProfile: {
+            include: {
+              department: true,
+              team: true,
+              client: true,
+            },
+          },
+        },
+      });
+    }
+
 
     // 2. If not found by email, look up by Employee ID or Phone Number
     if (!user) {
