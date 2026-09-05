@@ -1,0 +1,19 @@
+services:
+  - type: web
+    name: growth-india-crm
+    env: node
+    plan: free
+    region: oregon
+    buildCommand: npm install && npx prisma generate && npm run build
+    startCommand: npm run start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: DATABASE_URL
+        sync: false
+      - key: JWT_SECRET
+        generateValue: true
+      - key: NEXT_PUBLIC_APP_NAME
+        value: Growth India CRM & Employee Platform
+      - key: NEXT_PUBLIC_APP_VERSION
+        value: 1.0.0

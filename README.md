@@ -1,20 +1,45 @@
 # 🏢 Growth India CRM & Employee Platform
 
-Complete Enterprise CRM, Client Management, and Employee Operations Platform built with Next.js, TypeScript, Tailwind CSS, Prisma ORM, and SQLite.
+Complete Enterprise CRM, Client Management, and Employee Operations Platform built with Next.js, TypeScript, Tailwind CSS, Prisma ORM, and MongoDB Atlas.
 
 ---
 
-## 🚀 Quick Start Guide
+## ☁️ Render Deployment Guide (Deploy on Render)
 
-### 1. One-Time Setup (Setup Instructions)
+### 1. Render Dashboard Setup:
+1. Go to [Render Dashboard](https://dashboard.render.com/) aur **New +** -> **Web Service** select karein.
+2. Apna GitHub repository connect karein: `developergd1/CRM-Plateform`
+3. Settings enter karein:
+   - **Name:** `growth-india-crm` (or any name)
+   - **Region:** Singapore / Oregon / Frankfurt
+   - **Branch:** `main`
+   - **Runtime:** `Node`
+   - **Build Command:** `npm install && npx prisma generate && npm run build`
+   - **Start Command:** `npm run start`
+   - **Plan:** Free / Starter
 
+### 2. Environment Variables in Render:
+Render ke **Environment** tab me ye variables add karein:
+
+| Key | Value / Example |
+| :--- | :--- |
+| `DATABASE_URL` | `mongodb+srv://<username>:<password>@cluster0.xxx.mongodb.net/growth_india_crm?retryWrites=true&w=majority` |
+| `JWT_SECRET` | `growth-india-crm-secure-jwt-secret-key-2026-production` |
+| `NODE_ENV` | `production` |
+| `NEXT_PUBLIC_APP_NAME` | `Growth India CRM & Employee Platform` |
+| `NEXT_PUBLIC_APP_VERSION` | `1.0.0` |
+
+---
+
+## 🚀 Local Quick Start Guide
+
+### 1. One-Time Setup:
 ```powershell
 # Dependencies install karein
 npm install
 
-# Database generate aur push karein
+# Database generate karein
 npm run prisma:generate
-npm run prisma:push
 
 # Clean production administrator seed karein
 npm run prisma:seed
@@ -22,47 +47,20 @@ npm run prisma:seed
 
 ---
 
-## 💻 Server Run Karne Ke Commands (Commands to Start Server)
+## 💻 Server Run Karne Ke Commands
 
-### 🔹 Local Development Server
-1. Terminal me command run karein:
-   ```powershell
-   npm run dev
-   ```
-2. Portals access karein:
-   - 👥 **Client & Employee Portal:** [`http://localhost:3000`](http://localhost:3000)
-   - 👑 **Admin Console Gateway:** [`http://localhost:3000/growthIndia`](http://localhost:3000/growthIndia)
+### 🔹 Local Development Server:
+```powershell
+npm run dev
+```
+
+* 👥 **Client & Employee Portal:** [`http://localhost:3000`](http://localhost:3000)
+* 👑 **Admin Console Gateway:** [`http://localhost:3000/growthIndia`](http://localhost:3000/growthIndia)
 
 ---
 
-## 🔑 Platform Access & Credentials
+## 🔑 Default Credentials
 
-### 🛡️ Platform Administrator Portal (`/growthIndia`)
-* **URL:** `http://localhost:3000/growthIndia`
-* **Email / Employee ID:** `admin@growthindia.in` / `GI-EMP-000001`
+### 🛡️ Platform Administrator Portal (`/growthIndia`):
+* **Email / ID:** `admin@growthindia.in` / `GI-EMP-000001`
 * **Password:** `Admin@123`
-* **Privileges:** Client Onboarding, Employee Management, Auto ID & Credential Generation, Block / Unblock Control, Security Audit Logs.
-
-### 🏢 Client & Employee Portal (`/`)
-* **URL:** `http://localhost:3000/`
-* **Access:** Clients & Employees dynamically created and onboarded via the Administrator Console.
-
----
-
-## 🛠️ NPM Scripts
-
-| Command | Description |
-| :--- | :--- |
-| `npm run dev` | Local development server start karta hai (`localhost:3000`) |
-| `npm run build` | Next.js production build test karta hai |
-| `npm run start` | Production server start karta hai |
-| `npm run prisma:generate` | Prisma client generate karta hai |
-| `npm run prisma:push` | Database schema synchronize karta hai |
-| `npm run prisma:seed` | Official clean database seed initialize karta hai |
-
----
-
-## 🔒 Security & Architecture Features
-* **Isolated Portals:** Public portal (`/`) and Admin Console (`/growthIndia`) have separated authentication gateways.
-* **Role-Based Access Control (RBAC):** `ADMIN`, `CLIENT`, `EMPLOYEE` isolation.
-* **Audit Trail:** Immutable logging of block/unblock actions, password updates, and credential assignments.
