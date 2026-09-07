@@ -37,19 +37,22 @@ import { ClientWorkforceView } from './ClientWorkforceView';
 import { ClientAttendanceView } from './ClientAttendanceView';
 import { EmployeeItem } from '@/types';
 
+import { clientCache } from '@/lib/client-cache';
+
 export const ClientPortalShell: React.FC = () => {
   const { user, logout } = useAuth();
   const [activeTab, setActiveTab] = useState<'dashboard' | 'employees' | 'workforce' | 'attendance' | 'history'>('dashboard');
-  const [employees, setEmployees] = useState<EmployeeItem[]>([]);
-  const [blockHistories, setBlockHistories] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [showAddEmployee, setShowAddEmployee] = useState(false);
-  const [editingEmployee, setEditingEmployee] = useState<EmployeeItem | null>(null);
-  const [selectedEmpId, setSelectedEmpId] = useState<string | null>(null);
-
   // Search & Filters
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
+  const cacheKey = `client_portal_${user?.clientId || 'cli'}_${search}_${statusFilter}`;
+  const initialCached = clientCache.get<any>(`client_portal_${user?.clientId || 'cli'}__`);
+  const [employees, setEmployees] = useState<EmployeeItem[]>(() => initialCached?.employees || []);
+  const [blockHistories, setBlockHistories] = useState<any[]>(() => initialCached?.histories || []);
+  const [loading, setLoading] = useState(() => !initialCached);
+  const [showAddEmployee, setShowAddEmployee] = useState(false);
+  const [editingEmployee, setEditingEmployee] = useState<EmployeeItem | null>(null);
+  const [selectedEmpId, setSelectedEmpId] = useState<string | null>(null);
 
   // Block Modal state
   const [blockTarget, setBlockTarget] = useState<any | null>(null);
@@ -84,7 +87,16 @@ export const ClientPortalShell: React.FC = () => {
     }
   };
 
-  const fetchData = async () => {
+  const fetchData = async (forceRefresh = false) => {
+    if (!forceRefresh) {
+      const cached = clientCache.get<any>(cacheKey);
+      if (cached) {
+        setEmployees(cached.employees || []);
+        setBlockHistories(cached.histories || []);
+        setLoading(false);
+        return;
+      }
+    }
     setLoading(true);
     try {
       const [empRes, histRes] = await Promise.all([
@@ -92,14 +104,13 @@ export const ClientPortalShell: React.FC = () => {
         fetch('/api/employees/block-history'),
       ]);
 
-      if (empRes.ok) {
-        const empData = await empRes.json();
-        setEmployees(empData.employees || []);
-      }
-
-      if (histRes.ok) {
-        const histData = await histRes.json();
-        setBlockHistories(histData.histories || []);
+      if (empRes.ok && histRes.ok) {
+        const [empData, histData] = await Promise.all([empRes.json(), histRes.json()]);
+        const emps = empData.employees || [];
+        const hists = histData.histories || [];
+        setEmployees(emps);
+        setBlockHistories(hists);
+        clientCache.set(cacheKey, { employees: emps, histories: hists });
       }
     } catch (e) {
       console.error('Error fetching client portal data:', e);
@@ -138,7 +149,8 @@ export const ClientPortalShell: React.FC = () => {
         setAlertMsg(`🔒 ${blockTarget.fullName} (${blockTarget.employeeId}) has been BLOCKED.`);
         setBlockTarget(null);
         setBlockRemarks('');
-        await fetchData();
+        clientCache.clear('client_portal_');
+        await fetchData(true);
         setTimeout(() => setAlertMsg(null), 4500);
       } else {
         setAlertMsg(`⚠️ Error: ${data.error || 'Failed to block employee'}`);
@@ -169,7 +181,8 @@ export const ClientPortalShell: React.FC = () => {
         setAlertMsg(`✅ ${unblockTarget.fullName} (${unblockTarget.employeeId}) is now UNBLOCKED & ACTIVE.`);
         setUnblockTarget(null);
         setUnblockRemarks('');
-        await fetchData();
+        clientCache.clear('client_portal_');
+        await fetchData(true);
         setTimeout(() => setAlertMsg(null), 4500);
       } else {
         setAlertMsg(`⚠️ Error: ${data.error || 'Failed to unblock employee'}`);
@@ -956,7 +969,10 @@ export const ClientPortalShell: React.FC = () => {
       <AddEmployeeModal
         isOpen={showAddEmployee}
         onClose={() => setShowAddEmployee(false)}
-        onEmployeeCreated={() => fetchData()}
+        onEmployeeCreated={() => {
+          clientCache.clear('client_portal_');
+          fetchData(true);
+        }}
         preselectedClientId={user?.clientId}
         defaultClientId={user?.clientId}
       />
@@ -967,7 +983,10 @@ export const ClientPortalShell: React.FC = () => {
           isOpen={true}
           employee={editingEmployee}
           onClose={() => setEditingEmployee(null)}
-          onEmployeeUpdated={() => fetchData()}
+          onEmployeeUpdated={() => {
+            clientCache.clear('client_portal_');
+            fetchData(true);
+          }}
         />
       )}
 
@@ -975,7 +994,10 @@ export const ClientPortalShell: React.FC = () => {
       <EmployeeDetailDrawer
         employeeId={selectedEmpId}
         onClose={() => setSelectedEmpId(null)}
-        onRefresh={() => fetchData()}
+        onRefresh={() => {
+          clientCache.clear('client_portal_');
+          fetchData(true);
+        }}
       />
     </div>
   );

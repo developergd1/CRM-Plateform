@@ -31,12 +31,15 @@ import { EmployeeCredentialsModal } from './EmployeeCredentialsModal';
 import { ResetPasswordModal } from './ResetPasswordModal';
 import { isAdminOrHR } from '@/lib/rbac';
 import { EmployeeItem, ClientItem } from '@/types';
+import { clientCache } from '@/lib/client-cache';
 
 export const EmployeesView: React.FC = () => {
   const { user } = useAuth();
-  const [employees, setEmployees] = useState<EmployeeItem[]>([]);
-  const [clients, setClients] = useState<ClientItem[]>([]);
-  const [loading, setLoading] = useState(true);
+  const cachedEmployees = clientCache.get<EmployeeItem[]>('admin_employees_list', 10 * 60 * 1000);
+  const cachedClients = clientCache.get<ClientItem[]>('crm_clients_list', 10 * 60 * 1000);
+  const [employees, setEmployees] = useState<EmployeeItem[]>(() => cachedEmployees || []);
+  const [clients, setClients] = useState<ClientItem[]>(() => cachedClients || []);
+  const [loading, setLoading] = useState(() => !cachedEmployees);
   const [selectedEmpId, setSelectedEmpId] = useState<string | null>(null);
   const [showAddModal, setShowAddModal] = useState(false);
   const [editingEmployee, setEditingEmployee] = useState<any | null>(null);
@@ -64,7 +67,16 @@ export const EmployeesView: React.FC = () => {
   const [statusFilter, setStatusFilter] = useState('');
   const [clientFilter, setClientFilter] = useState('');
 
-  const fetchEmployees = async () => {
+  const fetchEmployees = async (forceRefresh = false) => {
+    const isDefaultQuery = !search && !statusFilter && !clientFilter;
+    if (!forceRefresh && isDefaultQuery) {
+      const cached = clientCache.get<EmployeeItem[]>('admin_employees_list', 10 * 60 * 1000);
+      if (cached && cached.length > 0) {
+        setEmployees(cached);
+        setLoading(false);
+        return;
+      }
+    }
     setLoading(true);
     try {
       const query = new URLSearchParams();
@@ -82,6 +94,9 @@ export const EmployeesView: React.FC = () => {
             emp.user?.role?.name !== 'SUPER_ADMIN'
         );
         setEmployees(nonAdmin);
+        if (isDefaultQuery) {
+          clientCache.set('admin_employees_list', nonAdmin);
+        }
       }
     } catch (e) {
       console.error('Error loading employees:', e);
@@ -91,11 +106,18 @@ export const EmployeesView: React.FC = () => {
   };
 
   const fetchClients = async () => {
+    const cached = clientCache.get<ClientItem[]>('crm_clients_list', 10 * 60 * 1000);
+    if (cached && cached.length > 0) {
+      setClients(cached);
+      return;
+    }
     try {
       const res = await fetch('/api/clients');
       if (res.ok) {
         const data = await res.json();
-        setClients(data.clients || []);
+        const list = data.clients || [];
+        setClients(list);
+        clientCache.set('crm_clients_list', list);
       }
     } catch (e) {}
   };
@@ -131,10 +153,12 @@ export const EmployeesView: React.FC = () => {
       });
       const data = await res.json();
       if (res.ok) {
-        setAlertMsg(`🔒 ${blockTarget.fullName} (${blockTarget.employeeId}) has been BLOCKED. Active sessions revoked.`);
+        setAlertMsg(`⛔ ${blockTarget.fullName} (${blockTarget.employeeId}) has been BLOCKED.`);
         setBlockTarget(null);
+        setCustomBlockReason('');
         setBlockRemarks('');
-        await fetchEmployees();
+        clientCache.remove('admin_employees_list');
+        await fetchEmployees(true);
         setTimeout(() => setAlertMsg(null), 4500);
       } else {
         setAlertMsg(`⚠️ Error: ${data.error || 'Failed to block employee'}`);
@@ -165,7 +189,8 @@ export const EmployeesView: React.FC = () => {
         setAlertMsg(`✅ ${unblockTarget.fullName} (${unblockTarget.employeeId}) is now UNBLOCKED & ACTIVE.`);
         setUnblockTarget(null);
         setUnblockRemarks('');
-        await fetchEmployees();
+        clientCache.remove('admin_employees_list');
+        await fetchEmployees(true);
         setTimeout(() => setAlertMsg(null), 4500);
       } else {
         setAlertMsg(`⚠️ Error: ${data.error || 'Failed to unblock employee'}`);
@@ -190,7 +215,8 @@ export const EmployeesView: React.FC = () => {
         setAlertMsg(`🗑️ ${deleteEmployeeTarget.fullName} (${deleteEmployeeTarget.employeeId}) has been permanently deleted.`);
         setDeleteEmployeeTarget(null);
         setDeleteError(null);
-        await fetchEmployees();
+        clientCache.remove('admin_employees_list');
+        await fetchEmployees(true);
         setTimeout(() => setAlertMsg(null), 4500);
       } else {
         setDeleteError(data.error || 'Failed to delete employee record.');
@@ -268,6 +294,15 @@ export const EmployeesView: React.FC = () => {
         </div>
 
         <div className="flex items-center gap-2.5">
+          <button
+            onClick={() => fetchEmployees(true)}
+            className="flex items-center gap-2 px-3.5 py-2.5 bg-slate-50 hover:bg-slate-100 text-slate-700 font-bold text-xs rounded-xl border border-slate-200 transition-all shadow-sm"
+            title="Refresh Employees List"
+          >
+            <RefreshCw className="w-4 h-4 text-slate-500" />
+            <span>Refresh</span>
+          </button>
+
           <button
             onClick={() => exportEmployeesCSV()}
             className="flex items-center gap-2 px-3.5 py-2.5 bg-slate-50 hover:bg-slate-100 text-slate-700 font-bold text-xs rounded-xl border border-slate-200 transition-all"
@@ -786,7 +821,11 @@ export const EmployeesView: React.FC = () => {
       <AddEmployeeModal
         isOpen={showAddModal}
         onClose={() => setShowAddModal(false)}
-        onEmployeeCreated={() => fetchEmployees()}
+        onEmployeeCreated={() => {
+          clientCache.remove('admin_employees_list');
+          clientCache.remove('crm_clients_list');
+          fetchEmployees(true);
+        }}
       />
 
       {/* Edit Employee Modal */}
@@ -795,7 +834,10 @@ export const EmployeesView: React.FC = () => {
           isOpen={true}
           employee={editingEmployee}
           onClose={() => setEditingEmployee(null)}
-          onEmployeeUpdated={() => fetchEmployees()}
+          onEmployeeUpdated={() => {
+            clientCache.remove('admin_employees_list');
+            fetchEmployees(true);
+          }}
         />
       )}
 
@@ -805,7 +847,10 @@ export const EmployeesView: React.FC = () => {
           isOpen={true}
           employee={resetPasswordTarget}
           onClose={() => setResetPasswordTarget(null)}
-          onSuccess={() => fetchEmployees()}
+          onSuccess={() => {
+            clientCache.remove('admin_employees_list');
+            fetchEmployees(true);
+          }}
         />
       )}
 
@@ -813,7 +858,10 @@ export const EmployeesView: React.FC = () => {
       <EmployeeDetailDrawer
         employeeId={selectedEmpId}
         onClose={() => setSelectedEmpId(null)}
-        onRefresh={() => fetchEmployees()}
+        onRefresh={() => {
+          clientCache.remove('admin_employees_list');
+          fetchEmployees(true);
+        }}
       />
     </div>
   );

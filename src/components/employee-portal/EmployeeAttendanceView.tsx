@@ -14,14 +14,18 @@ import {
   Info,
   UserCheck,
   Loader2,
+  RefreshCw,
 } from 'lucide-react';
 import { formatTo12Hour, formatClockTime } from '@/components/common/TimePicker12';
+import { clientCache } from '@/lib/client-cache';
 
 export const EmployeeAttendanceView: React.FC = () => {
   const { user } = useAuth();
-  const [loading, setLoading] = useState(true);
+  const todayCacheKey = `emp_today_${user?.employeeId || 'emp'}`;
+  const initialToday = clientCache.get<any>(todayCacheKey, 10 * 60 * 1000);
+  const [loading, setLoading] = useState(() => !initialToday);
   const [actionLoading, setActionLoading] = useState(false);
-  const [todayData, setTodayData] = useState<any>(null);
+  const [todayData, setTodayData] = useState<any>(() => initialToday);
   const [historyData, setHistoryData] = useState<any>(null);
   const [currentTime, setCurrentTime] = useState<Date>(new Date());
   const [selectedBreakType, setSelectedBreakType] = useState<string>('TEA');
@@ -32,39 +36,57 @@ export const EmployeeAttendanceView: React.FC = () => {
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
   });
 
-  // Clock ticker
+  // Clock ticker (only updates local UI time)
   useEffect(() => {
     const timer = setInterval(() => setCurrentTime(new Date()), 1000);
     return () => clearInterval(timer);
   }, []);
 
   // Fetch today's attendance & active session
-  const fetchTodayData = useCallback(async () => {
+  const fetchTodayData = useCallback(async (forceRefresh = false) => {
+    if (!forceRefresh) {
+      const cached = clientCache.get<any>(todayCacheKey, 10 * 60 * 1000);
+      if (cached) {
+        setTodayData(cached);
+        setLoading(false);
+        return;
+      }
+    }
     try {
       const res = await fetch('/api/attendance/today');
       if (res.ok) {
         const data = await res.json();
         setTodayData(data);
+        clientCache.set(todayCacheKey, data);
       }
     } catch (e) {
       console.error('Failed to load today attendance:', e);
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [todayCacheKey]);
 
   // Fetch monthly history
-  const fetchHistory = useCallback(async () => {
+  const fetchHistory = useCallback(async (forceRefresh = false) => {
+    const histCacheKey = `emp_hist_${user?.employeeId || 'emp'}_${selectedMonth}`;
+    if (!forceRefresh) {
+      const cached = clientCache.get<any>(histCacheKey, 15 * 60 * 1000);
+      if (cached) {
+        setHistoryData(cached);
+        return;
+      }
+    }
     try {
       const res = await fetch(`/api/attendance/history?month=${selectedMonth}`);
       if (res.ok) {
         const data = await res.json();
         setHistoryData(data);
+        clientCache.set(histCacheKey, data);
       }
     } catch (e) {
       console.error('Failed to load attendance history:', e);
     }
-  }, [selectedMonth]);
+  }, [selectedMonth, user?.employeeId]);
 
   useEffect(() => {
     fetchTodayData();
@@ -77,14 +99,11 @@ export const EmployeeAttendanceView: React.FC = () => {
   const isCheckedIn = Boolean(attendance?.checkInTime);
   const isCheckedOut = Boolean(attendance?.checkOutTime);
 
-  // Client telemetry hook
+  // Client telemetry hook (silent heartbeat, no full page auto-refresh)
   const { isIdle, dismissIdleWarning } = useWorkTracker({
     sessionId: activeSessionId,
     enabled: isCheckedIn && !isCheckedOut && !activeBreak,
     idleThresholdMinutes: todayData?.policy?.idleThresholdMinutes || 5,
-    onHeartbeatSync: () => {
-      fetchTodayData();
-    },
   });
 
   // Handlers
@@ -96,8 +115,9 @@ export const EmployeeAttendanceView: React.FC = () => {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Check-in failed');
       alert(data.message || 'Checked in successfully!');
-      await fetchTodayData();
-      await fetchHistory();
+      clientCache.remove(todayCacheKey);
+      await fetchTodayData(true);
+      await fetchHistory(true);
     } catch (err: any) {
       alert(err.message);
     } finally {
@@ -113,8 +133,9 @@ export const EmployeeAttendanceView: React.FC = () => {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Check-out failed');
       alert(data.message || 'Checked out successfully!');
-      await fetchTodayData();
-      await fetchHistory();
+      clientCache.remove(todayCacheKey);
+      await fetchTodayData(true);
+      await fetchHistory(true);
     } catch (err: any) {
       alert(err.message);
     } finally {
@@ -132,7 +153,8 @@ export const EmployeeAttendanceView: React.FC = () => {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Failed to start break');
-      await fetchTodayData();
+      clientCache.remove(todayCacheKey);
+      await fetchTodayData(true);
     } catch (err: any) {
       alert(err.message);
     } finally {
@@ -146,7 +168,8 @@ export const EmployeeAttendanceView: React.FC = () => {
       const res = await fetch('/api/attendance/break/end', { method: 'POST' });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Failed to end break');
-      await fetchTodayData();
+      clientCache.remove(todayCacheKey);
+      await fetchTodayData(true);
     } catch (err: any) {
       alert(err.message);
     } finally {
@@ -268,6 +291,17 @@ export const EmployeeAttendanceView: React.FC = () => {
             <UserCheck className="w-4 h-4 text-growth-teal" />
             <span>Attendance & Work Actions</span>
           </h3>
+          <button
+            onClick={() => {
+              fetchTodayData(true);
+              fetchHistory(true);
+            }}
+            title="Refresh Attendance Data"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-slate-200 text-xs font-bold text-slate-600 hover:bg-slate-50 transition shadow-sm"
+          >
+            <RefreshCw className="w-3.5 h-3.5" />
+            <span>Refresh</span>
+          </button>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-2">

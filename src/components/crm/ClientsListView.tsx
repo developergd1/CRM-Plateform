@@ -32,11 +32,13 @@ import { EmployeeDetailDrawer } from '../employees/EmployeeDetailDrawer';
 import { ClientCredentialsModal } from './ClientCredentialsModal';
 import { isAdminOrHR } from '@/lib/rbac';
 import { ClientItem } from '@/types';
+import { clientCache } from '@/lib/client-cache';
 
 export const ClientsListView: React.FC = () => {
   const { user } = useAuth();
-  const [clients, setClients] = useState<ClientItem[]>([]);
-  const [loading, setLoading] = useState(true);
+  const cachedClients = clientCache.get<ClientItem[]>('crm_clients_list', 10 * 60 * 1000);
+  const [clients, setClients] = useState<ClientItem[]>(() => cachedClients || []);
+  const [loading, setLoading] = useState(() => !cachedClients);
   const [showAddModal, setShowAddModal] = useState(false);
   const [editingClient, setEditingClient] = useState<ClientItem | null>(null);
   const [selectedClient, setSelectedClient] = useState<any | null>(null);
@@ -87,7 +89,16 @@ export const ClientsListView: React.FC = () => {
   const [statusFilter, setStatusFilter] = useState('');
   const [industryFilter, setIndustryFilter] = useState('');
 
-  const fetchClients = async () => {
+  const fetchClients = async (forceRefresh = false) => {
+    const isDefaultQuery = !search && !statusFilter && !industryFilter;
+    if (!forceRefresh && isDefaultQuery) {
+      const cached = clientCache.get<ClientItem[]>('crm_clients_list', 10 * 60 * 1000);
+      if (cached && cached.length > 0) {
+        setClients(cached);
+        setLoading(false);
+        return;
+      }
+    }
     setLoading(true);
     try {
       const query = new URLSearchParams();
@@ -98,7 +109,11 @@ export const ClientsListView: React.FC = () => {
       const res = await fetch(`/api/clients?${query.toString()}`);
       if (res.ok) {
         const data = await res.json();
-        setClients(data.clients || []);
+        const clientList = data.clients || [];
+        setClients(clientList);
+        if (isDefaultQuery) {
+          clientCache.set('crm_clients_list', clientList);
+        }
       }
     } catch (e) {
       console.error('Error fetching clients:', e);
@@ -159,7 +174,8 @@ export const ClientsListView: React.FC = () => {
       if (res.ok) {
         setAlertMsg(`🗑️ ${deleteClientTarget.companyName} (${deleteClientTarget.clientId}) has been deleted.`);
         setDeleteClientTarget(null);
-        await fetchClients();
+        clientCache.remove('crm_clients_list');
+        await fetchClients(true);
         setTimeout(() => setAlertMsg(null), 4000);
       } else {
         alert(data.error || 'Failed to delete client.');
@@ -193,6 +209,15 @@ export const ClientsListView: React.FC = () => {
         </div>
 
         <div className="flex items-center gap-2.5">
+          <button
+            onClick={() => fetchClients(true)}
+            className="flex items-center gap-2 px-3.5 py-2.5 bg-slate-50 hover:bg-slate-100 text-slate-700 font-bold text-xs rounded-xl border border-slate-200 transition-all shadow-sm"
+            title="Refresh Client List"
+          >
+            <RefreshCw className="w-4 h-4 text-slate-500" />
+            <span>Refresh</span>
+          </button>
+
           <button
             onClick={() => exportClientsCSV()}
             className="flex items-center gap-2 px-3.5 py-2.5 bg-slate-50 hover:bg-slate-100 text-slate-700 font-bold text-xs rounded-xl border border-slate-200 transition-all"
@@ -486,7 +511,10 @@ export const ClientsListView: React.FC = () => {
       <AddClientModal
         isOpen={showAddModal}
         onClose={() => setShowAddModal(false)}
-        onClientCreated={() => fetchClients()}
+        onClientCreated={() => {
+          clientCache.remove('crm_clients_list');
+          fetchClients(true);
+        }}
       />
 
       {/* Edit Client Modal */}
@@ -496,7 +524,8 @@ export const ClientsListView: React.FC = () => {
           client={editingClient}
           onClose={() => setEditingClient(null)}
           onClientUpdated={() => {
-            fetchClients();
+            clientCache.remove('crm_clients_list');
+            fetchClients(true);
             if (selectedClient?.id === editingClient.id) {
               viewClientDetails(editingClient.id);
             }
@@ -510,7 +539,11 @@ export const ClientsListView: React.FC = () => {
           isOpen={true}
           preselectedClientId={onboardClientTarget}
           onClose={() => setOnboardClientTarget(null)}
-          onEmployeeCreated={() => fetchClients()}
+          onEmployeeCreated={() => {
+            clientCache.remove('crm_clients_list');
+            clientCache.remove('admin_employees_list');
+            fetchClients(true);
+          }}
         />
       )}
 

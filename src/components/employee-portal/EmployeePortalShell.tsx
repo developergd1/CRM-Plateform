@@ -20,21 +20,26 @@ import {
   Clock,
   CheckCircle2,
 } from 'lucide-react';
+import { clientCache } from '@/lib/client-cache';
 
 export const EmployeePortalShell: React.FC = () => {
   const { user, logout } = useAuth();
   const [activeTab, setActiveTab] = useState<'attendance' | 'profile'>('attendance');
-  const [employeeProfile, setEmployeeProfile] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
+  const cacheKey = user?.employeeId ? `emp_profile_${user.employeeId}` : null;
+  const initialProfile = cacheKey ? clientCache.get<any>(cacheKey, 30 * 60 * 1000) : null;
+  const [employeeProfile, setEmployeeProfile] = useState<any>(() => initialProfile);
+  const [loading, setLoading] = useState(() => !initialProfile);
 
   useEffect(() => {
-    const fetchProfile = async () => {
+    const fetchProfile = async (force = false) => {
       if (!user?.employeeId) return;
+      if (!force && initialProfile) return;
       try {
         const res = await fetch(`/api/employees/${user.employeeId}`);
         if (res.ok) {
           const data = await res.json();
           setEmployeeProfile(data.employee);
+          if (cacheKey) clientCache.set(cacheKey, data.employee);
         }
       } catch (e) {
         console.error('Error fetching employee profile:', e);
@@ -43,7 +48,7 @@ export const EmployeePortalShell: React.FC = () => {
       }
     };
     fetchProfile();
-  }, [user]);
+  }, [user?.employeeId, cacheKey, initialProfile]);
 
   const emp = employeeProfile || user;
 

@@ -18,32 +18,44 @@ import {
   Sparkles,
 } from 'lucide-react';
 import { formatTo12Hour, formatClockTime } from '@/components/common/TimePicker12';
+import { clientCache } from '@/lib/client-cache';
 
 export const ClientAttendanceView: React.FC = () => {
   const [selectedMonth, setSelectedMonth] = useState(() => {
     const d = new Date();
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
   });
+  const cacheKey = `client_attendance_${selectedMonth}`;
+  const initialCached = clientCache.get<any>(cacheKey, 10 * 60 * 1000);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('ALL');
-  const [loading, setLoading] = useState(true);
-  const [historyData, setHistoryData] = useState<any>(null);
+  const [loading, setLoading] = useState(() => !initialCached);
+  const [historyData, setHistoryData] = useState<any>(() => initialCached);
 
   // Fetch Attendance History
-  const fetchHistory = useCallback(async () => {
+  const fetchHistory = useCallback(async (forceRefresh = false) => {
+    if (!forceRefresh) {
+      const cached = clientCache.get<any>(cacheKey, 10 * 60 * 1000);
+      if (cached) {
+        setHistoryData(cached);
+        setLoading(false);
+        return;
+      }
+    }
     setLoading(true);
     try {
       const res = await fetch(`/api/attendance/history?month=${selectedMonth}`);
       if (res.ok) {
         const data = await res.json();
         setHistoryData(data);
+        clientCache.set(cacheKey, data);
       }
     } catch (e) {
       console.error('Error fetching client attendance history:', e);
     } finally {
       setLoading(false);
     }
-  }, [selectedMonth]);
+  }, [selectedMonth, cacheKey]);
 
   useEffect(() => {
     fetchHistory();
@@ -112,7 +124,7 @@ export const ClientAttendanceView: React.FC = () => {
           </button>
 
           <button
-            onClick={() => fetchHistory()}
+            onClick={() => fetchHistory(true)}
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white hover:bg-slate-50 border border-slate-200 text-slate-700 text-xs font-bold transition shadow-sm"
           >
             <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin text-growth-teal' : ''}`} />

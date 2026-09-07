@@ -18,22 +18,35 @@ import {
   AlertCircle,
 } from 'lucide-react';
 import { formatTo12Hour, formatClockTime } from '@/components/common/TimePicker12';
+import { clientCache } from '@/lib/client-cache';
 
 export const ClientWorkforceView: React.FC = () => {
-  const [loading, setLoading] = useState(true);
-  const [data, setData] = useState<any>(null);
+  const cacheKey = 'client_workforce_live';
+  const initialCached = clientCache.get<any>(cacheKey, 5 * 60 * 1000);
+  const [loading, setLoading] = useState(() => !initialCached);
+  const [data, setData] = useState<any>(() => initialCached);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('ALL');
   const [selectedTimelineEmp, setSelectedTimelineEmp] = useState<any | null>(null);
   const [timelineEvents, setTimelineEvents] = useState<any[]>([]);
   const [timelineLoading, setTimelineLoading] = useState(false);
 
-  const fetchLiveWorkforce = useCallback(async () => {
+  const fetchLiveWorkforce = useCallback(async (forceRefresh = false) => {
+    if (!forceRefresh) {
+      const cached = clientCache.get<any>(cacheKey, 5 * 60 * 1000);
+      if (cached) {
+        setData(cached);
+        setLoading(false);
+        return;
+      }
+    }
+    setLoading(true);
     try {
       const res = await fetch('/api/workforce/live');
       if (res.ok) {
         const json = await res.json();
         setData(json);
+        clientCache.set(cacheKey, json);
       }
     } catch (err) {
       console.error('Failed to load workforce:', err);
@@ -44,9 +57,6 @@ export const ClientWorkforceView: React.FC = () => {
 
   useEffect(() => {
     fetchLiveWorkforce();
-    // Auto refresh every 30 seconds
-    const interval = setInterval(fetchLiveWorkforce, 30000);
-    return () => clearInterval(interval);
   }, [fetchLiveWorkforce]);
 
   const fetchTimeline = async (emp: any) => {
@@ -144,7 +154,7 @@ export const ClientWorkforceView: React.FC = () => {
         </div>
 
         <button
-          onClick={fetchLiveWorkforce}
+          onClick={() => fetchLiveWorkforce(true)}
           className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-white hover:bg-slate-50 border border-slate-200 text-slate-700 text-xs font-bold transition shadow-sm self-start sm:self-auto"
         >
           <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin text-growth-teal' : ''}`} />

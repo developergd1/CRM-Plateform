@@ -42,8 +42,6 @@ export const Header: React.FC<{ onSearchSelect?: (term: string) => void }> = ({ 
 
   React.useEffect(() => {
     fetchResetRequestsCount();
-    const interval = setInterval(fetchResetRequestsCount, 30000);
-    return () => clearInterval(interval);
   }, []);
 
   const handlePunchIn = async () => {

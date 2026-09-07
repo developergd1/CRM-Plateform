@@ -17,21 +17,33 @@ import {
 import { AddClientModal } from '../crm/AddClientModal';
 import { AddEmployeeModal } from '../employees/AddEmployeeModal';
 
+import { clientCache } from '@/lib/client-cache';
+
 export const DashboardView: React.FC<{ onNavigate: (tab: string) => void }> = ({ onNavigate }) => {
   const { user } = useAuth();
-  const [stats, setStats] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
+  const cacheKey = `dashboard_stats_${user?.role || 'user'}_${user?.id || 'admin'}`;
+  const [stats, setStats] = useState<any>(() => clientCache.get<any>(`dashboard_stats_${user?.role || 'user'}_${user?.id || 'admin'}`));
+  const [loading, setLoading] = useState(() => !clientCache.get<any>(`dashboard_stats_${user?.role || 'user'}_${user?.id || 'admin'}`));
 
   // Modals
   const [showAddClient, setShowAddClient] = useState(false);
   const [showAddEmployee, setShowAddEmployee] = useState(false);
 
-  const fetchDashboardData = async () => {
+  const fetchDashboardData = async (forceRefresh = false) => {
+    if (!forceRefresh) {
+      const cached = clientCache.get<any>(cacheKey);
+      if (cached) {
+        setStats(cached);
+        setLoading(false);
+        return;
+      }
+    }
     try {
       const res = await fetch('/api/analytics/dashboard');
       if (res.ok) {
         const json = await res.json();
         setStats(json.stats);
+        clientCache.set(cacheKey, json.stats);
       }
     } catch (e) {
       console.error('Error loading dashboard stats:', e);
