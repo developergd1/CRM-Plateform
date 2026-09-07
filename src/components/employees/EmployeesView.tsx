@@ -21,7 +21,9 @@ import {
   X,
   KeyRound,
   Trash2,
+  Clock,
 } from 'lucide-react';
+import { formatTo12Hour } from '@/components/common/TimePicker12';
 import { EmployeeDetailDrawer } from './EmployeeDetailDrawer';
 import { AddEmployeeModal } from './AddEmployeeModal';
 import { EditEmployeeModal } from './EditEmployeeModal';
@@ -46,6 +48,7 @@ export const EmployeesView: React.FC = () => {
   // Block Modal state
   const [blockTarget, setBlockTarget] = useState<any | null>(null);
   const [blockReason, setBlockReason] = useState('Disciplinary Policy Breach');
+  const [customBlockReason, setCustomBlockReason] = useState('');
   const [blockRemarks, setBlockRemarks] = useState('');
 
   // Unblock Modal state
@@ -72,7 +75,13 @@ export const EmployeesView: React.FC = () => {
       const res = await fetch(`/api/employees?${query.toString()}`);
       if (res.ok) {
         const data = await res.json();
-        setEmployees(data.employees || []);
+        const nonAdmin = (data.employees || []).filter(
+          (emp: any) =>
+            emp.employeeId !== 'GI-EMP-000001' &&
+            emp.user?.role?.name !== 'ADMIN' &&
+            emp.user?.role?.name !== 'SUPER_ADMIN'
+        );
+        setEmployees(nonAdmin);
       }
     } catch (e) {
       console.error('Error loading employees:', e);
@@ -92,7 +101,10 @@ export const EmployeesView: React.FC = () => {
   };
 
   useEffect(() => {
-    fetchEmployees();
+    const timer = setTimeout(() => {
+      fetchEmployees();
+    }, 250);
+    return () => clearTimeout(timer);
   }, [search, statusFilter, clientFilter]);
 
   useEffect(() => {
@@ -104,12 +116,16 @@ export const EmployeesView: React.FC = () => {
     if (!blockTarget) return;
 
     setActionLoading(true);
+    const finalReason = blockReason === 'Other Administrative Reason'
+      ? (customBlockReason.trim() || 'Other Administrative Reason')
+      : blockReason;
+
     try {
       const res = await fetch(`/api/employees/${blockTarget.id}/block`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          reason: blockReason,
+          reason: finalReason,
           remarks: blockRemarks,
         }),
       });
@@ -413,6 +429,14 @@ export const EmployeesView: React.FC = () => {
                         <div className="text-[10px] text-slate-400">
                           {emp.departmentName || emp.department?.name || 'General'}
                         </div>
+                        <div className="mt-1 inline-flex items-center gap-1 font-mono text-[10px] font-bold text-teal-700 bg-teal-50 px-2 py-0.5 rounded border border-teal-200">
+                          <Clock className="w-3 h-3 text-teal-600 shrink-0" />
+                          <span>
+                            {emp.shiftStartTime === 'FLEXIBLE'
+                              ? 'Flexible Shift'
+                              : `${formatTo12Hour(emp.shiftStartTime || '10:00')} – ${formatTo12Hour(emp.shiftEndTime || '19:00')}`}
+                          </span>
+                        </div>
                       </td>
 
                       {/* Joining Date */}
@@ -577,8 +601,8 @@ export const EmployeesView: React.FC = () => {
 
       {/* Delete Employee Confirmation Modal */}
       {deleteEmployeeTarget && (
-        <div className="fixed inset-0 z-50 bg-slate-950/75 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl space-y-4 border border-rose-200 animate-in fade-in">
+        <div className="fixed inset-0 z-50 bg-slate-950/75 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
+          <div className="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl space-y-4 border border-rose-200 animate-in fade-in my-auto max-h-[90vh] overflow-y-auto">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-xl bg-rose-100 text-rose-600 flex items-center justify-center font-bold">
                 <Trash2 className="w-5 h-5" />
@@ -628,7 +652,7 @@ export const EmployeesView: React.FC = () => {
         <div className="fixed inset-0 bg-slate-950/60 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-in fade-in">
           <form
             onSubmit={handleBlockSubmit}
-            className="bg-white rounded-3xl p-6 max-w-md w-full shadow-2xl space-y-4 border border-slate-200"
+            className="bg-white rounded-3xl p-6 max-w-md w-full shadow-2xl space-y-4 border border-slate-200 my-auto max-h-[90vh] overflow-y-auto"
           >
             <div className="flex items-center gap-2 text-rose-600 font-black text-base">
               <ShieldAlert className="w-5 h-5" />
@@ -646,7 +670,12 @@ export const EmployeesView: React.FC = () => {
               <label className="block text-xs font-bold text-slate-700 mb-1">Block Reason *</label>
               <select
                 value={blockReason}
-                onChange={(e) => setBlockReason(e.target.value)}
+                onChange={(e) => {
+                  setBlockReason(e.target.value);
+                  if (e.target.value !== 'Other Administrative Reason') {
+                    setCustomBlockReason('');
+                  }
+                }}
                 className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:bg-white focus:outline-none"
               >
                 <option value="Disciplinary Policy Breach">Disciplinary Policy Breach</option>
@@ -656,6 +685,20 @@ export const EmployeesView: React.FC = () => {
                 <option value="Other Administrative Reason">Other Administrative Reason</option>
               </select>
             </div>
+
+            {blockReason === 'Other Administrative Reason' && (
+              <div className="animate-in fade-in slide-in-from-top-1 duration-200">
+                <label className="block text-xs font-bold text-slate-700 mb-1">Specify Administrative Reason *</label>
+                <input
+                  type="text"
+                  required
+                  placeholder="e.g. Compliance Audit, Prolonged Medical Leave..."
+                  value={customBlockReason}
+                  onChange={(e) => setCustomBlockReason(e.target.value)}
+                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:bg-white focus:outline-none focus:ring-1 focus:ring-growth-teal"
+                />
+              </div>
+            )}
 
             <div>
               <label className="block text-xs font-bold text-slate-700 mb-1">Additional Remarks</label>
@@ -693,7 +736,7 @@ export const EmployeesView: React.FC = () => {
         <div className="fixed inset-0 bg-slate-950/60 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-in fade-in">
           <form
             onSubmit={handleUnblockSubmit}
-            className="bg-white rounded-3xl p-6 max-w-md w-full shadow-2xl space-y-4 border border-slate-200"
+            className="bg-white rounded-3xl p-6 max-w-md w-full shadow-2xl space-y-4 border border-slate-200 my-auto max-h-[90vh] overflow-y-auto"
           >
             <div className="flex items-center gap-2 text-emerald-600 font-black text-base">
               <ShieldCheck className="w-5 h-5" />

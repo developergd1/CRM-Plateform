@@ -132,8 +132,8 @@ export const AssetsView: React.FC = () => {
 
       {/* Register Asset Modal */}
       {showAddModal && (
-        <div className="fixed inset-0 bg-slate-950/60 flex items-center justify-center p-4 z-50 animate-in fade-in">
-          <form onSubmit={handleCreateAsset} className="bg-white rounded-3xl p-6 max-w-md w-full shadow-2xl space-y-4 border border-slate-200 text-xs">
+        <div className="fixed inset-0 bg-slate-950/60 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-in fade-in overflow-y-auto">
+          <form onSubmit={handleCreateAsset} className="bg-white rounded-3xl p-6 max-w-md w-full shadow-2xl space-y-4 border border-slate-200 text-xs my-auto max-h-[90vh] overflow-y-auto">
             <h3 className="text-base font-black text-slate-900">Register Company Hardware Asset</h3>
 
             <div>

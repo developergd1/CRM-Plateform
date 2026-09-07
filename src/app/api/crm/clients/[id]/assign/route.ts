@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
+import { prisma, getClientLookup } from '@/lib/prisma';
 import { getSessionUser } from '@/lib/auth';
 import { canReassignClients } from '@/lib/rbac';
 import { logAuditEvent } from '@/lib/audit';
@@ -24,7 +24,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     }
 
     const client = await prisma.client.findFirst({
-      where: { OR: [{ id }, { clientId: id }] },
+      where: getClientLookup(id),
       include: { assignedEmployee: true },
     });
     if (!client) return NextResponse.json({ error: 'Client not found' }, { status: 404 });

@@ -37,10 +37,15 @@ export async function POST(req: NextRequest) {
     });
 
     // If no user exists and admin login is attempted, auto-seed clean default admin & roles
-    if (!user && (lookupLower === 'admin@growthindia.in' || lookupUpper === 'GI-EMP-000001' || portalType === 'ADMIN')) {
+    if (!user && (lookupLower === 'admin@growthindia.co' || lookupLower === 'admin@growthindia.in' || lookupUpper === 'GI-EMP-000001' || portalType === 'ADMIN')) {
       await ensureDefaultAdmin();
       user = await prisma.user.findFirst({
-        where: { email: 'admin@growthindia.in' },
+        where: {
+          OR: [
+            { email: 'admin@growthindia.co' },
+            { email: 'admin@growthindia.in' },
+          ],
+        },
         include: {
           role: true,
           employeeProfile: {
@@ -186,9 +191,7 @@ export async function POST(req: NextRequest) {
       });
       return NextResponse.json(
         {
-          error: '🔒 Security Policy: Administrator accounts are strictly protected and cannot log in through the public employee/client portal. Please authenticate at the secure Admin Console at /growthIndia.',
-          isAdminAccount: true,
-          adminLoginUrl: '/growthIndia',
+          error: '🔒 Security Policy: Administrator accounts cannot log in through the public portal. Access denied.',
         },
         { status: 403 }
       );
@@ -224,20 +227,14 @@ export async function POST(req: NextRequest) {
       employeeId: user.employeeProfile?.employeeId || 'GI-EMP-000001',
     });
 
-    // Create WorkSession for employees
-    if (user.employeeProfile) {
-      const sessionId = `WKS-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
-      await prisma.workSession.create({
-        data: {
-          sessionId,
-          userId: user.id,
-          employeeId: user.employeeProfile.id,
-          ipAddress: ip,
-          userAgent,
-          deviceInfo: userAgent.includes('Windows') ? 'Windows PC' : 'Web Device',
-          status: 'ACTIVE',
-        },
-      });
+    // Create or resume WorkSession ONLY for regular employees (never for ADMIN / CLIENT / Administration)
+    if (
+      user.role.name === 'EMPLOYEE' &&
+      user.employeeProfile &&
+      user.employeeProfile.employeeId !== 'GI-EMP-000001'
+    ) {
+      const { getOrCreateActiveSession } = await import('@/lib/session-manager');
+      await getOrCreateActiveSession(user.id, user.employeeProfile.id, ip, userAgent);
     }
 
     // Update user last login

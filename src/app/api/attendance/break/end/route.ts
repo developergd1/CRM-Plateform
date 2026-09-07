@@ -1,14 +1,20 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getSessionUser } from '@/lib/auth';
+import { getEmployeeActiveSession, recordActivityEvent } from '@/lib/session-manager';
 
 export async function POST(req: NextRequest) {
   try {
     const user = await getSessionUser(req);
     if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-    const employee = await prisma.employee.findUnique({
-      where: { employeeId: user.employeeId },
+    const employee = await prisma.employee.findFirst({
+      where: {
+        OR: [
+          { userId: user.id },
+          ...(user.employeeId ? [{ employeeId: user.employeeId }] : []),
+        ],
+      },
     });
     if (!employee) return NextResponse.json({ error: 'Employee not found' }, { status: 404 });
 
@@ -25,7 +31,7 @@ export async function POST(req: NextRequest) {
     });
 
     if (!attendance) {
-      return NextResponse.json({ error: 'No attendance record for today.' }, { status: 400 });
+      return NextResponse.json({ error: 'No attendance record found for today.' }, { status: 400 });
     }
 
     const openBreak = attendance.breaks.find((b) => !b.breakEndTime);
@@ -55,8 +61,26 @@ export async function POST(req: NextRequest) {
       data: { totalBreakMinutes },
     });
 
-    return NextResponse.json({ success: true, break: updatedBreak });
+    // Activity log in active session
+    const activeSession = await getEmployeeActiveSession(employee.id);
+    if (activeSession) {
+      await recordActivityEvent({
+        sessionId: activeSession.sessionId,
+        employeeId: employee.id,
+        eventType: 'BREAK_END',
+        description: `Break ended (${openBreak.breakType}) after ${duration} minutes`,
+        metadata: { breakType: openBreak.breakType, durationMinutes: duration },
+      });
+    }
+
+    return NextResponse.json({
+      success: true,
+      message: `${openBreak.breakType} break ended (${duration} mins)`,
+      break: updatedBreak,
+      totalBreakMinutes,
+    });
   } catch (error: any) {
+    console.error('Break end error:', error);
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }

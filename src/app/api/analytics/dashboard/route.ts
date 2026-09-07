@@ -29,6 +29,13 @@ export async function GET(req: NextRequest) {
         totalClients = 1;
         clientsList = [clientRecord];
 
+        // Fetch client employee IDs first for blazing fast indexed queries
+        const clientEmployees = await prisma.employee.findMany({
+          where: { clientId: clientRecord.id },
+          select: { id: true },
+        });
+        const clientEmpIds = clientEmployees.map((e) => e.id);
+
         [
           totalEmployees,
           activeEmployees,
@@ -52,29 +59,47 @@ export async function GET(req: NextRequest) {
               },
             },
           }),
-          prisma.employeeBlockHistory.findMany({
-            where: { employee: { clientId: clientRecord.id } },
-            take: 6,
-            orderBy: { actionDate: 'desc' },
-            include: {
-              employee: {
-                select: {
-                  employeeId: true,
-                  fullName: true,
-                  designation: true,
-                  client: {
+          clientEmpIds.length > 0
+            ? prisma.employeeBlockHistory.findMany({
+                where: { employeeId: { in: clientEmpIds } },
+                take: 6,
+                orderBy: { actionDate: 'desc' },
+                include: {
+                  employee: {
                     select: {
-                      clientId: true,
-                      companyName: true,
+                      employeeId: true,
+                      fullName: true,
+                      designation: true,
+                      client: {
+                        select: {
+                          clientId: true,
+                          companyName: true,
+                        },
+                      },
                     },
                   },
                 },
-              },
-            },
-          }),
+              })
+            : Promise.resolve([]),
         ]);
       }
     } else {
+      // Find admin user IDs once to avoid slow 2-stage multi-collection lookup pipelines in MongoDB
+      const adminUsers = await prisma.user.findMany({
+        where: {
+          role: {
+            name: { in: ['ADMIN', 'SUPER_ADMIN'] },
+          },
+        },
+        select: { id: true },
+      });
+      const adminUserIds = adminUsers.map((u) => u.id);
+
+      const employeeBaseWhere = {
+        employeeId: { not: 'GI-EMP-000001' },
+        ...(adminUserIds.length > 0 ? { userId: { notIn: adminUserIds } } : {}),
+      };
+
       [
         totalClients,
         totalEmployees,
@@ -85,10 +110,11 @@ export async function GET(req: NextRequest) {
         clientsList,
       ] = await Promise.all([
         prisma.client.count(),
-        prisma.employee.count(),
-        prisma.employee.count({ where: { status: 'ACTIVE', isBlocked: false } }),
-        prisma.employee.count({ where: { OR: [{ status: 'BLOCKED' }, { isBlocked: true }] } }),
+        prisma.employee.count({ where: employeeBaseWhere }),
+        prisma.employee.count({ where: { ...employeeBaseWhere, status: 'ACTIVE', isBlocked: false } }),
+        prisma.employee.count({ where: { ...employeeBaseWhere, OR: [{ status: 'BLOCKED' }, { isBlocked: true }] } }),
         prisma.employee.findMany({
+          where: employeeBaseWhere,
           take: 6,
           orderBy: { createdAt: 'desc' },
           include: {
@@ -138,7 +164,7 @@ export async function GET(req: NextRequest) {
         totalEmployees,
         activeEmployees,
         blockedEmployees,
-        inactiveEmployees: totalEmployees - (activeEmployees + blockedEmployees),
+        inactiveEmployees: Math.max(0, totalEmployees - (activeEmployees + blockedEmployees)),
         recentOnboardings,
         recentBlockHistories,
         clientsList,
@@ -146,6 +172,6 @@ export async function GET(req: NextRequest) {
     });
   } catch (error: any) {
     console.error('Error fetching dashboard stats:', error);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ error: error.message || 'Failed to fetch dashboard stats' }, { status: 500 });
   }
 }

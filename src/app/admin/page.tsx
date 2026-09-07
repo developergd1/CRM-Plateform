@@ -1,8 +1,6 @@
-'use client';
-
-import React from 'react';
-import { AdminConsoleShell } from '@/components/auth/AdminConsoleShell';
+import { notFound } from 'next/navigation';
 
 export default function AdminPage() {
-  return <AdminConsoleShell />;
+  notFound();
 }
+

@@ -28,6 +28,7 @@ import {
 import { AddClientModal } from './AddClientModal';
 import { EditClientModal } from './EditClientModal';
 import { AddEmployeeModal } from '../employees/AddEmployeeModal';
+import { EmployeeDetailDrawer } from '../employees/EmployeeDetailDrawer';
 import { ClientCredentialsModal } from './ClientCredentialsModal';
 import { isAdminOrHR } from '@/lib/rbac';
 import { ClientItem } from '@/types';
@@ -44,6 +45,42 @@ export const ClientsListView: React.FC = () => {
   const [deleteClientTarget, setDeleteClientTarget] = useState<ClientItem | null>(null);
   const [actionLoading, setActionLoading] = useState(false);
   const [alertMsg, setAlertMsg] = useState<string | null>(null);
+
+  // Company Employees Modal state
+  const [viewingCompanyEmployees, setViewingCompanyEmployees] = useState<ClientItem | null>(null);
+  const [companyEmployees, setCompanyEmployees] = useState<any[]>([]);
+  const [loadingCompanyEmployees, setLoadingCompanyEmployees] = useState(false);
+  const [companyEmpSearch, setCompanyEmpSearch] = useState('');
+  const [selectedDrawerEmpId, setSelectedDrawerEmpId] = useState<string | null>(null);
+
+  const openCompanyEmployeesModal = async (client: ClientItem) => {
+    setViewingCompanyEmployees(client);
+    setLoadingCompanyEmployees(true);
+    setCompanyEmpSearch('');
+    try {
+      const res = await fetch(`/api/employees?clientId=${client.id}`);
+      if (res.ok) {
+        const data = await res.json();
+        setCompanyEmployees(data.employees || []);
+      }
+    } catch (e) {
+      console.error('Error fetching company employees:', e);
+    } finally {
+      setLoadingCompanyEmployees(false);
+    }
+  };
+
+  const filteredCompanyEmployees = companyEmployees.filter((emp) => {
+    if (!companyEmpSearch.trim()) return true;
+    const q = companyEmpSearch.toLowerCase();
+    return (
+      emp.fullName?.toLowerCase().includes(q) ||
+      emp.employeeId?.toLowerCase().includes(q) ||
+      emp.designation?.toLowerCase().includes(q) ||
+      emp.departmentName?.toLowerCase().includes(q) ||
+      emp.phone?.toLowerCase().includes(q)
+    );
+  });
 
   // Filters
   const [search, setSearch] = useState('');
@@ -71,7 +108,10 @@ export const ClientsListView: React.FC = () => {
   };
 
   useEffect(() => {
-    fetchClients();
+    const timer = setTimeout(() => {
+      fetchClients();
+    }, 250);
+    return () => clearTimeout(timer);
   }, [search, statusFilter, industryFilter]);
 
   const viewClientDetails = async (clientId: string) => {
@@ -267,11 +307,17 @@ export const ClientsListView: React.FC = () => {
                         </button>
                       </td>
 
-                      {/* Company Name */}
+                      {/* Company Name - Clickable to show employees */}
                       <td className="py-3.5 px-4 font-bold text-slate-900">
-                        <div className="flex items-center gap-2">
-                          <span>{client.companyName}</span>
-                        </div>
+                        <button
+                          type="button"
+                          onClick={() => openCompanyEmployeesModal(client)}
+                          className="flex items-center gap-1.5 text-left font-bold text-slate-900 hover:text-growth-teal group/cname transition-colors"
+                          title={`Click to view all employees under ${client.companyName}`}
+                        >
+                          <span className="group-hover/cname:underline">{client.companyName}</span>
+                          <ArrowUpRight className="w-3.5 h-3.5 text-slate-400 group-hover/cname:text-growth-teal opacity-70 group-hover/cname:opacity-100 transition-opacity" />
+                        </button>
                       </td>
 
                       {/* Contact Person */}
@@ -337,14 +383,15 @@ export const ClientsListView: React.FC = () => {
                           <button
                             onClick={() => {
                               setViewingCredentialsClient({
+                                id: client.id,
                                 clientId: client.clientId,
                                 companyName: client.companyName,
                                 email: client.email || client.clientId.toLowerCase() + '@growthindia.in',
-                                password: '[Encrypted - Set on Creation / Reset in Edit]',
+                                password: '',
                               });
                             }}
                             className="p-1.5 hover:bg-amber-50 text-slate-600 hover:text-growth-goldDark rounded-lg transition-colors"
-                            title="View Client Login Credentials"
+                            title="Reset / Edit Client Password"
                           >
                             <KeyRound className="w-4 h-4" />
                           </button>
@@ -398,8 +445,8 @@ export const ClientsListView: React.FC = () => {
 
       {/* Delete Client Confirmation Modal */}
       {deleteClientTarget && (
-        <div className="fixed inset-0 z-50 bg-slate-950/75 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl space-y-4 border border-rose-200 animate-in fade-in">
+        <div className="fixed inset-0 z-50 bg-slate-950/75 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
+          <div className="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl space-y-4 border border-rose-200 animate-in fade-in my-auto max-h-[90vh] overflow-y-auto">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-xl bg-rose-100 text-rose-600 flex items-center justify-center font-bold">
                 <Trash2 className="w-5 h-5" />
@@ -467,6 +514,16 @@ export const ClientsListView: React.FC = () => {
         />
       )}
 
+      {/* Client Credentials & Password Reset Modal */}
+      {viewingCredentialsClient && (
+        <ClientCredentialsModal
+          isOpen={true}
+          credentials={viewingCredentialsClient}
+          onClose={() => setViewingCredentialsClient(null)}
+          onPasswordUpdated={() => fetchClients()}
+        />
+      )}
+
       {/* Client Detail Drawer */}
       {selectedClient && (
         <div className="fixed inset-0 z-50 overflow-hidden bg-slate-950/60 backdrop-blur-sm flex justify-end animate-in fade-in">
@@ -500,6 +557,22 @@ export const ClientsListView: React.FC = () => {
               </div>
 
               <div className="flex items-center gap-2">
+                <button
+                  onClick={() => {
+                    setViewingCredentialsClient({
+                      id: selectedClient.id,
+                      clientId: selectedClient.clientId,
+                      companyName: selectedClient.companyName,
+                      email: selectedClient.email || selectedClient.clientId.toLowerCase() + '@growthindia.in',
+                      password: '',
+                    });
+                  }}
+                  className="p-2 text-slate-400 hover:text-amber-400 hover:bg-slate-800 rounded-xl"
+                  title="Reset / Edit Client Password"
+                >
+                  <KeyRound className="w-4 h-4" />
+                </button>
+
                 {isAdminOrHR(user?.role) && (
                   <button
                     onClick={() => setEditingClient(selectedClient)}
@@ -537,6 +610,18 @@ export const ClientsListView: React.FC = () => {
                     {new Date(selectedClient.dateAdded || selectedClient.createdAt).toLocaleDateString()}
                   </span>
                 </div>
+                {selectedClient.gstNumber && (
+                  <div>
+                    <span className="text-slate-400 font-bold uppercase text-[10px] block">GST Number (GSTIN)</span>
+                    <span className="font-mono font-bold text-growth-teal">{selectedClient.gstNumber}</span>
+                  </div>
+                )}
+                {selectedClient.panNumber && (
+                  <div>
+                    <span className="text-slate-400 font-bold uppercase text-[10px] block">PAN Reference</span>
+                    <span className="font-mono font-bold text-slate-800">{selectedClient.panNumber}</span>
+                  </div>
+                )}
               </div>
 
               {selectedClient.address && (
@@ -612,6 +697,203 @@ export const ClientsListView: React.FC = () => {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Company Employees Modal (Opened when clicking Company Name) */}
+      {viewingCompanyEmployees && (
+        <div className="fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto animate-in fade-in">
+          <div className="bg-white rounded-3xl max-w-4xl w-full shadow-2xl border border-slate-200 overflow-hidden my-auto flex flex-col max-h-[90vh]">
+            {/* Modal Header */}
+            <div className="p-6 bg-slate-900 text-white flex items-center justify-between shrink-0">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-2xl bg-growth-teal text-white flex items-center justify-center font-bold shadow-tealGlow">
+                  <Building2 className="w-5 h-5" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="font-mono text-xs font-black text-growth-gold bg-amber-950/80 px-2 py-0.5 rounded border border-growth-gold/30">
+                      {viewingCompanyEmployees.clientId}
+                    </span>
+                    <span className="text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-full bg-slate-800 text-slate-300 border border-slate-700">
+                      {viewingCompanyEmployees.industry || 'Corporate Account'}
+                    </span>
+                  </div>
+                  <h2 className="text-lg font-black tracking-tight mt-0.5 flex items-center gap-2">
+                    <span>{viewingCompanyEmployees.companyName}</span>
+                    <span className="text-xs font-semibold text-slate-400">
+                      • Enrolled Employees ({companyEmployees.length})
+                    </span>
+                  </h2>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    const targetId = viewingCompanyEmployees.id;
+                    setViewingCompanyEmployees(null);
+                    setOnboardClientTarget(targetId);
+                  }}
+                  className="px-3 py-1.5 bg-growth-teal hover:bg-growth-tealDark text-white font-bold text-xs rounded-xl shadow-sm flex items-center gap-1.5 transition-all"
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                  <span>Onboard Staff</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setViewingCompanyEmployees(null)}
+                  className="p-2 text-slate-400 hover:text-white rounded-xl"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+            </div>
+
+            {/* Search Filter Bar */}
+            <div className="p-4 bg-slate-50 border-b border-slate-200 flex items-center justify-between gap-3 shrink-0">
+              <div className="relative flex-1">
+                <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                <input
+                  type="text"
+                  placeholder={`Search ${viewingCompanyEmployees.companyName} staff by ID, name, designation, phone...`}
+                  value={companyEmpSearch}
+                  onChange={(e) => setCompanyEmpSearch(e.target.value)}
+                  className="w-full pl-9 pr-3 py-2 bg-white border border-slate-300 rounded-xl text-xs text-slate-900 focus:outline-none focus:ring-1 focus:ring-growth-teal"
+                />
+              </div>
+
+              <div className="text-xs text-slate-500 font-semibold shrink-0">
+                Showing {filteredCompanyEmployees.length} of {companyEmployees.length} staff
+              </div>
+            </div>
+
+            {/* Table Area */}
+            <div className="flex-1 overflow-y-auto p-4">
+              {loadingCompanyEmployees ? (
+                <div className="py-12 flex flex-col items-center justify-center gap-2 text-slate-400 text-xs">
+                  <div className="w-6 h-6 border-2 border-growth-teal border-t-transparent rounded-full animate-spin" />
+                  <span>Loading employees for {viewingCompanyEmployees.companyName}...</span>
+                </div>
+              ) : filteredCompanyEmployees.length === 0 ? (
+                <div className="py-12 text-center text-slate-400 text-xs space-y-3">
+                  <p>No employees found for {viewingCompanyEmployees.companyName}.</p>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const targetId = viewingCompanyEmployees.id;
+                      setViewingCompanyEmployees(null);
+                      setOnboardClientTarget(targetId);
+                    }}
+                    className="px-4 py-2 bg-growth-teal hover:bg-growth-tealDark text-white font-bold text-xs rounded-xl inline-flex items-center gap-1.5"
+                  >
+                    <Plus className="w-4 h-4" />
+                    <span>Onboard First Employee</span>
+                  </button>
+                </div>
+              ) : (
+                <div className="overflow-x-auto border border-slate-200 rounded-2xl">
+                  <table className="w-full text-left text-xs">
+                    <thead className="bg-slate-50 text-slate-500 font-extrabold uppercase text-[10px] tracking-wider border-b border-slate-200">
+                      <tr>
+                        <th className="py-3 px-3.5">Employee ID</th>
+                        <th className="py-3 px-3.5">Full Name</th>
+                        <th className="py-3 px-3.5">Designation</th>
+                        <th className="py-3 px-3.5">Department</th>
+                        <th className="py-3 px-3.5">Mobile & Email</th>
+                        <th className="py-3 px-3.5">Status</th>
+                        <th className="py-3 px-3.5 text-right">Action</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100 font-medium text-slate-700">
+                      {filteredCompanyEmployees.map((emp) => {
+                        const isBlocked = emp.status === 'BLOCKED' || emp.isBlocked;
+                        return (
+                          <tr key={emp.id} className="hover:bg-slate-50/70 transition-colors">
+                            <td className="py-3 px-3.5 font-mono font-bold text-growth-teal whitespace-nowrap">
+                              <button
+                                type="button"
+                                onClick={() => setSelectedDrawerEmpId(emp.employeeId)}
+                                className="hover:underline"
+                              >
+                                {emp.employeeId}
+                              </button>
+                            </td>
+                            <td className="py-3 px-3.5 font-bold text-slate-900 whitespace-nowrap">
+                              {emp.fullName}
+                            </td>
+                            <td className="py-3 px-3.5 whitespace-nowrap">
+                              {emp.designation}
+                            </td>
+                            <td className="py-3 px-3.5 text-slate-500 whitespace-nowrap">
+                              {emp.departmentName || 'Operations'}
+                            </td>
+                            <td className="py-3 px-3.5 whitespace-nowrap">
+                              <div className="font-mono text-[11px] text-slate-800">{emp.phone}</div>
+                              {(emp.personalEmail || emp.user?.email) && (
+                                <div className="text-[10px] text-slate-400 truncate max-w-[140px]">
+                                  {emp.personalEmail || emp.user?.email}
+                                </div>
+                              )}
+                            </td>
+                            <td className="py-3 px-3.5 whitespace-nowrap">
+                              <span
+                                className={`px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider ${
+                                  isBlocked
+                                    ? 'bg-rose-100 text-rose-700 border border-rose-200'
+                                    : 'bg-emerald-100 text-emerald-700 border border-emerald-200'
+                                }`}
+                              >
+                                {emp.status}
+                              </span>
+                            </td>
+                            <td className="py-3 px-3.5 text-right whitespace-nowrap">
+                              <button
+                                type="button"
+                                onClick={() => setSelectedDrawerEmpId(emp.employeeId)}
+                                className="p-1.5 hover:bg-slate-100 text-slate-600 hover:text-growth-teal rounded-lg inline-flex items-center gap-1 font-bold text-xs transition-colors"
+                                title="View Employee Profile"
+                              >
+                                <Eye className="w-3.5 h-3.5" />
+                                <span>Details</span>
+                              </button>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+
+            {/* Modal Footer */}
+            <div className="p-4 bg-slate-50 border-t border-slate-200 flex items-center justify-between shrink-0">
+              <span className="text-xs text-slate-500">
+                Managing roster for <strong className="text-slate-800">{viewingCompanyEmployees.companyName}</strong>
+              </span>
+              <button
+                type="button"
+                onClick={() => setViewingCompanyEmployees(null)}
+                className="px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-bold transition-all"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Employee Detail Drawer */}
+      {selectedDrawerEmpId && (
+        <EmployeeDetailDrawer
+          employeeId={selectedDrawerEmpId}
+          onClose={() => setSelectedDrawerEmpId(null)}
+          onRefresh={() => {
+            if (viewingCompanyEmployees) openCompanyEmployeesModal(viewingCompanyEmployees);
+            fetchClients();
+          }}
+        />
       )}
     </div>
   );

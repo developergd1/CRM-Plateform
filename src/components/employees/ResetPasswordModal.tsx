@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
+import { useModalScroll } from '@/hooks/useModalScroll';
 import { X, KeyRound, Eye, EyeOff, Sparkles, Check, Copy, ShieldCheck } from 'lucide-react';
 import { EmployeeCredentialsModal } from './EmployeeCredentialsModal';
 
@@ -30,6 +31,11 @@ export const ResetPasswordModal: React.FC<ResetPasswordModalProps> = ({
   const [submitting, setSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [completedCredentials, setCompletedCredentials] = useState<any>(null);
+
+  const scrollRef = useModalScroll<HTMLDivElement>({
+    isOpen,
+    onClose,
+  });
 
   if (!isOpen || !employee) return null;
 
@@ -92,10 +98,17 @@ export const ResetPasswordModal: React.FC<ResetPasswordModalProps> = ({
   }
 
   return (
-    <div className="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in">
-      <div className="bg-white rounded-3xl max-w-md w-full shadow-2xl border border-slate-200 overflow-hidden text-slate-900">
+    <div
+      role="dialog"
+      aria-modal="true"
+      className="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4 overflow-y-auto animate-in fade-in"
+      onClick={(e) => {
+        if (e.target === e.currentTarget) onClose();
+      }}
+    >
+      <div className="bg-white rounded-3xl max-w-md w-full shadow-2xl border border-slate-200 overflow-hidden text-slate-900 my-auto flex flex-col max-h-[90vh]">
         {/* Header */}
-        <div className="p-6 bg-slate-900 text-white flex items-center justify-between">
+        <div className="p-5 sm:p-6 bg-slate-900 text-white flex items-center justify-between shrink-0">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-500 to-amber-700 text-white flex items-center justify-center font-bold shadow-md">
               <KeyRound className="w-5 h-5" />
@@ -113,12 +126,17 @@ export const ResetPasswordModal: React.FC<ResetPasswordModalProps> = ({
         </div>
 
         {errorMsg && (
-          <div className="bg-rose-50 p-3 text-rose-700 text-xs font-semibold px-6 border-b border-rose-200">
+          <div className="bg-rose-50 p-3 text-rose-700 text-xs font-semibold px-6 border-b border-rose-200 shrink-0">
             {errorMsg}
           </div>
         )}
 
-        <form onSubmit={handleResetSubmit} className="p-6 space-y-4 text-xs">
+        <form onSubmit={handleResetSubmit} className="flex flex-col flex-1 overflow-hidden">
+          <div
+            ref={scrollRef}
+            tabIndex={0}
+            className="flex-1 overflow-y-auto p-5 sm:p-6 space-y-4 text-xs focus:outline-none focus:ring-1 focus:ring-inset focus:ring-slate-100"
+          >
           {/* Employee Identifier Reference */}
           <div className="bg-slate-50 border border-slate-200 rounded-2xl p-3.5 space-y-2">
             <div className="text-[11px] font-bold text-slate-500">Employee Login Identifiers:</div>
@@ -173,7 +191,9 @@ export const ResetPasswordModal: React.FC<ResetPasswordModalProps> = ({
             </p>
           </div>
 
-          <div className="pt-2 flex gap-3">
+          </div>
+
+          <div className="p-4 sm:p-5 bg-white border-t border-slate-100 flex gap-3 shrink-0">
             <button
               type="button"
               onClick={onClose}

@@ -15,9 +15,28 @@ export async function GET(req: NextRequest) {
     if (employeeId) {
       const emp = await prisma.employee.findFirst({ where: { OR: [{ id: employeeId }, { employeeId }] } });
       if (emp) where.employeeId = emp.id;
-    } else if (!isManagerOrAbove(user.role)) {
-      const emp = await prisma.employee.findUnique({ where: { employeeId: user.employeeId } });
+    } else if (user.role === 'EMPLOYEE') {
+      const emp = await prisma.employee.findFirst({
+        where: {
+          OR: [
+            { userId: user.id },
+            ...(user.employeeId ? [{ employeeId: user.employeeId }] : []),
+          ],
+        },
+      });
       if (emp) where.employeeId = emp.id;
+    } else if (user.role === 'CLIENT') {
+      const client = await prisma.client.findFirst({
+        where: {
+          OR: [
+            { userId: user.id },
+            ...(user.clientId ? [{ clientId: user.clientId }] : []),
+          ],
+        },
+      });
+      if (client) {
+        where.employee = { clientId: client.id };
+      }
     }
 
     const sessions = await prisma.workSession.findMany({
@@ -50,11 +69,30 @@ export async function POST(req: NextRequest) {
     const user = await getSessionUser(req);
     if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-    const emp = await prisma.employee.findUnique({ where: { employeeId: user.employeeId } });
-    if (!emp) return NextResponse.json({ error: 'Employee not found' }, { status: 404 });
+    // Only track work sessions for regular employees (never for ADMIN or CLIENT)
+    if (user.role !== 'EMPLOYEE' || user.employeeId === 'GI-EMP-000001') {
+      return NextResponse.json({ success: true, message: 'Sessions only recorded for employees' });
+    }
+
+    const emp = await prisma.employee.findFirst({
+      where: {
+        OR: [
+          { userId: user.id },
+          ...(user.employeeId ? [{ employeeId: user.employeeId }] : []),
+        ],
+      },
+    });
+    if (!emp) return NextResponse.json({ success: true, message: 'Employee record not found' });
+
+    const todayStr = new Date().toISOString().split('T')[0];
+    const todayStart = new Date(`${todayStr}T00:00:00.000Z`);
 
     const latestSession = await prisma.workSession.findFirst({
-      where: { employeeId: emp.id, status: 'ACTIVE' },
+      where: {
+        employeeId: emp.id,
+        status: 'ACTIVE',
+        loginTimestamp: { gte: todayStart },
+      },
       orderBy: { loginTimestamp: 'desc' },
     });
 

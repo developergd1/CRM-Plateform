@@ -2,14 +2,22 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getSessionUser } from '@/lib/auth';
 import { logAuditEvent } from '@/lib/audit';
+import { getEffectiveWorkPolicy } from '@/lib/work-policy';
+import { getEmployeeActiveSession, endWorkSession, recordActivityEvent } from '@/lib/session-manager';
+import { calculateAttendanceMetrics } from '@/lib/attendance-calculator';
 
 export async function POST(req: NextRequest) {
   try {
     const user = await getSessionUser(req);
     if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-    const employee = await prisma.employee.findUnique({
-      where: { employeeId: user.employeeId },
+    const employee = await prisma.employee.findFirst({
+      where: {
+        OR: [
+          { userId: user.id },
+          ...(user.employeeId ? [{ employeeId: user.employeeId }] : []),
+        ],
+      },
     });
     if (!employee) return NextResponse.json({ error: 'Employee not found' }, { status: 404 });
 
@@ -47,33 +55,66 @@ export async function POST(req: NextRequest) {
           durationMinutes: Math.max(breakDuration, 1),
         },
       });
+      openBreak.breakEndTime = now;
+      openBreak.durationMinutes = Math.max(breakDuration, 1);
     }
 
-    // Calculate total work minutes and breaks
-    const totalMinutesSinceCheckIn = Math.round((now.getTime() - new Date(attendance.checkInTime).getTime()) / 60000);
-    const totalBreakMinutes = attendance.breaks.reduce((acc, curr) => acc + curr.durationMinutes, 0) + (openBreak ? Math.max(Math.round((now.getTime() - new Date(openBreak.breakStartTime).getTime()) / 60000), 1) : 0);
-    const netWorkMinutes = Math.max(0, totalMinutesSinceCheckIn - totalBreakMinutes);
+    // Load policy & active session
+    const policy = await getEffectiveWorkPolicy({
+      employeeId: employee.id,
+      clientId: employee.clientId || undefined,
+    });
 
-    // Standard day is 8 hours (480 mins). Overtime is beyond 480 mins. Early checkout is < 420 mins.
-    const isEarly = netWorkMinutes < 420;
-    const overtimeMinutes = Math.max(0, netWorkMinutes - 480);
+    const activeSession = await getEmployeeActiveSession(employee.id);
 
-    const ip = req.headers.get('x-forwarded-for') || '127.0.0.1';
+    // Calculate metrics using standardized calculator
+    const metrics = calculateAttendanceMetrics({
+      attendance: {
+        ...attendance,
+        checkOutTime: now,
+      },
+      activeSession,
+      policy,
+      now,
+    });
+
+    const ip = req.headers.get('x-forwarded-for') || req.headers.get('x-real-ip') || '127.0.0.1';
 
     const updatedAttendance = await prisma.attendance.update({
       where: { id: attendance.id },
       data: {
         checkOutTime: now,
-        totalWorkMinutes: netWorkMinutes,
-        totalBreakMinutes,
-        overtimeMinutes,
-        isEarlyCheckout: isEarly,
+        status: metrics.status,
+        totalWorkMinutes: metrics.netWorkMinutes,
+        totalBreakMinutes: metrics.totalBreakMinutes,
+        overtimeMinutes: metrics.overtimeMinutes,
+        isEarlyCheckout: metrics.isEarlyCheckout,
         checkOutIp: ip,
+        remarks: metrics.isEarlyCheckout
+          ? `Early checkout (${metrics.netWorkMinutes} mins worked)`
+          : undefined,
       },
       include: {
         breaks: true,
       },
     });
+
+    // Close active work session if one exists
+    if (activeSession) {
+      await endWorkSession(activeSession.sessionId);
+      await recordActivityEvent({
+        sessionId: activeSession.sessionId,
+        employeeId: employee.id,
+        eventType: 'CHECK_OUT',
+        description: `Employee checked out at ${now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true })}`,
+        metadata: {
+          netWorkMinutes: metrics.netWorkMinutes,
+          totalBreakMinutes: metrics.totalBreakMinutes,
+          isEarlyCheckout: metrics.isEarlyCheckout,
+          overtimeMinutes: metrics.overtimeMinutes,
+        },
+      });
+    }
 
     await logAuditEvent({
       actorUserId: user.id,
@@ -83,21 +124,26 @@ export async function POST(req: NextRequest) {
       entityId: attendance.id,
       newData: {
         checkOutTime: now,
-        netWorkMinutes,
-        totalBreakMinutes,
-        isEarlyCheckout: isEarly,
-        overtimeMinutes,
+        netWorkMinutes: metrics.netWorkMinutes,
+        totalBreakMinutes: metrics.totalBreakMinutes,
+        isEarlyCheckout: metrics.isEarlyCheckout,
+        overtimeMinutes: metrics.overtimeMinutes,
       },
       ipAddress: ip,
       status: 'SUCCESS',
     });
 
+    const hours = Math.floor(metrics.netWorkMinutes / 60);
+    const minutes = metrics.netWorkMinutes % 60;
+
     return NextResponse.json({
       success: true,
-      message: `Checked out successfully! Total working time: ${Math.floor(netWorkMinutes / 60)}h ${netWorkMinutes % 60}m.`,
+      message: `Checked out successfully! Total Working Time: ${hours}h ${minutes}m.`,
       attendance: updatedAttendance,
+      metrics,
     });
   } catch (error: any) {
+    console.error('Check-out error:', error);
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }

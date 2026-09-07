@@ -25,6 +25,7 @@ import {
   Pin,
 } from 'lucide-react';
 import { canReassignClients } from '@/lib/rbac';
+import { SearchableSelect } from '@/components/common/SearchableSelect';
 
 interface DrawerProps {
   clientId: string | null;
@@ -668,7 +669,7 @@ export const ClientDetailDrawer: React.FC<DrawerProps> = ({ clientId, onClose, o
             {/* Reassign Modal */}
             {showReassignModal && (
               <div className="fixed inset-0 bg-slate-950/50 flex items-center justify-center p-4 z-50 animate-in fade-in">
-                <form onSubmit={handleReassign} className="bg-white rounded-3xl p-6 max-w-md w-full shadow-2xl space-y-4 border border-slate-200">
+                <form onSubmit={handleReassign} className="bg-white rounded-3xl p-6 max-w-md w-full shadow-2xl space-y-4 border border-slate-200 my-auto max-h-[90vh] overflow-y-auto">
                   <div className="flex items-center justify-between">
                     <h3 className="font-black text-slate-900 text-base">Reassign Client</h3>
                     <button type="button" onClick={() => setShowReassignModal(false)}>
@@ -677,20 +678,21 @@ export const ClientDetailDrawer: React.FC<DrawerProps> = ({ clientId, onClose, o
                   </div>
 
                   <div>
-                    <label className="block text-xs font-bold text-slate-700 mb-1">Select New Owner</label>
-                    <select
+                    <SearchableSelect
+                      label="Select New Owner"
+                      required={true}
+                      iconType="user"
+                      options={employeesList.map((emp) => ({
+                        value: emp.employeeId,
+                        label: emp.fullName,
+                        subLabel: emp.designation,
+                        badge: emp.employeeId,
+                      }))}
                       value={targetEmpId}
-                      onChange={(e) => setTargetEmpId(e.target.value)}
-                      required
-                      className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium"
-                    >
-                      <option value="">-- Select Employee --</option>
-                      {employeesList.map((emp) => (
-                        <option key={emp.id} value={emp.employeeId}>
-                          {emp.fullName} ({emp.employeeId}) - {emp.designation}
-                        </option>
-                      ))}
-                    </select>
+                      onChange={(val) => setTargetEmpId(val)}
+                      placeholder="Type employee name or ID to search..."
+                      defaultEmptyLabel="-- Select Employee --"
+                    />
                   </div>
 
                   <div>
@@ -727,7 +729,7 @@ export const ClientDetailDrawer: React.FC<DrawerProps> = ({ clientId, onClose, o
             {/* Stage Change Modal */}
             {showStageModal && (
               <div className="fixed inset-0 bg-slate-950/50 flex items-center justify-center p-4 z-50 animate-in fade-in">
-                <form onSubmit={handleStageShift} className="bg-white rounded-3xl p-6 max-w-md w-full shadow-2xl space-y-4 border border-slate-200">
+                <form onSubmit={handleStageShift} className="bg-white rounded-3xl p-6 max-w-md w-full shadow-2xl space-y-4 border border-slate-200 my-auto max-h-[90vh] overflow-y-auto">
                   <div className="flex items-center justify-between">
                     <h3 className="font-black text-slate-900 text-base">Advance CRM Pipeline Stage</h3>
                     <button type="button" onClick={() => setShowStageModal(false)}>

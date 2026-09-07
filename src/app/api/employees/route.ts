@@ -16,7 +16,23 @@ export async function GET(req: NextRequest) {
     const clientId = searchParams.get('clientId') || '';
     const department = searchParams.get('department') || '';
 
-    const where: any = {};
+    // Find admin user IDs once to avoid slow 2-stage multi-collection lookup pipelines in MongoDB
+    const adminUsers = await prisma.user.findMany({
+      where: {
+        role: {
+          name: { in: ['ADMIN', 'SUPER_ADMIN'] },
+        },
+      },
+      select: { id: true },
+    });
+    const adminUserIds = adminUsers.map((u) => u.id);
+
+    const andConditions: any[] = [
+      { employeeId: { not: 'GI-EMP-000001' } },
+    ];
+    if (adminUserIds.length > 0) {
+      andConditions.push({ userId: { notIn: adminUserIds } });
+    }
 
     // Role-based scoping: If user is CLIENT, only return employees belonging to their client account
     if (user.role === 'CLIENT') {
@@ -29,7 +45,7 @@ export async function GET(req: NextRequest) {
         },
       });
       if (clientRecord) {
-        where.clientId = clientRecord.id;
+        andConditions.push({ clientId: clientRecord.id });
       } else {
         return NextResponse.json({ success: true, employees: [] });
       }
@@ -39,47 +55,47 @@ export async function GET(req: NextRequest) {
         where: getClientLookup(clientId),
       });
       if (clientRecord) {
-        where.clientId = clientRecord.id;
+        andConditions.push({ clientId: clientRecord.id });
       } else {
-        where.clientId = clientId;
+        return NextResponse.json({ success: true, employees: [] });
       }
     }
 
-
     if (status) {
       if (status === 'BLOCKED') {
-        where.OR = [{ status: 'BLOCKED' }, { isBlocked: true }];
+        andConditions.push({ OR: [{ status: 'BLOCKED' }, { isBlocked: true }] });
       } else {
-        where.status = status;
+        andConditions.push({ status });
       }
     }
 
     if (department) {
-      where.OR = [
-        { departmentName: { contains: department } },
-        { department: { name: { contains: department } } },
-      ];
+      andConditions.push({
+        OR: [
+          { departmentName: { contains: department } },
+          { department: { name: { contains: department } } },
+        ],
+      });
     }
 
     // Text search (Employee ID, Name, Phone, Email, Client, Designation)
     if (search) {
-      where.AND = [
-        ...(where.AND || []),
-        {
-          OR: [
-            { employeeId: { contains: search } },
-            { fullName: { contains: search } },
-            { phone: { contains: search } },
-            { personalEmail: { contains: search } },
-            { user: { email: { contains: search } } },
-            { designation: { contains: search } },
-            { departmentName: { contains: search } },
-            { client: { companyName: { contains: search } } },
-            { client: { clientId: { contains: search } } },
-          ],
-        },
-      ];
+      andConditions.push({
+        OR: [
+          { employeeId: { contains: search } },
+          { fullName: { contains: search } },
+          { phone: { contains: search } },
+          { personalEmail: { contains: search } },
+          { user: { email: { contains: search } } },
+          { designation: { contains: search } },
+          { departmentName: { contains: search } },
+          { client: { companyName: { contains: search } } },
+          { client: { clientId: { contains: search } } },
+        ],
+      });
     }
+
+    const where = { AND: andConditions };
 
     const employees = await prisma.employee.findMany({
       where,
@@ -121,6 +137,7 @@ export async function GET(req: NextRequest) {
 
     const sanitized = employees.map((emp) => ({
       ...emp,
+      aadharNumber: emp.aadhaarMasked || null,
       panMasked: emp.panMasked || (emp.panNumber ? maskPAN(emp.panNumber) : null),
     }));
 
@@ -154,15 +171,31 @@ export async function POST(req: NextRequest) {
       phone,
       email,
       panNumber,
+      aadharNumber,
       address,
+      temporaryAddress,
+      permanentAddress,
       departmentName = 'General Operations',
       designation,
       jobLocation = 'Headquarters',
       joiningDate,
       employmentType = 'Full-Time',
+      shiftStartTime = '10:00',
+      shiftEndTime = '19:00',
       remarks,
       customPassword,
     } = data;
+
+    let finalAddress = address ? address.trim() : null;
+    if (!finalAddress && (temporaryAddress || permanentAddress)) {
+      const temp = (temporaryAddress || '').trim();
+      const perm = (permanentAddress || '').trim();
+      if (temp && perm && temp !== perm) {
+        finalAddress = `Temporary: ${temp}\nPermanent: ${perm}`;
+      } else {
+        finalAddress = temp || perm || null;
+      }
+    }
 
     if (!fullName || !phone || !designation) {
       return NextResponse.json(
@@ -289,13 +322,16 @@ export async function POST(req: NextRequest) {
         personalEmail: generatedEmail,
         panNumber: panNumber ? panNumber.trim().toUpperCase() : null,
         panMasked: panNumber ? maskPAN(panNumber.trim().toUpperCase()) : null,
-        address: address ? address.trim() : null,
+        aadhaarMasked: aadharNumber ? aadharNumber.trim() : null,
+        address: finalAddress,
         departmentName: departmentName.trim(),
         designation: designation.trim(),
         jobLocation: jobLocation.trim(),
         location: jobLocation.trim(),
         joiningDate: joiningDate ? new Date(joiningDate) : new Date(),
         employmentType: employmentType || 'Full-Time',
+        shiftStartTime: shiftStartTime || '10:00',
+        shiftEndTime: shiftEndTime || '19:00',
         status: 'ACTIVE',
         isBlocked: false,
         remarks: remarks ? remarks.trim() : null,

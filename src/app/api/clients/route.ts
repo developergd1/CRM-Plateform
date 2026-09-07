@@ -56,7 +56,27 @@ export async function GET(req: NextRequest) {
       orderBy: { clientId: 'asc' },
     });
 
-    return NextResponse.json({ success: true, clients });
+    const mapped = clients.map((c) => {
+      let gstNumber = '';
+      let panNumber = '';
+      let aadharNumber = '';
+      try {
+        if (c.tags && c.tags.startsWith('{')) {
+          const parsed = JSON.parse(c.tags);
+          gstNumber = parsed.gstNumber || '';
+          panNumber = parsed.panNumber || '';
+          aadharNumber = parsed.aadharNumber || '';
+        }
+      } catch (e) {}
+      return {
+        ...c,
+        gstNumber,
+        panNumber,
+        aadharNumber,
+      };
+    });
+
+    return NextResponse.json({ success: true, clients: mapped });
   } catch (error: any) {
     console.error('Error fetching clients:', error);
     return NextResponse.json({ error: error.message }, { status: 500 });
@@ -77,13 +97,22 @@ export async function POST(req: NextRequest) {
       contactPerson,
       mobile,
       email,
+      gstNumber,
+      panNumber,
+      aadharNumber,
       address,
+      temporaryAddress,
+      permanentAddress,
       industry = 'IT & Software Services',
       status = 'ACTIVE',
       canBlockEmployees = false,
       canDeleteEmployees = false,
       customPassword,
     } = data;
+
+    const finalAddress = address || (temporaryAddress && permanentAddress
+      ? (temporaryAddress === permanentAddress ? temporaryAddress : `Temporary: ${temporaryAddress}\nPermanent: ${permanentAddress}`)
+      : (temporaryAddress || permanentAddress || null));
 
     if (!companyName || !contactPerson || !mobile) {
       return NextResponse.json(
@@ -157,17 +186,22 @@ export async function POST(req: NextRequest) {
         contactPerson: contactPerson.trim(),
         mobile: mobile.trim(),
         email: clientEmail,
-        address: address ? address.trim() : null,
+        address: finalAddress ? finalAddress.trim() : null,
         industry: industry ? industry.trim() : null,
         status: status === 'INACTIVE' ? 'INACTIVE' : 'ACTIVE',
         canBlockEmployees: !!canBlockEmployees,
         canDeleteEmployees: !!canDeleteEmployees,
         dateAdded: new Date(),
+        tags: JSON.stringify({
+          gstNumber: gstNumber ? gstNumber.trim().toUpperCase() : '',
+          panNumber: panNumber ? panNumber.trim().toUpperCase() : '',
+          aadharNumber: aadharNumber ? aadharNumber.trim() : '',
+        }),
         // Backwards compatibility sync
         name: contactPerson.trim(),
         phone: mobile.trim(),
         company: companyName.trim(),
-        location: address ? address.trim() : null,
+        location: permanentAddress ? permanentAddress.trim() : (finalAddress ? finalAddress.trim() : null),
         stage: 'NEW',
       },
       include: {

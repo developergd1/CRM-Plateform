@@ -37,7 +37,10 @@ export async function POST(
     const isAdmin = isAdminOrHR(user.role);
     const isAuthorizedClient =
       user.role === 'CLIENT' &&
-      user.clientId === employee.client?.clientId;
+      (user.clientId === employee.client?.clientId ||
+       user.clientId === employee.clientId ||
+       user.id === employee.client?.userId ||
+       user.clientId === employee.client?.id);
 
     if (!isAdmin && !isAuthorizedClient) {
       return NextResponse.json(

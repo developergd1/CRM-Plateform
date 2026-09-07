@@ -47,7 +47,27 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
       return NextResponse.json({ error: 'Client not found' }, { status: 404 });
     }
 
-    return NextResponse.json({ success: true, client });
+    let gstNumber = '';
+    let panNumber = '';
+    let aadharNumber = '';
+    try {
+      if (client.tags && client.tags.startsWith('{')) {
+        const parsed = JSON.parse(client.tags);
+        gstNumber = parsed.gstNumber || '';
+        panNumber = parsed.panNumber || '';
+        aadharNumber = parsed.aadharNumber || '';
+      }
+    } catch (e) {}
+
+    return NextResponse.json({
+      success: true,
+      client: {
+        ...client,
+        gstNumber,
+        panNumber,
+        aadharNumber,
+      },
+    });
   } catch (error: any) {
     console.error('Error fetching client details:', error);
     return NextResponse.json({ error: error.message }, { status: 500 });
@@ -77,13 +97,40 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
       contactPerson,
       mobile,
       email,
+      gstNumber,
+      panNumber,
+      aadharNumber,
       address,
+      temporaryAddress,
+      permanentAddress,
       industry,
       status,
       canBlockEmployees,
       canDeleteEmployees,
       newPassword,
     } = data;
+
+    let computedAddress = address;
+    if (computedAddress === undefined && (temporaryAddress !== undefined || permanentAddress !== undefined)) {
+      computedAddress = temporaryAddress && permanentAddress
+        ? (temporaryAddress === permanentAddress ? temporaryAddress : `Temporary: ${temporaryAddress}\nPermanent: ${permanentAddress}`)
+        : (temporaryAddress || permanentAddress || null);
+    }
+
+    let updatedTags: string | undefined = undefined;
+    if (gstNumber !== undefined || panNumber !== undefined || aadharNumber !== undefined) {
+      let existingTagsObj: any = {};
+      try {
+        if (existing.tags && existing.tags.startsWith('{')) {
+          existingTagsObj = JSON.parse(existing.tags);
+        }
+      } catch (e) {}
+
+      if (gstNumber !== undefined) existingTagsObj.gstNumber = gstNumber ? gstNumber.trim().toUpperCase() : '';
+      if (panNumber !== undefined) existingTagsObj.panNumber = panNumber ? panNumber.trim().toUpperCase() : '';
+      if (aadharNumber !== undefined) existingTagsObj.aadharNumber = aadharNumber ? aadharNumber.trim() : '';
+      updatedTags = JSON.stringify(existingTagsObj);
+    }
 
     // Optional password reset for client
     if (newPassword && existing.userId) {
@@ -101,11 +148,13 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
         ...(contactPerson ? { contactPerson: contactPerson.trim(), name: contactPerson.trim() } : {}),
         ...(mobile ? { mobile: mobile.trim(), phone: mobile.trim() } : {}),
         ...(email !== undefined ? { email: email ? email.toLowerCase().trim() : null } : {}),
-        ...(address !== undefined ? { address: address ? address.trim() : null, location: address ? address.trim() : null } : {}),
+        ...(computedAddress !== undefined ? { address: computedAddress ? computedAddress.trim() : null } : {}),
+        ...(permanentAddress !== undefined ? { location: permanentAddress ? permanentAddress.trim() : null } : {}),
         ...(industry !== undefined ? { industry: industry ? industry.trim() : null } : {}),
         ...(status ? { status } : {}),
         ...(canBlockEmployees !== undefined ? { canBlockEmployees: !!canBlockEmployees } : {}),
         ...(canDeleteEmployees !== undefined ? { canDeleteEmployees: !!canDeleteEmployees } : {}),
+        ...(updatedTags !== undefined ? { tags: updatedTags } : {}),
       },
       include: {
         user: true,

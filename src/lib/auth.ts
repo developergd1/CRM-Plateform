@@ -166,7 +166,7 @@ export async function ensureDefaultAdmin() {
 
       const adminUser = await prisma.user.create({
         data: {
-          email: 'admin@growthindia.in',
+          email: 'admin@growthindia.co',
           passwordHash,
           roleId: adminRole.id,
           isActive: true,
@@ -180,7 +180,7 @@ export async function ensureDefaultAdmin() {
           userId: adminUser.id,
           fullName: 'System Administrator',
           phone: '+91 98000 00000',
-          personalEmail: 'admin@growthindia.in',
+          personalEmail: 'admin@growthindia.co',
           departmentName: 'General Operations',
           designation: 'Platform Head',
           jobLocation: 'Headquarters',

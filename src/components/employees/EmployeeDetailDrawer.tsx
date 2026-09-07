@@ -23,6 +23,7 @@ import {
 } from 'lucide-react';
 import { isAdminOrHR } from '@/lib/rbac';
 import { EditEmployeeModal } from './EditEmployeeModal';
+import { TimePicker12, formatTo12Hour } from '@/components/common/TimePicker12';
 import { ResetPasswordModal } from './ResetPasswordModal';
 
 interface DrawerProps {
@@ -44,6 +45,7 @@ export const EmployeeDetailDrawer: React.FC<DrawerProps> = ({
   // Block Modal state
   const [showBlockModal, setShowBlockModal] = useState(false);
   const [blockReason, setBlockReason] = useState('Disciplinary Policy Breach');
+  const [customBlockReason, setCustomBlockReason] = useState('');
   const [blockRemarks, setBlockRemarks] = useState('');
 
   // Unblock Modal state
@@ -56,6 +58,12 @@ export const EmployeeDetailDrawer: React.FC<DrawerProps> = ({
 
   // Reset Password Modal state
   const [showResetPasswordModal, setShowResetPasswordModal] = useState(false);
+
+  // Shift timing editing state
+  const [editingShift, setEditingShift] = useState(false);
+  const [drawerShiftStart, setDrawerShiftStart] = useState('10:00');
+  const [drawerShiftEnd, setDrawerShiftEnd] = useState('19:00');
+  const [savingShift, setSavingShift] = useState(false);
 
   const [actionLoading, setActionLoading] = useState(false);
   const [actionNotice, setActionNotice] = useState<string | null>(null);
@@ -80,6 +88,42 @@ export const EmployeeDetailDrawer: React.FC<DrawerProps> = ({
     fetchEmployeeDetails();
   }, [employeeId]);
 
+  useEffect(() => {
+    if (employee) {
+      setDrawerShiftStart(employee.shiftStartTime || '10:00');
+      setDrawerShiftEnd(employee.shiftEndTime || '19:00');
+    }
+  }, [employee]);
+
+  const handleSaveShift = async () => {
+    if (!employee) return;
+    setSavingShift(true);
+    try {
+      const res = await fetch(`/api/employees/${employee.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          shiftStartTime: drawerShiftStart,
+          shiftEndTime: drawerShiftEnd,
+        }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setEmployee(data.employee);
+        setEditingShift(false);
+        setActionNotice('Working shift timings updated successfully!');
+        setTimeout(() => setActionNotice(null), 3500);
+      } else {
+        const err = await res.json();
+        setActionNotice(`Error: ${err.error || 'Failed to update shift'}`);
+      }
+    } catch (e) {
+      setActionNotice('Network error updating shift');
+    } finally {
+      setSavingShift(false);
+    }
+  };
+
   if (!employeeId) return null;
 
   const handleBlockSubmit = async (e: React.FormEvent) => {
@@ -87,12 +131,16 @@ export const EmployeeDetailDrawer: React.FC<DrawerProps> = ({
     if (!blockReason.trim()) return;
 
     setActionLoading(true);
+    const finalReason = blockReason === 'Other Administrative Reason'
+      ? (customBlockReason.trim() || 'Other Administrative Reason')
+      : blockReason;
+
     try {
       const res = await fetch(`/api/employees/${employee.id}/block`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          reason: blockReason,
+          reason: finalReason,
           remarks: blockRemarks,
         }),
       });
@@ -389,12 +437,12 @@ export const EmployeeDetailDrawer: React.FC<DrawerProps> = ({
                     </div>
 
                     <div>
-                      <span className="text-slate-400 font-bold uppercase text-[10px] block">Contact Mobile</span>
+                      <span className="text-slate-400 font-bold uppercase text-[10px] block">Phone Number</span>
                       <span className="font-semibold text-slate-800">{employee.phone}</span>
                     </div>
 
                     <div>
-                      <span className="text-slate-400 font-bold uppercase text-[10px] block">Email Address</span>
+                      <span className="text-slate-400 font-bold uppercase text-[10px] block">Email</span>
                       <span className="font-semibold text-slate-800">{employee.personalEmail || employee.user?.email || 'N/A'}</span>
                     </div>
 
@@ -404,14 +452,38 @@ export const EmployeeDetailDrawer: React.FC<DrawerProps> = ({
                     </div>
 
                     <div>
+                      <span className="text-slate-400 font-bold uppercase text-[10px] block">Aadhar Reference</span>
+                      <span className="font-mono font-bold text-slate-800">{employee.aadhaarMasked || employee.aadharNumber || 'Not Provided'}</span>
+                    </div>
+
+                    <div>
                       <span className="text-slate-400 font-bold uppercase text-[10px] block">Account Status</span>
                       <span className="font-bold text-slate-900">{employee.status}</span>
                     </div>
                   </div>
 
-                  <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200">
-                    <span className="text-slate-400 font-bold uppercase text-[10px] block mb-1">Residential / Communication Address</span>
-                    <span className="font-medium text-slate-800 leading-relaxed">{employee.address || 'No physical address registered'}</span>
+                  <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200 space-y-3">
+                    {employee.address && (employee.address.includes('Temporary:') || employee.address.includes('Permanent:')) ? (
+                      <div className="space-y-2">
+                        {employee.address.split('\n').map((line: string, idx: number) => {
+                          const isTemp = line.startsWith('Temporary:');
+                          const isPerm = line.startsWith('Permanent:');
+                          const label = isTemp ? 'Temporary Address' : isPerm ? 'Permanent Address' : 'Address';
+                          const val = line.replace(/^(Temporary|Permanent):\s*/, '');
+                          return (
+                            <div key={idx} className="border-b border-slate-200/60 last:border-b-0 pb-1.5 last:pb-0">
+                              <span className="text-slate-400 font-bold uppercase text-[10px] block">{label}</span>
+                              <span className="font-medium text-slate-800 leading-relaxed">{val}</span>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    ) : (
+                      <div>
+                        <span className="text-slate-400 font-bold uppercase text-[10px] block mb-1">Address</span>
+                        <span className="font-medium text-slate-800 leading-relaxed">{employee.address || 'No physical address registered'}</span>
+                      </div>
+                    )}
                   </div>
                 </div>
               )}
@@ -419,6 +491,154 @@ export const EmployeeDetailDrawer: React.FC<DrawerProps> = ({
               {/* Tab 2: Job & Client Details */}
               {activeTab === 'job' && (
                 <div className="space-y-4 text-xs">
+                  {/* Working Hours & Shift Timing Timeline */}
+                  <div className="p-4 bg-slate-900 text-white rounded-2xl border border-slate-800 space-y-3 shadow-lg">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2 font-bold text-xs text-teal-400">
+                        <Clock className="w-4 h-4 text-growth-teal" />
+                        <span>Working Hours & Shift Timeline</span>
+                      </div>
+                      <span className="text-[10px] font-mono uppercase bg-slate-800 text-teal-300 px-2.5 py-0.5 rounded-full border border-slate-700 font-bold">
+                        {employee.shiftStartTime === 'FLEXIBLE'
+                          ? 'Flexible Hours (No Late Penalty)'
+                          : `${formatTo12Hour(employee.shiftStartTime || '10:00')} - ${formatTo12Hour(employee.shiftEndTime || '19:00')}`}
+                      </span>
+                    </div>
+
+                    {/* Timeline visualization */}
+                    <div className="bg-slate-950/90 p-3 rounded-xl border border-slate-800 space-y-2">
+                      <div className="flex items-center justify-between font-mono text-xs">
+                        <div>
+                          <span className="text-[10px] text-slate-400 block font-sans">Check-In Window</span>
+                          <span className="font-bold text-emerald-400">
+                            {employee.shiftStartTime === 'FLEXIBLE' ? 'Anytime' : formatTo12Hour(employee.shiftStartTime || '10:00')}
+                          </span>
+                        </div>
+                        <div className="text-center font-sans text-[11px] text-slate-300 font-bold">
+                          {employee.shiftStartTime === 'FLEXIBLE'
+                            ? 'Self-Paced / Flexible'
+                            : 'Daily Scheduled Window'}
+                        </div>
+                        <div className="text-right">
+                          <span className="text-[10px] text-slate-400 block font-sans">Check-Out Expected</span>
+                          <span className="font-bold text-teal-400">
+                            {employee.shiftEndTime === 'FLEXIBLE' ? 'Anytime' : formatTo12Hour(employee.shiftEndTime || '19:00')}
+                          </span>
+                        </div>
+                      </div>
+                      <div className="w-full bg-slate-800 h-2 rounded-full overflow-hidden flex">
+                        <div className="bg-gradient-to-r from-emerald-500 via-teal-400 to-cyan-500 h-full w-full rounded-full" />
+                      </div>
+                    </div>
+
+                    {/* Configure Shift Controls */}
+                    {!editingShift ? (
+                      <div className="flex items-center justify-between pt-1 border-t border-slate-800/80">
+                        <span className="text-[11px] text-slate-400">
+                          Configure or adjust working hours for this employee
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => setEditingShift(true)}
+                          className="px-3 py-1.5 bg-growth-teal hover:bg-teal-400 text-slate-950 font-bold text-xs rounded-xl transition shadow-sm"
+                        >
+                          Decide Shift Timing
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="p-3 bg-slate-950 rounded-xl border border-teal-800/50 space-y-3 animate-in fade-in">
+                        <div className="grid grid-cols-2 gap-3">
+                          <div>
+                            <label className="block text-[11px] font-bold text-slate-300 mb-1">
+                              Shift Start (Check-In)
+                            </label>
+                            <TimePicker12
+                              value={drawerShiftStart}
+                              onChange={(val) => setDrawerShiftStart(val)}
+                              disabled={drawerShiftStart === 'FLEXIBLE'}
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-[11px] font-bold text-slate-300 mb-1">
+                              Shift End (Check-Out)
+                            </label>
+                            <TimePicker12
+                              value={drawerShiftEnd}
+                              onChange={(val) => setDrawerShiftEnd(val)}
+                              disabled={drawerShiftEnd === 'FLEXIBLE'}
+                            />
+                          </div>
+                        </div>
+
+                        {/* Quick Presets */}
+                        <div className="flex items-center gap-1.5 flex-wrap text-[10px]">
+                          <span className="text-slate-400 font-semibold">Presets:</span>
+                          <button
+                            type="button"
+                            onClick={() => { setDrawerShiftStart('09:30'); setDrawerShiftEnd('18:30'); }}
+                            className="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg font-mono transition flex items-center gap-1"
+                          >
+                            <span>09:30 AM - 06:30 PM</span>
+                            <span className="text-teal-400 text-[9px]">(9h)</span>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => { setDrawerShiftStart('10:00'); setDrawerShiftEnd('19:00'); }}
+                            className="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg font-mono transition flex items-center gap-1"
+                          >
+                            <span>10:00 AM - 07:00 PM</span>
+                            <span className="text-teal-400 text-[9px]">(9h)</span>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => { setDrawerShiftStart('11:00'); setDrawerShiftEnd('20:00'); }}
+                            className="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg font-mono transition flex items-center gap-1"
+                          >
+                            <span>11:00 AM - 08:00 PM</span>
+                            <span className="text-teal-400 text-[9px]">(9h)</span>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              if (drawerShiftStart === 'FLEXIBLE') {
+                                setDrawerShiftStart('10:00');
+                                setDrawerShiftEnd('19:00');
+                              } else {
+                                setDrawerShiftStart('FLEXIBLE');
+                                setDrawerShiftEnd('FLEXIBLE');
+                              }
+                            }}
+                            className={`px-2.5 py-1 rounded-lg font-bold transition ${
+                              drawerShiftStart === 'FLEXIBLE'
+                                ? 'bg-growth-teal text-slate-950 shadow-sm'
+                                : 'bg-teal-950/60 text-teal-300 border border-teal-800/60 hover:bg-teal-900/60'
+                            }`}
+                          >
+                            {drawerShiftStart === 'FLEXIBLE' ? '✓ Flexible Hours' : 'Set Flexible (No Late)'}
+                          </button>
+                        </div>
+
+                        <div className="flex justify-end gap-2 pt-1 border-t border-slate-800">
+                          <button
+                            type="button"
+                            onClick={() => setEditingShift(false)}
+                            className="px-3 py-1 bg-slate-800 text-slate-300 rounded-lg text-xs font-semibold hover:bg-slate-700"
+                          >
+                            Cancel
+                          </button>
+                          <button
+                            type="button"
+                            disabled={savingShift}
+                            onClick={handleSaveShift}
+                            className="px-4 py-1 bg-growth-teal text-slate-950 rounded-lg text-xs font-bold hover:bg-teal-400 transition"
+                          >
+                            {savingShift ? 'Saving...' : 'Save Shift Timeline'}
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
                   {/* Client Mapping */}
                   <div className="p-4 bg-teal-50/60 rounded-2xl border border-teal-200">
                     <span className="text-teal-700 font-bold uppercase text-[10px] block mb-1">Assigned Client / Company</span>
@@ -618,7 +838,7 @@ export const EmployeeDetailDrawer: React.FC<DrawerProps> = ({
               <div className="fixed inset-0 bg-slate-950/60 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-in fade-in">
                 <form
                   onSubmit={handleBlockSubmit}
-                  className="bg-white rounded-3xl p-6 max-w-md w-full shadow-2xl space-y-4 border border-slate-200"
+                  className="bg-white rounded-3xl p-6 max-w-md w-full shadow-2xl space-y-4 border border-slate-200 my-auto max-h-[90vh] overflow-y-auto"
                 >
                   <div className="flex items-center gap-2 text-rose-600 font-black text-base">
                     <ShieldAlert className="w-5 h-5" />
@@ -636,7 +856,12 @@ export const EmployeeDetailDrawer: React.FC<DrawerProps> = ({
                     <label className="block text-xs font-bold text-slate-700 mb-1">Block Reason *</label>
                     <select
                       value={blockReason}
-                      onChange={(e) => setBlockReason(e.target.value)}
+                      onChange={(e) => {
+                        setBlockReason(e.target.value);
+                        if (e.target.value !== 'Other Administrative Reason') {
+                          setCustomBlockReason('');
+                        }
+                      }}
                       className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:bg-white focus:outline-none"
                     >
                       <option value="Disciplinary Policy Breach">Disciplinary Policy Breach</option>
@@ -646,6 +871,20 @@ export const EmployeeDetailDrawer: React.FC<DrawerProps> = ({
                       <option value="Other Administrative Reason">Other Administrative Reason</option>
                     </select>
                   </div>
+
+                  {blockReason === 'Other Administrative Reason' && (
+                    <div className="animate-in fade-in slide-in-from-top-1 duration-200">
+                      <label className="block text-xs font-bold text-slate-700 mb-1">Specify Administrative Reason *</label>
+                      <input
+                        type="text"
+                        required
+                        placeholder="e.g. Compliance Audit, Prolonged Medical Leave..."
+                        value={customBlockReason}
+                        onChange={(e) => setCustomBlockReason(e.target.value)}
+                        className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:bg-white focus:outline-none focus:ring-1 focus:ring-growth-teal"
+                      />
+                    </div>
+                  )}
 
                   <div>
                     <label className="block text-xs font-bold text-slate-700 mb-1">Additional Remarks</label>
@@ -683,7 +922,7 @@ export const EmployeeDetailDrawer: React.FC<DrawerProps> = ({
               <div className="fixed inset-0 bg-slate-950/60 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-in fade-in">
                 <form
                   onSubmit={handleUnblockSubmit}
-                  className="bg-white rounded-3xl p-6 max-w-md w-full shadow-2xl space-y-4 border border-slate-200"
+                  className="bg-white rounded-3xl p-6 max-w-md w-full shadow-2xl space-y-4 border border-slate-200 my-auto max-h-[90vh] overflow-y-auto"
                 >
                   <div className="flex items-center gap-2 text-emerald-600 font-black text-base">
                     <ShieldCheck className="w-5 h-5" />

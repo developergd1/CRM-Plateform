@@ -7,9 +7,18 @@ import { AppShell } from '@/components/layout/AppShell';
 import { GrowthIndiaLogo } from '@/components/brand/GrowthIndiaLogo';
 
 export default function HomePage() {
-  const { loading } = useAuth();
+  const { user, loading } = useAuth();
+  const router = useRouter();
 
-  if (loading) {
+  const isAdmin = user && (user.role === 'ADMIN' || user.role === 'SUPER_ADMIN' || user.role === 'ADMIN_HR');
+
+  useEffect(() => {
+    if (!loading && isAdmin) {
+      router.replace('/growthIndia');
+    }
+  }, [isAdmin, loading, router]);
+
+  if (loading || isAdmin) {
     return (
       <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center space-y-4">
         <GrowthIndiaLogo size="lg" />

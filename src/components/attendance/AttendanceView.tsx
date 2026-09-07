@@ -14,6 +14,7 @@ import {
   Users,
 } from 'lucide-react';
 import { isManagerOrAbove } from '@/lib/rbac';
+import { formatClockTime } from '@/components/common/TimePicker12';
 
 export const AttendanceView: React.FC = () => {
   const { user, todayAttendance, checkIn, checkOut, startBreak, endBreak } = useAuth();
@@ -54,8 +55,7 @@ export const AttendanceView: React.FC = () => {
   const isOnBreak = isCheckedIn && !isCheckedOut && todayAttendance?.breaks?.some((b: any) => !b.breakEndTime);
 
   const formatTime = (d?: string) => {
-    if (!d) return '—';
-    return new Date(d).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    return formatClockTime(d);
   };
 
   const handlePunchIn = async () => {

@@ -41,3 +41,18 @@ export function getClientLookup(identifier: string) {
   }
   return { clientId: identifier };
 }
+
+/**
+ * Resolves any client identifier (ObjectId or custom string CLI-XXXXX) to the actual MongoDB ObjectId.
+ */
+export async function resolveClientObjectId(identifier?: string | null): Promise<string | null> {
+  if (!identifier) return null;
+  if (isValidObjectId(identifier)) {
+    return identifier;
+  }
+  const client = await prisma.client.findFirst({
+    where: { clientId: identifier },
+    select: { id: true },
+  });
+  return client?.id || null;
+}

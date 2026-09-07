@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
+import { prisma, getClientLookup } from '@/lib/prisma';
 import { getSessionUser } from '@/lib/auth';
 import { logAuditEvent } from '@/lib/audit';
 
@@ -11,9 +11,7 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
     const { id } = params;
 
     const client = await prisma.client.findFirst({
-      where: {
-        OR: [{ id }, { clientId: id }],
-      },
+      where: getClientLookup(id),
       include: {
         createdBy: { select: { employeeId: true, fullName: true, designation: true } },
         assignedEmployee: { select: { employeeId: true, fullName: true, designation: true } },
@@ -72,7 +70,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
     const data = await req.json();
 
     const existing = await prisma.client.findFirst({
-      where: { OR: [{ id }, { clientId: id }] },
+      where: getClientLookup(id),
     });
     if (!existing) return NextResponse.json({ error: 'Client not found' }, { status: 404 });
 

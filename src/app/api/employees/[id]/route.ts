@@ -56,16 +56,32 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
 export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
   try {
     const user = await getSessionUser(req);
-    if (!user || !isAdminOrHR(user.role)) {
-      return NextResponse.json({ error: 'Permission denied. Only Admins can edit employee records.' }, { status: 403 });
+    if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+    const isAdmin = isAdminOrHR(user.role);
+    const isClient = user.role === 'CLIENT';
+    if (!isAdmin && !isClient) {
+      return NextResponse.json({ error: 'Permission denied. Only Admins and Corporate Clients can edit employees.' }, { status: 403 });
     }
 
     const existing = await prisma.employee.findFirst({
       where: getEmployeeLookup(params.id),
+      include: { client: true, user: true },
     });
 
     if (!existing) {
       return NextResponse.json({ error: 'Employee not found' }, { status: 404 });
+    }
+
+    if (isClient) {
+      const authorized =
+        user.clientId === existing.client?.clientId ||
+        user.clientId === existing.clientId ||
+        user.id === existing.client?.userId ||
+        user.clientId === existing.client?.id;
+      if (!authorized) {
+        return NextResponse.json({ error: 'Permission denied. You can only edit your own assigned employees.' }, { status: 403 });
+      }
     }
 
 
@@ -79,26 +95,67 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
       phone,
       personalEmail,
       panNumber,
+      aadharNumber,
       address,
+      temporaryAddress,
+      permanentAddress,
       departmentName,
       designation,
       jobLocation,
       joiningDate,
       employmentType,
+      shiftStartTime,
+      shiftEndTime,
       remarks,
       status,
       password,
       customPassword,
     } = data;
 
+    let finalAddress = address !== undefined ? (address ? address.trim() : null) : undefined;
+    if (finalAddress === undefined && (temporaryAddress !== undefined || permanentAddress !== undefined)) {
+      const temp = temporaryAddress ? temporaryAddress.trim() : '';
+      const perm = permanentAddress ? permanentAddress.trim() : '';
+      if (temp && perm && temp !== perm) {
+        finalAddress = `Temporary: ${temp}\nPermanent: ${perm}`;
+      } else {
+        finalAddress = temp || perm || null;
+      }
+    }
+
     // Handle password update if passed
     const newPlainPassword = (password || customPassword)?.trim();
-    if (newPlainPassword && newPlainPassword.length >= 4 && existing.userId) {
+    if (newPlainPassword && newPlainPassword.length >= 4) {
       const passwordHash = await bcrypt.hash(newPlainPassword, 10);
-      await prisma.user.update({
-        where: { id: existing.userId },
-        data: { passwordHash, failedAttempts: 0, lockoutUntil: null },
-      });
+      if (existing.userId) {
+        await prisma.user.update({
+          where: { id: existing.userId },
+          data: { passwordHash, failedAttempts: 0, lockoutUntil: null, isSuspended: false },
+        });
+      } else {
+        let employeeRole = await prisma.role.findFirst({ where: { name: 'EMPLOYEE' } });
+        if (!employeeRole) {
+          employeeRole = await prisma.role.create({
+            data: { name: 'EMPLOYEE', displayName: 'Employee', description: 'Employee workspace', isSystem: true },
+          });
+        }
+        const loginEmail =
+          existing.personalEmail ||
+          `${existing.fullName.toLowerCase().replace(/[^a-z0-9]/g, '.')}.${Date.now().toString().slice(-4)}@growthindia.in`;
+        const newUser = await prisma.user.create({
+          data: {
+            email: loginEmail,
+            passwordHash,
+            roleId: employeeRole.id,
+            isActive: existing.status !== 'BLOCKED',
+            isSuspended: existing.status === 'BLOCKED',
+          },
+        });
+        await prisma.employee.update({
+          where: { id: existing.id },
+          data: { userId: newUser.id, personalEmail: loginEmail },
+        });
+      }
     }
 
     // If changing phone, check uniqueness
@@ -130,12 +187,15 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
               panMasked: panNumber ? maskPAN(panNumber.trim().toUpperCase()) : null,
             }
           : {}),
-        ...(address !== undefined ? { address: address ? address.trim() : null } : {}),
+        ...(aadharNumber !== undefined ? { aadhaarMasked: aadharNumber ? aadharNumber.trim() : null } : {}),
+        ...(finalAddress !== undefined ? { address: finalAddress } : {}),
         ...(departmentName ? { departmentName: departmentName.trim() } : {}),
         ...(designation ? { designation: designation.trim() } : {}),
         ...(jobLocation ? { jobLocation: jobLocation.trim(), location: jobLocation.trim() } : {}),
         ...(joiningDate ? { joiningDate: new Date(joiningDate) } : {}),
         ...(employmentType ? { employmentType } : {}),
+        ...(shiftStartTime !== undefined ? { shiftStartTime: shiftStartTime || '10:00' } : {}),
+        ...(shiftEndTime !== undefined ? { shiftEndTime: shiftEndTime || '19:00' } : {}),
         ...(remarks !== undefined ? { remarks: remarks ? remarks.trim() : null } : {}),
         ...(status && status !== 'BLOCKED' ? { status, isBlocked: false } : {}),
         updatedBy: `${user.fullName} (${user.employeeId})`,
@@ -185,6 +245,7 @@ export async function DELETE(req: NextRequest, { params }: { params: { id: strin
     if (
       existing.employeeId === 'GI-EMP-000001' ||
       existing.employeeId === user.employeeId ||
+      existing.user?.email === 'admin@growthindia.co' ||
       existing.user?.email === 'admin@growthindia.in'
     ) {
       return NextResponse.json(

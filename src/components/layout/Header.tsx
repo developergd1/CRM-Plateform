@@ -14,13 +14,37 @@ import {
   Users,
   Briefcase,
   User,
+  KeyRound,
 } from 'lucide-react';
+import { PasswordResetRequestsModal } from '@/components/auth/PasswordResetRequestsModal';
+import { formatClockTime } from '@/components/common/TimePicker12';
 
 export const Header: React.FC<{ onSearchSelect?: (term: string) => void }> = ({ onSearchSelect }) => {
   const { user, todayAttendance, checkIn, checkOut, startBreak, endBreak, logout } = useAuth();
   const [searchTerm, setSearchTerm] = useState('');
   const [actionLoading, setActionLoading] = useState(false);
   const [actionMsg, setActionMsg] = useState<string | null>(null);
+
+  const [showResetRequests, setShowResetRequests] = useState(false);
+  const [pendingResetCount, setPendingResetCount] = useState(0);
+
+  const fetchResetRequestsCount = async () => {
+    try {
+      const res = await fetch('/api/auth/password-reset-requests');
+      if (res.ok) {
+        const data = await res.json();
+        setPendingResetCount(data.pendingCount || 0);
+      }
+    } catch (e) {
+      // silent
+    }
+  };
+
+  React.useEffect(() => {
+    fetchResetRequestsCount();
+    const interval = setInterval(fetchResetRequestsCount, 30000);
+    return () => clearInterval(interval);
+  }, []);
 
   const handlePunchIn = async () => {
     setActionLoading(true);
@@ -59,8 +83,7 @@ export const Header: React.FC<{ onSearchSelect?: (term: string) => void }> = ({ 
   const isOnBreak = isCheckedIn && !isCheckedOut && todayAttendance?.breaks?.some((b: any) => !b.breakEndTime);
 
   const formatTime = (dateStr?: string) => {
-    if (!dateStr) return '';
-    return new Date(dateStr).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    return formatClockTime(dateStr);
   };
 
   return (
@@ -147,7 +170,22 @@ export const Header: React.FC<{ onSearchSelect?: (term: string) => void }> = ({ 
         </div>
 
         {/* Role & Profile Switcher Dropdown */}
-        <div className="relative">
+        <div className="relative flex items-center gap-2">
+          {/* Password Reset Requests Button */}
+          <button
+            onClick={() => setShowResetRequests(true)}
+            className="relative flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold border shadow-xs transition-all bg-amber-50 hover:bg-amber-100 text-amber-900 border-amber-300"
+            title="Manage Password Reset Requests"
+          >
+            <KeyRound className="w-3.5 h-3.5 text-amber-600" />
+            <span className="hidden md:inline">Reset Requests</span>
+            {pendingResetCount > 0 && (
+              <span className="px-1.5 py-0.2 rounded-full bg-rose-600 text-white text-[10px] font-black animate-pulse">
+                {pendingResetCount}
+              </span>
+            )}
+          </button>
+
           <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold border shadow-xs transition-all bg-slate-50 text-slate-700 border-slate-200">
             {user?.role === 'SUPER_ADMIN' ? (
               <ShieldCheck className="w-3.5 h-3.5 text-amber-500" />
@@ -188,6 +226,19 @@ export const Header: React.FC<{ onSearchSelect?: (term: string) => void }> = ({ 
           </button>
         </div>
       </div>
+
+      {/* Password Reset Requests Modal for Admin */}
+      <PasswordResetRequestsModal
+        isOpen={showResetRequests}
+        onClose={() => {
+          setShowResetRequests(false);
+          fetchResetRequestsCount();
+        }}
+        userRole={user?.role}
+        onPasswordResetSuccess={() => {
+          fetchResetRequestsCount();
+        }}
+      />
     </header>
   );
 };

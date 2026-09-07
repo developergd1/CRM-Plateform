@@ -61,9 +61,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return () => clearTimeout(fallbackTimer);
   }, []);
 
-  // Active interaction heartbeat every 30 seconds
+  // Active interaction heartbeat every 30 seconds (only for regular employees)
   useEffect(() => {
-    if (!user) return;
+    if (!user || user.role !== 'EMPLOYEE' || user.employeeId === 'GI-EMP-000001') return;
     const interval = setInterval(() => {
       fetch('/api/work-sessions', { method: 'POST' }).catch(() => {});
     }, 30000);

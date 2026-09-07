@@ -27,7 +27,12 @@ export async function GET(req: NextRequest) {
         },
       });
       if (clientRecord) {
-        where.employee = { clientId: clientRecord.id };
+        const clientEmployees = await prisma.employee.findMany({
+          where: { clientId: clientRecord.id },
+          select: { id: true },
+        });
+        const clientEmpIds = clientEmployees.map((e) => e.id);
+        where.employeeId = { in: clientEmpIds };
       } else {
         return NextResponse.json({ success: true, histories: [] });
       }

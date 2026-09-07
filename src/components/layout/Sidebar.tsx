@@ -10,6 +10,7 @@ import {
   ShieldAlert,
   History,
   ShieldCheck,
+  Clock,
 } from 'lucide-react';
 
 export const Sidebar: React.FC = () => {
@@ -22,6 +23,7 @@ export const Sidebar: React.FC = () => {
         { id: 'dashboard', label: 'Admin Dashboard', icon: LayoutDashboard },
         { id: 'clients', label: 'Client Management', icon: Building2 },
         { id: 'employees', label: 'Employee Onboarding & List', icon: Users },
+        { id: 'attendance', label: 'Attendance & Workforce', icon: Clock },
         { id: 'block-history', label: 'Block / Unblock History', icon: History },
       ],
     },

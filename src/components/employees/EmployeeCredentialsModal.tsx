@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
+import { useModalScroll } from '@/hooks/useModalScroll';
 import { Check, Copy, KeyRound, User, Mail, Building2, Phone, X, Eye, EyeOff, Sparkles, ShieldCheck } from 'lucide-react';
 
 export interface EmployeeCredentialData {
@@ -43,6 +44,11 @@ export const EmployeeCredentialsModal: React.FC<Props> = ({
     setPasswordError(null);
     setNewPassword('');
   }, [initialCredentials]);
+
+  const scrollRef = useModalScroll<HTMLDivElement>({
+    isOpen,
+    onClose,
+  });
 
   if (!isOpen || !credentials) return null;
 
@@ -125,33 +131,50 @@ Portal Login:  ${origin}
   const hasPassword = Boolean(credentials.password && !credentials.password.startsWith('[Encrypted'));
 
   return (
-    <div className="fixed inset-0 z-50 bg-slate-950/75 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto animate-in fade-in">
-      <div className="bg-slate-900 border border-slate-800 rounded-3xl max-w-lg w-full p-6 text-white shadow-2xl space-y-5 relative my-8">
-        {/* Close Button */}
-        <button
-          onClick={onClose}
-          className="absolute top-4 right-4 p-2 text-slate-400 hover:text-white rounded-xl hover:bg-slate-800 transition-colors"
-        >
-          <X className="w-5 h-5" />
-        </button>
-
+    <div
+      role="dialog"
+      aria-modal="true"
+      className="fixed inset-0 z-50 bg-slate-950/75 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4 overflow-y-auto animate-in fade-in"
+      onClick={(e) => {
+        if (e.target === e.currentTarget) onClose();
+      }}
+    >
+      <div className="bg-slate-900 border border-slate-800 rounded-3xl max-w-lg w-full text-white shadow-2xl my-auto flex flex-col max-h-[90vh] overflow-hidden">
         {/* Modal Header */}
-        <div className="flex items-center gap-3">
-          <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-growth-teal to-teal-700 flex items-center justify-center text-white font-black shadow-lg">
-            <KeyRound className="w-6 h-6" />
-          </div>
-          <div>
-            <div className="flex items-center gap-2">
-              <span className="px-2 py-0.5 rounded-md text-[10px] font-black uppercase tracking-wider bg-growth-teal/20 text-growth-teal border border-growth-teal/30">
-                {credentials.isNewlyCreated ? 'Employee Onboarding Complete' : 'Login Credentials & Access'}
-              </span>
-              <span className="font-mono text-xs font-bold text-growth-gold">
-                {credentials.employeeId}
-              </span>
+        <div className="p-5 sm:p-6 bg-slate-900 flex items-center justify-between border-b border-slate-800/80 shrink-0">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-growth-teal to-teal-700 flex items-center justify-center text-white font-black shadow-lg shrink-0">
+              <KeyRound className="w-5 h-5" />
             </div>
-            <h3 className="text-lg font-black text-white mt-0.5">Employee Login Credentials</h3>
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="px-2 py-0.5 rounded-md text-[10px] font-black uppercase tracking-wider bg-growth-teal/20 text-growth-teal border border-growth-teal/30">
+                  {credentials.isNewlyCreated ? 'Employee Onboarding Complete' : 'Login Credentials & Access'}
+                </span>
+                <span className="font-mono text-xs font-bold text-growth-gold">
+                  {credentials.employeeId}
+                </span>
+              </div>
+              <h3 className="text-base font-black text-white mt-0.5">Employee Login Credentials</h3>
+            </div>
           </div>
+          <button
+            type="button"
+            onClick={onClose}
+            className="p-2 text-slate-400 hover:text-white rounded-xl hover:bg-slate-800 transition-colors shrink-0"
+            title="Close modal (Esc)"
+          >
+            <X className="w-5 h-5" />
+          </button>
         </div>
+
+        {/* Scrollable Body */}
+        <div
+          ref={scrollRef}
+          tabIndex={0}
+          className="flex-1 overflow-y-auto p-5 sm:p-6 space-y-4 focus:outline-none focus:ring-1 focus:ring-inset focus:ring-slate-800"
+        >
+        
 
         <p className="text-xs text-slate-400 leading-relaxed">
           Employee can log in to the workspace using their <strong className="text-growth-teal">Employee ID</strong>, <strong className="text-growth-gold">Phone Number</strong>, or <strong className="text-white">Email Address</strong> along with this password.
@@ -322,6 +345,6 @@ Portal Login:  ${origin}
         </div>
       </div>
     </div>
+  </div>
   );
 };
-

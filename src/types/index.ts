@@ -25,6 +25,9 @@ export interface ClientItem {
   contactPerson: string;
   mobile: string;
   email?: string | null;
+  gstNumber?: string | null;
+  panNumber?: string | null;
+  aadharNumber?: string | null;
   address?: string | null;
   industry?: string | null;
   status: 'ACTIVE' | 'INACTIVE';
@@ -96,6 +99,8 @@ export interface EmployeeItem {
   location?: string;
   joiningDate: string;
   employmentType: string;
+  shiftStartTime?: string | null;
+  shiftEndTime?: string | null;
   remarks?: string | null;
 
   // Status & Block Info

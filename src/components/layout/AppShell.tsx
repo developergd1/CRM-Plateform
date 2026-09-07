@@ -10,6 +10,7 @@ import { ClientsListView } from '../crm/ClientsListView';
 import { EmployeesView } from '../employees/EmployeesView';
 import { BlockHistoryView } from '../employees/BlockHistoryView';
 import { AuditLogsView } from '../audit/AuditLogsView';
+import { AdminAttendanceView } from '../attendance/AdminAttendanceView';
 import { GrowthIndiaLogo } from '../brand/GrowthIndiaLogo';
 
 import { ClientPortalShell } from '../client-portal/ClientPortalShell';
@@ -50,6 +51,8 @@ export const AppShell: React.FC = () => {
         return <ClientsListView />;
       case 'employees':
         return <EmployeesView />;
+      case 'attendance':
+        return <AdminAttendanceView />;
       case 'block-history':
         return <BlockHistoryView />;
       case 'audit-logs':

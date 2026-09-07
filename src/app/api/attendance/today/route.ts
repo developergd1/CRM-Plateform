@@ -1,7 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
+import { prisma, resolveClientObjectId } from '@/lib/prisma';
 import { getSessionUser } from '@/lib/auth';
-import { isAdminOrHR, isManagerOrAbove } from '@/lib/rbac';
+import { isManagerOrAbove } from '@/lib/rbac';
+import { getEffectiveWorkPolicy } from '@/lib/work-policy';
+import { getEmployeeActiveSession } from '@/lib/session-manager';
+import { calculateAttendanceMetrics } from '@/lib/attendance-calculator';
 
 export async function GET(req: NextRequest) {
   try {
@@ -9,16 +12,60 @@ export async function GET(req: NextRequest) {
     if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
     const today = new Date().toISOString().split('T')[0];
+    const { searchParams } = new URL(req.url);
+    const filterClientId = searchParams.get('clientId');
 
-    // If Admin/HR/Manager, fetch summary of all employee attendance today
+    // 1. ADMIN / HR / MANAGER VIEW
     if (isManagerOrAbove(user.role)) {
+      const adminUsers = await prisma.user.findMany({
+        where: {
+          role: {
+            name: { in: ['ADMIN', 'SUPER_ADMIN'] },
+          },
+        },
+        select: { id: true },
+      });
+      const adminUserIds = adminUsers.map((u) => u.id);
+
+      let employeeFilter: any = {
+        status: { not: 'BLOCKED' },
+        employeeId: { not: 'GI-EMP-000001' },
+        ...(adminUserIds.length > 0 ? { userId: { notIn: adminUserIds } } : {}),
+      };
+      if (filterClientId) {
+        const resolvedId = await resolveClientObjectId(filterClientId);
+        if (resolvedId) {
+          employeeFilter.clientId = resolvedId;
+        } else {
+          return NextResponse.json({
+            success: true,
+            today,
+            summary: { totalEmployees: 0, presentCount: 0, lateCount: 0, halfDayCount: 0, absentCount: 0 },
+            records: [],
+          });
+        }
+      }
+
+      const employees = await prisma.employee.findMany({
+        where: employeeFilter,
+        include: {
+          client: true,
+          department: true,
+        },
+      });
+
+      const employeeIds = employees.map((e) => e.id);
+
       const records = await prisma.attendance.findMany({
-        where: { date: today },
+        where: {
+          date: today,
+          employeeId: { in: employeeIds },
+        },
         include: {
           employee: {
             include: {
+              client: true,
               department: true,
-              team: true,
             },
           },
           breaks: true,
@@ -26,8 +73,8 @@ export async function GET(req: NextRequest) {
         orderBy: { checkInTime: 'asc' },
       });
 
-      const totalEmployees = await prisma.employee.count({ where: { status: 'ACTIVE' } });
-      const presentCount = records.length;
+      const totalEmployees = employees.length;
+      const presentCount = records.filter((r) => r.checkInTime).length;
       const lateCount = records.filter((r) => r.isLate).length;
       const onBreakCount = records.filter((r) => r.breaks.some((b) => !b.breakEndTime)).length;
 
@@ -45,27 +92,125 @@ export async function GET(req: NextRequest) {
       });
     }
 
-    // For regular employee, return their own record
-    const emp = await prisma.employee.findUnique({
-      where: { employeeId: user.employeeId },
+    // 2. CLIENT VIEW
+    if (user.role === 'CLIENT') {
+      const clientProfile = await prisma.client.findFirst({
+        where: {
+          OR: [
+            { userId: user.id },
+            ...(user.clientId ? [{ clientId: user.clientId }] : []),
+          ],
+        },
+      });
+
+      if (!clientProfile) {
+        return NextResponse.json({ error: 'Client profile not found' }, { status: 404 });
+      }
+
+      const employees = await prisma.employee.findMany({
+        where: {
+          clientId: clientProfile.id,
+          status: { not: 'BLOCKED' },
+        },
+        include: {
+          department: true,
+        },
+      });
+
+      const employeeIds = employees.map((e) => e.id);
+
+      const records = await prisma.attendance.findMany({
+        where: {
+          date: today,
+          employeeId: { in: employeeIds },
+        },
+        include: {
+          employee: {
+            include: {
+              department: true,
+            },
+          },
+          breaks: true,
+        },
+        orderBy: { checkInTime: 'asc' },
+      });
+
+      const totalEmployees = employees.length;
+      const presentCount = records.filter((r) => r.checkInTime).length;
+      const lateCount = records.filter((r) => r.isLate).length;
+      const onBreakCount = records.filter((r) => r.breaks.some((b) => !b.breakEndTime)).length;
+
+      return NextResponse.json({
+        success: true,
+        summary: {
+          date: today,
+          clientName: clientProfile.companyName,
+          totalEmployees,
+          presentCount,
+          lateCount,
+          onBreakCount,
+          absentCount: Math.max(0, totalEmployees - presentCount),
+        },
+        records,
+      });
+    }
+
+    // 3. EMPLOYEE VIEW
+    const emp = await prisma.employee.findFirst({
+      where: {
+        OR: [
+          { userId: user.id },
+          ...(user.employeeId ? [{ employeeId: user.employeeId }] : []),
+        ],
+      },
+      include: { client: true },
     });
 
     if (!emp) return NextResponse.json({ error: 'Employee not found' }, { status: 404 });
 
-    const attendance = await prisma.attendance.findUnique({
-      where: {
-        employeeId_date: {
-          employeeId: emp.id,
-          date: today,
+    const [attendance, activeSession, policy] = await Promise.all([
+      prisma.attendance.findUnique({
+        where: {
+          employeeId_date: {
+            employeeId: emp.id,
+            date: today,
+          },
         },
-      },
-      include: {
-        breaks: true,
-      },
-    });
+        include: {
+          breaks: true,
+        },
+      }),
+      getEmployeeActiveSession(emp.id),
+      getEffectiveWorkPolicy({ employeeId: emp.id, clientId: emp.clientId || undefined }),
+    ]);
 
-    return NextResponse.json({ success: true, attendance });
+    const metrics = attendance
+      ? calculateAttendanceMetrics({
+          attendance,
+          activeSession,
+          policy,
+        })
+      : null;
+
+    return NextResponse.json({
+      success: true,
+      today,
+      employee: {
+        id: emp.id,
+        employeeId: emp.employeeId,
+        fullName: emp.fullName,
+        designation: emp.designation,
+        shiftStartTime: emp.shiftStartTime,
+        shiftEndTime: emp.shiftEndTime,
+        client: emp.client ? { id: emp.client.id, companyName: emp.client.companyName } : null,
+      },
+      attendance,
+      activeSession,
+      metrics,
+      policy,
+    });
   } catch (error: any) {
+    console.error('Error in /api/attendance/today:', error);
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
