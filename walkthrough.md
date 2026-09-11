@@ -116,7 +116,7 @@ All 12 automated verification suites ran successfully against the live system:
 
 1. **Development Server**: The application is active at `http://localhost:3000`.
 2. **Demo Personas**:
-   - Super Admin: `admin@growthindia.in` / `Admin@123`
+   - Super Admin: `admin@growthindia.co` / `Admin@123`
    - HR Lead: `neha.gupta@growthindia.in` / `Admin@123`
    - Sales Manager: `rahul.verma@growthindia.in` / `Manager@123`
    - Senior Sales Exec: `priya.patel@growthindia.in` / `Emp@123`

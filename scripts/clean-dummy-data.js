@@ -72,10 +72,10 @@ async function cleanDummyData() {
   try {
     const userRes = await prisma.user.deleteMany({
       where: {
-        email: { not: 'admin@growthindia.in' },
+        email: { not: 'admin@growthindia.co' },
       },
     });
-    console.log(`  🗑️ Cleared dummy user accounts: ${userRes.count} records (admin@growthindia.in preserved)`);
+    console.log(`  🗑️ Cleared dummy user accounts: ${userRes.count} records (admin@growthindia.co preserved)`);
   } catch (err) {
     console.warn('  ⚠️ Warning clearing users:', err.message);
   }
@@ -88,13 +88,13 @@ async function cleanDummyData() {
   const hashedPasswordAdmin = await bcrypt.hash('Admin@123', 10);
 
   const adminUser = await prisma.user.upsert({
-    where: { email: 'admin@growthindia.in' },
+    where: { email: 'admin@growthindia.co' },
     update: {
       isActive: true,
       isSuspended: false,
     },
     create: {
-      email: 'admin@growthindia.in',
+      email: 'admin@growthindia.co',
       passwordHash: hashedPasswordAdmin,
       roleId: adminRole ? adminRole.id : undefined,
       isActive: true,
@@ -111,13 +111,14 @@ async function cleanDummyData() {
       userId: adminUser.id,
       status: 'ACTIVE',
       isBlocked: false,
+      personalEmail: 'admin@growthindia.co',
     },
     create: {
       employeeId: 'GI-EMP-000001',
       userId: adminUser.id,
       fullName: 'System Administrator',
       phone: '+91 98000 00000',
-      personalEmail: 'admin@growthindia.in',
+      personalEmail: 'admin@growthindia.co',
       departmentName: 'General Operations',
       designation: 'Platform Head',
       jobLocation: 'Headquarters',
@@ -131,7 +132,7 @@ async function cleanDummyData() {
 
   console.log('✅ Clean Database state successfully restored!');
   console.log('   All dummy pipeline deals, fake attendance, and duplicate clients/employees purged.');
-  console.log('   Admin credentials intact: admin@growthindia.in / Admin@123 (GI-EMP-000001)');
+  console.log('   Admin credentials intact: admin@growthindia.co / Admin@123 (GI-EMP-000001)');
 }
 
 cleanDummyData()

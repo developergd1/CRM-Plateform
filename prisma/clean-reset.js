@@ -121,7 +121,7 @@ async function cleanReset() {
   // 4. Primary Administrator Account
   const hashedPasswordAdmin = await bcrypt.hash('Admin@123', 10);
   const adminUser = await prisma.user.upsert({
-    where: { email: 'admin@growthindia.in' },
+    where: { email: 'admin@growthindia.co' },
     update: {
       roleId: adminRole.id,
       passwordHash: hashedPasswordAdmin,
@@ -129,7 +129,7 @@ async function cleanReset() {
       isSuspended: false,
     },
     create: {
-      email: 'admin@growthindia.in',
+      email: 'admin@growthindia.co',
       passwordHash: hashedPasswordAdmin,
       roleId: adminRole.id,
       isActive: true,
@@ -146,13 +146,14 @@ async function cleanReset() {
       userId: adminUser.id,
       status: 'ACTIVE',
       isBlocked: false,
+      personalEmail: 'admin@growthindia.co',
     },
     create: {
       employeeId: 'GI-EMP-000001',
       userId: adminUser.id,
       fullName: 'System Administrator',
       phone: '+91 98000 00000',
-      personalEmail: 'admin@growthindia.in',
+      personalEmail: 'admin@growthindia.co',
       departmentName: 'General Operations',
       designation: 'Platform Head',
       jobLocation: 'Headquarters',
@@ -163,7 +164,7 @@ async function cleanReset() {
       createdBy: 'SYSTEM',
     },
   });
-  console.log('  ✅ Primary Administrator seeded: admin@growthindia.in / Admin@123 (ID: GI-EMP-000001)');
+  console.log('  ✅ Primary Administrator seeded: admin@growthindia.co / Admin@123 (ID: GI-EMP-000001)');
 
   console.log('\n✨ Database reset and clean foundation setup completed successfully!');
 }

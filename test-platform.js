@@ -10,7 +10,7 @@ async function runTests() {
   const loginRes = await fetch(`${BASE_URL}/api/auth/login`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ email: 'admin@growthindia.in', password: 'Admin@123', portalType: 'ADMIN' }),
+    body: JSON.stringify({ email: 'admin@growthindia.co', password: 'Admin@123', portalType: 'ADMIN' }),
   });
   const loginData = await loginRes.json();
   const setCookie = loginRes.headers.get('set-cookie');

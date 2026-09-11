@@ -62,5 +62,5 @@ npm run dev
 ## 🔑 Default Credentials
 
 ### 🛡️ Platform Administrator Portal (`/growthIndia`):
-* **Email / ID:** `admin@growthindia.in` / `GI-EMP-000001`
+* **Email / ID:** `admin@growthindia.co` / `GI-EMP-000001`
 * **Password:** `Admin@123`
