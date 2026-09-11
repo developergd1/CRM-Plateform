@@ -135,62 +135,41 @@ export const ForgotPasswordModal: React.FC<ForgotPasswordModalProps> = ({
           </div>
         ) : (
           <form onSubmit={handleSubmit} className="p-5 sm:p-6 space-y-4 text-xs overflow-y-auto flex-1">
-            {/* Account Type Selector */}
-            <div>
-              <label className="block font-bold text-slate-700 mb-1.5">Account Role</label>
-              <div className="grid grid-cols-2 gap-2 p-1 bg-slate-100 rounded-xl">
-                <button
-                  type="button"
-                  onClick={() => setAccountType('EMPLOYEE')}
-                  className={`py-2 px-3 rounded-lg font-bold flex items-center justify-center gap-1.5 transition-all ${
-                    accountType === 'EMPLOYEE'
-                      ? 'bg-white text-slate-900 shadow-sm'
-                      : 'text-slate-500 hover:text-slate-900'
-                  }`}
-                >
-                  <User className="w-3.5 h-3.5" />
-                  <span>Employee / Staff</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setAccountType('CLIENT')}
-                  className={`py-2 px-3 rounded-lg font-bold flex items-center justify-center gap-1.5 transition-all ${
-                    accountType === 'CLIENT'
-                      ? 'bg-white text-slate-900 shadow-sm'
-                      : 'text-slate-500 hover:text-slate-900'
-                  }`}
-                >
-                  <Building2 className="w-3.5 h-3.5" />
-                  <span>Client / Employer</span>
-                </button>
-              </div>
-            </div>
-
-            {/* Routing Notice */}
-            <div className="p-3 bg-amber-50 rounded-xl border border-amber-200/80 text-[11px] text-amber-900 space-y-1">
-              <div className="font-bold flex items-center gap-1.5 text-amber-800">
-                <ShieldCheck className="w-3.5 h-3.5 text-amber-600" />
-                <span>Reset Destination</span>
-              </div>
-              <p className="leading-snug">
-                {accountType === 'EMPLOYEE'
-                  ? 'Request will be sent to your assigned Client Employer to reset your password.'
-                  : 'Request will be sent directly to Growth India HQ System Administrator.'}
-              </p>
+            <div className="grid grid-cols-2 gap-2 p-1 bg-slate-100 rounded-xl mb-2">
+              <button
+                type="button"
+                onClick={() => setAccountType('EMPLOYEE')}
+                className={`py-2 px-3 rounded-lg font-bold flex items-center justify-center gap-1.5 transition-all ${
+                  accountType === 'EMPLOYEE'
+                    ? 'bg-white text-slate-900 shadow-sm'
+                    : 'text-slate-500 hover:text-slate-900'
+                }`}
+              >
+                <User className="w-3.5 h-3.5" />
+                <span>Employee</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setAccountType('CLIENT')}
+                className={`py-2 px-3 rounded-lg font-bold flex items-center justify-center gap-1.5 transition-all ${
+                  accountType === 'CLIENT'
+                    ? 'bg-white text-slate-900 shadow-sm'
+                    : 'text-slate-500 hover:text-slate-900'
+                }`}
+              >
+                <Building2 className="w-3.5 h-3.5" />
+                <span>Client</span>
+              </button>
             </div>
 
             <div>
               <label className="block font-bold text-slate-700 mb-1">
-                Registered Phone, Email, or Account ID *
+                Email ID *
               </label>
               <input
-                type="text"
+                type="email"
                 required
-                placeholder={
-                  accountType === 'EMPLOYEE'
-                    ? 'e.g. +91 98330 22222 or GI-EMP-000001'
-                    : 'e.g. +91 99112 34567 or CLI-00001'
-                }
+                placeholder="Email ID"
                 value={identifier}
                 onChange={(e) => setIdentifier(e.target.value)}
                 className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 font-medium placeholder:text-slate-400 focus:bg-white focus:outline-none focus:ring-1 focus:ring-growth-teal"
@@ -199,11 +178,11 @@ export const ForgotPasswordModal: React.FC<ForgotPasswordModalProps> = ({
 
             <div>
               <label className="block font-bold text-slate-700 mb-1">
-                Reason / Note (Optional)
+                Reason
               </label>
               <textarea
                 rows={2}
-                placeholder="e.g. Forgot my previous password, need access reinstated..."
+                placeholder="e.g. Forgot my previous password..."
                 value={reason}
                 onChange={(e) => setReason(e.target.value)}
                 className="w-full px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 font-medium placeholder:text-slate-400 focus:bg-white focus:outline-none focus:ring-1 focus:ring-growth-teal"

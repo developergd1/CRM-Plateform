@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
+import { prisma, getEmployeeLookup } from '@/lib/prisma';
 import { getSessionUser } from '@/lib/auth';
 import { isManagerOrAbove } from '@/lib/rbac';
 
@@ -13,7 +13,7 @@ export async function GET(req: NextRequest) {
 
     const where: any = {};
     if (employeeId) {
-      const emp = await prisma.employee.findFirst({ where: { OR: [{ id: employeeId }, { employeeId }] } });
+      const emp = await prisma.employee.findFirst({ where: getEmployeeLookup(employeeId) });
       if (emp) where.employeeId = emp.id;
     } else if (user.role === 'EMPLOYEE') {
       const emp = await prisma.employee.findFirst({

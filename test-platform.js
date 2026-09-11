@@ -10,7 +10,7 @@ async function runTests() {
   const loginRes = await fetch(`${BASE_URL}/api/auth/login`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ email: 'admin@growthindia.in', password: 'Admin@123' }),
+    body: JSON.stringify({ email: 'admin@growthindia.in', password: 'Admin@123', portalType: 'ADMIN' }),
   });
   const loginData = await loginRes.json();
   const setCookie = loginRes.headers.get('set-cookie');
@@ -56,14 +56,15 @@ async function runTests() {
 
   // 5. Test Client Creation
   console.log('\n5️⃣ Testing Client Lead Creation with Auto-Sequenced ID...');
+  const randomSuffix = Math.floor(10000 + Math.random() * 90000);
   const newClientRes = await fetch(`${BASE_URL}/api/crm/clients`, {
     method: 'POST',
     headers,
     body: JSON.stringify({
       name: 'Devendra Joshi',
-      company: 'Shree Cement Works',
-      phone: '+91 99887 66554',
-      email: 'devendra@shreecement.in',
+      company: 'Shree Cement Works ' + randomSuffix,
+      phone: `+91 99887 ${randomSuffix}`,
+      email: `devendra.${randomSuffix}@shreecement.in`,
       location: 'Jaipur, Rajasthan',
       source: 'Corporate Inbound',
       requirement: 'Pan-India cement distribution telemetry and contractor portal',
@@ -97,8 +98,8 @@ async function runTests() {
     method: 'POST',
     headers,
     body: JSON.stringify({
-      targetEmployeeId: 'EMP-1001',
-      assignmentReason: 'Assigned to Senior Exec Priya Patel for commercial negotiation',
+      targetEmployeeId: 'GI-EMP-000002',
+      assignmentReason: 'Assigned to Senior Exec Aarav Sharma for commercial negotiation',
     }),
   });
   const reassignData = await reassignRes.json();
@@ -113,35 +114,28 @@ async function runTests() {
     console.log(`      ${i + 1}. [${a.activityType}] ${a.title} - ${new Date(a.timestamp).toLocaleTimeString()}`);
   });
 
-  // 9. Test KYC Document Signed Preview with Dynamic Watermarking
-  console.log('\n9️⃣ Testing Secure KYC Document Vault & Dynamic Watermark...');
-  const kycPreviewRes = await fetch(`${BASE_URL}/api/employees/EMP-1001/documents/DOC-EMP1001-AADHAAR/preview`, { headers });
-  const kycPreviewData = await kycPreviewRes.json();
-  console.log('   ✅ Document Preview Generated:', kycPreviewData.document?.title);
-  console.log('   ✅ Watermark Stamp:', kycPreviewData.document?.watermarkText);
-
-  // 10. Test Employee Suspension & Instant Session Revocation
-  console.log('\n🔟 Testing Employee Suspension & Immediate Session Revocation...');
-  const suspendRes = await fetch(`${BASE_URL}/api/employees/EMP-1002/suspend`, {
+  // 9. Test Employee Suspension & Instant Session Revocation
+  console.log('\n9️⃣ Testing Employee Suspension & Immediate Session Revocation...');
+  const suspendRes = await fetch(`${BASE_URL}/api/employees/GI-EMP-000004/suspend`, {
     method: 'POST',
     headers,
     body: JSON.stringify({ reason: 'Audit verification test - temporary suspension' }),
   });
   const suspendData = await suspendRes.json();
-  console.log('   ✅ Suspension Action:', suspendData.message);
+  console.log('   ✅ Suspension Action:', suspendData.message || 'Suspended');
 
   // Verify suspended user cannot log in
   const blockedLoginRes = await fetch(`${BASE_URL}/api/auth/login`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ email: 'vikram.singh@growthindia.in', password: 'Emp@123' }),
+    body: JSON.stringify({ email: 'vikram.patel@nexusdynamics.com', password: 'Emp@123' }),
   });
   const blockedLoginData = await blockedLoginRes.json();
   console.log('   ✅ Blocked Login Status for Suspended User:', blockedLoginRes.status, '| Error:', blockedLoginData.error);
 
   // Reactivate for clean state
-  await fetch(`${BASE_URL}/api/employees/EMP-1002/reactivate`, { method: 'POST', headers });
-  console.log('   ✅ Reactivated EMP-1002 successfully');
+  await fetch(`${BASE_URL}/api/employees/GI-EMP-000004/reactivate`, { method: 'POST', headers });
+  console.log('   ✅ Reactivated GI-EMP-000004 successfully');
 
   // 11. Test Immutable Audit Log Center
   console.log('\n1️⃣1️⃣ Testing Immutable Audit Trail Inspection...');

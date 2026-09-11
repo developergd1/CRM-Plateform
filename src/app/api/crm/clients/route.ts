@@ -1,8 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
+import { prisma, getEmployeeLookup } from '@/lib/prisma';
 import { getSessionUser } from '@/lib/auth';
 import { isAdminOrHR, isManagerOrAbove } from '@/lib/rbac';
 import { logAuditEvent } from '@/lib/audit';
+import { generateClientId } from '@/lib/id-generator';
+import bcrypt from 'bcryptjs';
 
 export async function GET(req: NextRequest) {
   try {
@@ -48,7 +50,7 @@ export async function GET(req: NextRequest) {
       }
     } else if (assignedEmployeeId) {
       const targetEmp = await prisma.employee.findFirst({
-        where: { OR: [{ id: assignedEmployeeId }, { employeeId: assignedEmployeeId }] },
+        where: getEmployeeLookup(assignedEmployeeId),
       });
       if (targetEmp) where.assignedEmployeeId = targetEmp.id;
     }
@@ -160,31 +162,63 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // Generate formatted Client ID sequence: CL-2026-000001
-    const currentYear = new Date().getFullYear();
-    const totalClientsCount = await prisma.client.count();
-    const sequenceNumber = (totalClientsCount + 1).toString().padStart(6, '0');
-    const clientId = `CL-${currentYear}-${sequenceNumber}`;
+    // Generate formatted Client ID sequence: CLI-XXX-00001
+    const finalCompanyName = company ? company.trim() : name.trim();
+    const clientId = await generateClientId(finalCompanyName);
 
     // Target Assigned Employee
     let targetOwnerId = currentEmp.id;
     if (assignedEmployeeId && isManagerOrAbove(user.role)) {
       const targetEmp = await prisma.employee.findFirst({
-        where: { OR: [{ id: assignedEmployeeId }, { employeeId: assignedEmployeeId }] },
+        where: getEmployeeLookup(assignedEmployeeId),
       });
       if (targetEmp) targetOwnerId = targetEmp.id;
+    }
+
+    // Auto-create client user portal credentials
+    const numPart = clientId.replace(/\D/g, '');
+    const clientEmail = email
+      ? email.toLowerCase().trim()
+      : `client.${numPart}@growthindia.in`;
+    const defaultPassword = `Client#${Math.floor(1000 + Math.random() * 9000)}`;
+    const hashedPassword = await bcrypt.hash(defaultPassword, 10);
+
+    let clientRole = await prisma.role.findUnique({ where: { name: 'CLIENT' } });
+    if (!clientRole) {
+      clientRole = await prisma.role.create({
+        data: {
+          name: 'CLIENT',
+          displayName: 'Client Account',
+          description: 'Corporate client portal',
+          isSystem: true,
+        },
+      });
+    }
+
+    let clientUser = await prisma.user.findUnique({ where: { email: clientEmail } });
+    if (!clientUser) {
+      clientUser = await prisma.user.create({
+        data: {
+          email: clientEmail,
+          passwordHash: hashedPassword,
+          roleId: clientRole.id,
+          isActive: true,
+          isSuspended: false,
+        },
+      });
     }
 
     // Create Client in DB
     const client = await prisma.client.create({
       data: {
         clientId,
+        userId: clientUser.id,
         companyName: company ? company.trim() : name.trim(),
         contactPerson: name.trim(),
         mobile: phone.trim(),
         name: name.trim(),
         phone: phone.trim(),
-        email: email ? email.toLowerCase().trim() : null,
+        email: clientEmail,
         company: company ? company.trim() : null,
         location: location ? location.trim() : null,
         source,

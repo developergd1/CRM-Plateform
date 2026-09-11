@@ -1,4 +1,4 @@
-import { prisma } from './prisma';
+import { prisma, isValidObjectId } from './prisma';
 import { logAuditEvent } from './audit';
 import { getEffectiveWorkPolicy } from './work-policy';
 
@@ -121,6 +121,20 @@ export async function submitRegularizationRequest(data: {
     },
   });
 
+  // Notify Client & Admin
+  try {
+    const { notifyRegularizationRequested } = await import('./notifications');
+    await notifyRegularizationRequested({
+      reqId: newItem.id,
+      employeeName: data.employeeName,
+      employeeId: data.employeeId,
+      date: data.date,
+      clientId: data.clientId,
+    });
+  } catch (e) {
+    console.error('Failed to send regularization request notification:', e);
+  }
+
   return newItem;
 }
 
@@ -174,8 +188,8 @@ export async function reviewRegularizationRequest(
     const employee = await prisma.employee.findFirst({
       where: {
         OR: [
-          { id: req.employeeId },
-          { employeeId: req.employeeDisplayId || req.employeeCode || '' },
+          ...(isValidObjectId(req.employeeId) ? [{ id: req.employeeId }] : []),
+          { employeeId: req.employeeDisplayId || req.employeeCode || req.employeeId || '' },
         ],
       },
     });
@@ -270,6 +284,20 @@ export async function reviewRegularizationRequest(
     where: { key: REGULARIZATIONS_KEY },
     data: { value: JSON.stringify(existing), updatedAt: new Date() },
   });
+
+  // Notify Employee about decision
+  try {
+    const { notifyRegularizationReviewed } = await import('./notifications');
+    await notifyRegularizationReviewed({
+      reqId: req.id,
+      status: normalizedAction as any,
+      reviewerName,
+      employeeId: req.employeeId,
+      date: req.date,
+    });
+  } catch (e) {
+    console.error('Failed to send regularization review notification:', e);
+  }
 
   return req;
 }

@@ -1,6 +1,5 @@
-import { notFound } from 'next/navigation';
+import { redirect } from 'next/navigation';
 
 export default function AdminPage() {
-  notFound();
+  redirect('/growthIndia');
 }
-

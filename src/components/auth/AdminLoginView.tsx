@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { GrowthIndiaLogo } from '@/components/brand/GrowthIndiaLogo';
 import {
@@ -13,6 +13,7 @@ import {
   Sparkles,
   ArrowLeft,
   KeyRound,
+  Loader2,
 } from 'lucide-react';
 import Link from 'next/link';
 
@@ -23,6 +24,15 @@ export const AdminLoginView: React.FC = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+
+  useEffect(() => {
+    // Clear browser-forced autofill on initial mount
+    const timer = setTimeout(() => {
+      setEmail('');
+      setPassword('');
+    }, 120);
+    return () => clearTimeout(timer);
+  }, []);
 
   const handleAdminLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -59,81 +69,106 @@ export const AdminLoginView: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col justify-between p-4 md:p-8 relative overflow-x-hidden selection:bg-growth-gold selection:text-slate-900">
-      {/* Background ambient lighting effects */}
-      <div className="absolute -top-32 -left-32 w-96 h-96 bg-amber-500/20 rounded-full blur-3xl pointer-events-none" />
-      <div className="absolute top-1/3 -right-32 w-96 h-96 bg-growth-teal/15 rounded-full blur-3xl pointer-events-none" />
-
-      {/* Main Content Container */}
-      <div className="max-w-lg w-full mx-auto my-auto py-8 z-10 flex flex-col items-center">
-        {/* Brand Header */}
-        <div className="flex flex-col items-center text-center mb-6">
-          <div className="p-3.5 bg-slate-900/90 rounded-2xl border border-amber-500/30 shadow-2xl mb-3 backdrop-blur-md">
+    <div className="min-h-screen bg-slate-50 flex font-sans selection:bg-amber-500/30">
+      {/* Left Column: Branding (Hidden on mobile) */}
+      <div className="hidden lg:flex lg:w-1/2 bg-slate-950 flex-col justify-between p-12 relative overflow-hidden border-r border-slate-800">
+        {/* Background Accents */}
+        <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-amber-500/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/3 pointer-events-none" />
+        <div className="absolute bottom-0 left-0 w-[600px] h-[600px] bg-growth-teal/10 rounded-full blur-3xl translate-y-1/3 -translate-x-1/4 pointer-events-none" />
+        
+        <div className="relative z-10">
+          <div className="bg-white/5 inline-block p-4 rounded-xl border border-white/10 backdrop-blur-sm mb-12">
             <GrowthIndiaLogo size="lg" />
           </div>
-          <div className="inline-flex items-center gap-2 px-3 py-1 bg-amber-500/10 border border-amber-500/30 rounded-full text-xs font-black text-growth-gold mb-2">
-            <ShieldCheck className="w-4 h-4 text-growth-gold" />
-            <span>PLATFORM GOVERNANCE & SUPER ADMIN CONSOLE</span>
+          <div className="space-y-6 max-w-lg">
+            <div className="inline-flex items-center gap-2 px-3 py-1 bg-amber-500/10 border border-amber-500/20 rounded text-xs font-black text-amber-500 uppercase tracking-widest">
+              <ShieldCheck className="w-4 h-4" />
+              <span>Platform Governance</span>
+            </div>
+            <h1 className="text-4xl xl:text-5xl font-black text-white leading-tight tracking-tight">
+              Centralized<br />Admin Console
+            </h1>
+            <p className="text-slate-400 text-lg leading-relaxed">
+              Securely manage your CRM, workforce, client configurations, and overarching platform settings from a single command center.
+            </p>
           </div>
-          <h1 className="text-2xl md:text-3xl font-black text-white tracking-tight">
-            Administrator Portal
-          </h1>
-          <p className="text-xs text-slate-400 mt-1 max-w-sm">
-            Platform governance and administrative console
-          </p>
         </div>
 
-        {/* Global Error Banner */}
-        {errorMsg && (
-          <div className="w-full mb-5 p-4 bg-rose-950/90 border-2 border-rose-500/80 text-rose-200 text-xs rounded-2xl space-y-1 shadow-2xl animate-in fade-in zoom-in-95 duration-200">
-            <div className="flex items-center gap-2 font-black text-rose-300">
-              <Lock className="w-4 h-4 text-rose-400 shrink-0" />
-              <span>Administrative Security Notice</span>
-            </div>
-            <p className="font-medium text-rose-100 leading-relaxed">{errorMsg}</p>
-          </div>
-        )}
+        <div className="relative z-10 flex items-center gap-4 text-xs font-mono text-slate-500">
+          <Sparkles className="w-4 h-4 text-amber-500" />
+          <span>Growth India CRM Enterprise System v2.0</span>
+        </div>
+      </div>
 
-        {/* Admin Login Form */}
-        <div className="w-full bg-slate-900/90 backdrop-blur-2xl border border-amber-500/30 rounded-3xl p-6 md:p-8 shadow-2xl">
-          <form onSubmit={handleAdminLogin} className="space-y-4">
-            <div>
-              <label className="block text-xs font-bold text-slate-300 mb-1.5">
-                Email
-              </label>
+      {/* Right Column: Login Form */}
+      <div className="w-full lg:w-1/2 flex flex-col justify-center px-6 py-12 lg:px-24 xl:px-32 relative bg-white">
+        {/* Mobile Logo */}
+        <div className="lg:hidden flex justify-center mb-8">
+          <GrowthIndiaLogo size="md" />
+        </div>
+
+        <div className="w-full max-w-sm mx-auto space-y-8">
+          <div className="space-y-2">
+            <h2 className="text-2xl font-black text-slate-900 tracking-tight">Admin Portal</h2>
+            <p className="text-sm text-slate-500 font-medium">Please authenticate to access governance controls.</p>
+          </div>
+
+          {/* Global Error Banner */}
+          {errorMsg && (
+            <div className="p-4 bg-rose-50 border-l-4 border-rose-500 text-rose-800 text-sm font-medium flex items-start gap-3">
+              <Lock className="w-5 h-5 text-rose-500 shrink-0 mt-0.5" />
+              <span>{errorMsg}</span>
+            </div>
+          )}
+
+          <form onSubmit={handleAdminLogin} className="space-y-5" autoComplete="off">
+            {/* Dummy hidden inputs to absorb browser autofill */}
+            <input type="text" name="fake_user" style={{ display: 'none' }} tabIndex={-1} aria-hidden="true" autoComplete="username" />
+            <input type="password" name="fake_pass" style={{ display: 'none' }} tabIndex={-1} aria-hidden="true" autoComplete="current-password" />
+
+            <div className="space-y-1.5">
+              <label className="block text-sm font-bold text-slate-700">Administrator Email ID</label>
               <div className="relative">
-                <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <Mail className="h-5 w-5 text-slate-400" />
+                </div>
                 <input
                   type="email"
+                  name="admin_user_login"
+                  id="admin_user_login"
+                  autoComplete="off"
                   required
-                  placeholder="Enter your email"
+                  placeholder="Email ID"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="w-full pl-10 pr-4 py-3 bg-slate-950 border border-slate-700/80 rounded-xl text-xs md:text-sm text-white font-medium placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent transition-all"
+                  className="block w-full pl-10 pr-3 py-2.5 border border-slate-300 rounded-lg text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-900 focus:border-transparent sm:text-sm font-medium transition-colors bg-slate-50 focus:bg-white"
                 />
               </div>
             </div>
 
-            <div>
-              <label className="block text-xs font-bold text-slate-300 mb-1.5">
-                Password
-              </label>
+            <div className="space-y-1.5">
+              <label className="block text-sm font-bold text-slate-700">Secure Password</label>
               <div className="relative">
-                <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <KeyRound className="h-5 w-5 text-slate-400" />
+                </div>
                 <input
                   type={showPassword ? 'text' : 'password'}
+                  name="admin_pass_login"
+                  id="admin_pass_login"
+                  autoComplete="new-password"
                   required
-                  placeholder="Enter your password"
+                  placeholder="Enter Password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="w-full pl-10 pr-10 py-3 bg-slate-950 border border-slate-700/80 rounded-xl text-xs md:text-sm text-white font-medium placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent transition-all"
+                  className="block w-full pl-10 pr-10 py-2.5 border border-slate-300 rounded-lg text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-900 focus:border-transparent sm:text-sm font-medium transition-colors bg-slate-50 focus:bg-white"
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white p-1"
+                  className="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-slate-600 transition-colors"
                 >
-                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                 </button>
               </div>
             </div>
@@ -141,38 +176,35 @@ export const AdminLoginView: React.FC = () => {
             <button
               type="submit"
               disabled={loading}
-              className="w-full mt-3 py-3.5 bg-gradient-to-r from-growth-gold to-amber-600 hover:from-amber-500 hover:to-amber-700 text-slate-950 font-black text-xs md:text-sm rounded-xl shadow-glow flex items-center justify-center gap-2 transition-all transform active:scale-95 disabled:opacity-50"
+              className="w-full flex justify-center items-center gap-2 py-3 px-4 border border-transparent rounded-lg shadow-sm text-sm font-bold text-white bg-slate-900 hover:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-slate-900 transition-colors disabled:opacity-70 disabled:cursor-not-allowed mt-2"
             >
               {loading ? (
-                <div className="w-5 h-5 border-2 border-slate-950/30 border-t-slate-950 rounded-full animate-spin" />
+                <Loader2 className="w-5 h-5 animate-spin" />
               ) : (
                 <>
                   <ShieldCheck className="w-5 h-5" />
-                  <span>Authenticate Admin Console</span>
-                  <ArrowRight className="w-4 h-4" />
+                  <span>Sign In to Admin Portal</span>
                 </>
               )}
             </button>
           </form>
 
-          {/* Return link */}
-          <div className="mt-6 pt-5 border-t border-slate-800/80 flex items-center justify-between text-xs text-slate-400">
-            <span>Client or Employee?</span>
+          <div className="pt-6 border-t border-slate-200">
             <Link
               href="/"
-              className="inline-flex items-center gap-1 font-bold text-growth-teal hover:text-teal-300 hover:underline transition-all"
+              className="group flex items-center justify-center gap-2 text-sm font-bold text-slate-500 hover:text-slate-900 transition-colors"
             >
-              <ArrowLeft className="w-3.5 h-3.5" />
-              <span>Back to Normal Login</span>
+              <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />
+              <span>Return to Standard Login</span>
             </Link>
           </div>
         </div>
-      </div>
 
-      {/* Page Footer */}
-      <footer className="text-center text-[11px] text-slate-500 z-10 py-2">
-        Growth India CRM Platform • Super Admin Governance Gateway
-      </footer>
+        {/* Mobile Footer */}
+        <div className="absolute bottom-6 left-0 right-0 text-center lg:hidden">
+          <span className="text-[10px] text-slate-400 font-medium">Growth India CRM • Secure Administrator Access</span>
+        </div>
+      </div>
     </div>
   );
 };

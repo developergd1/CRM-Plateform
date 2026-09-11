@@ -18,6 +18,7 @@ import {
 } from 'lucide-react';
 import { PasswordResetRequestsModal } from '@/components/auth/PasswordResetRequestsModal';
 import { formatClockTime } from '@/components/common/TimePicker12';
+import { NotificationBell } from '@/components/notifications/NotificationBell';
 
 export const Header: React.FC<{ onSearchSelect?: (term: string) => void }> = ({ onSearchSelect }) => {
   const { user, todayAttendance, checkIn, checkOut, startBreak, endBreak, logout } = useAuth();
@@ -27,6 +28,42 @@ export const Header: React.FC<{ onSearchSelect?: (term: string) => void }> = ({ 
 
   const [showResetRequests, setShowResetRequests] = useState(false);
   const [pendingResetCount, setPendingResetCount] = useState(0);
+
+  const [searchResults, setSearchResults] = useState<any>(null);
+  const [showDropdown, setShowDropdown] = useState(false);
+  const dropdownRef = React.useRef<HTMLDivElement>(null);
+  const searchDebounceRef = React.useRef<any>(null);
+
+  const handleSearchQuery = (val: string) => {
+    if (searchDebounceRef.current) clearTimeout(searchDebounceRef.current);
+    if (!val || val.trim().length < 2) {
+      setSearchResults(null);
+      setShowDropdown(false);
+      return;
+    }
+    searchDebounceRef.current = setTimeout(async () => {
+      try {
+        const res = await fetch(`/api/search?q=${encodeURIComponent(val.trim())}`);
+        if (res.ok) {
+          const data = await res.json();
+          setSearchResults(data);
+          setShowDropdown(true);
+        }
+      } catch (err) {
+        // silent
+      }
+    }, 250);
+  };
+
+  React.useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
+        setShowDropdown(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   const fetchResetRequestsCount = async () => {
     try {
@@ -86,21 +123,170 @@ export const Header: React.FC<{ onSearchSelect?: (term: string) => void }> = ({ 
 
   return (
     <header className="h-16 bg-white border-b border-slate-200 px-6 flex items-center justify-between sticky top-0 z-30 shadow-sm">
-      {/* Search Bar */}
-      <div className="flex items-center gap-4 flex-1 max-w-md">
+      {/* Search Bar with Global Search Dropdown */}
+      <div className="flex items-center gap-4 flex-1 max-w-md relative">
         <div className="relative w-full">
           <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
           <input
             type="text"
-            placeholder="Search Client ID, Employee ID, Phone, Company..."
+            placeholder="Search Client ID, Employee, Lead, Deal..."
             value={searchTerm}
+            onFocus={() => {
+              if (searchTerm.trim().length >= 2) setShowDropdown(true);
+            }}
             onChange={(e) => {
-              setSearchTerm(e.target.value);
-              onSearchSelect?.(e.target.value);
+              const val = e.target.value;
+              setSearchTerm(val);
+              onSearchSelect?.(val);
+              handleSearchQuery(val);
             }}
             className="w-full pl-9 pr-4 py-2 bg-slate-50 hover:bg-slate-100/80 focus:bg-white text-sm text-slate-800 placeholder-slate-400 rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-growth-teal/30 focus:border-growth-teal transition-all"
           />
         </div>
+
+        {/* Global Search Popover */}
+        {showDropdown && searchResults && (
+          <div
+            ref={dropdownRef}
+            className="absolute top-12 left-0 right-0 bg-white border border-slate-200 rounded-xl shadow-2xl z-50 max-h-96 overflow-y-auto p-2 divide-y divide-slate-100 animate-in fade-in slide-in-from-top-2 duration-150"
+          >
+            {searchResults.totalMatches === 0 ? (
+              <div className="p-4 text-center text-xs text-slate-400 font-medium">
+                No matching clients, leads, or employees found for "{searchTerm}"
+              </div>
+            ) : (
+              <>
+                {/* Clients */}
+                {searchResults.results.clients?.length > 0 && (
+                  <div className="py-2">
+                    <div className="text-[10px] uppercase font-bold text-slate-400 px-3 mb-1 tracking-wider">
+                      Clients ({searchResults.results.clients.length})
+                    </div>
+                    {searchResults.results.clients.map((c: any) => (
+                      <button
+                        key={c.id}
+                        type="button"
+                        onClick={() => {
+                          onSearchSelect?.(c.clientId || c.companyName);
+                          setShowDropdown(false);
+                        }}
+                        className="w-full text-left px-3 py-1.5 hover:bg-slate-50 rounded-lg flex items-center justify-between text-xs group transition-colors"
+                      >
+                        <div>
+                          <span className="font-semibold text-slate-800 group-hover:text-growth-teal">
+                            {c.companyName}
+                          </span>
+                          <span className="text-slate-400 ml-2 font-mono text-[11px]">
+                            {c.clientId}
+                          </span>
+                        </div>
+                        <span className="text-[10px] px-1.5 py-0.5 rounded bg-slate-100 text-slate-600">
+                          {c.status}
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                )}
+
+                {/* Employees */}
+                {searchResults.results.employees?.length > 0 && (
+                  <div className="py-2">
+                    <div className="text-[10px] uppercase font-bold text-slate-400 px-3 mb-1 tracking-wider">
+                      Employees ({searchResults.results.employees.length})
+                    </div>
+                    {searchResults.results.employees.map((e: any) => (
+                      <button
+                        key={e.id}
+                        type="button"
+                        onClick={() => {
+                          onSearchSelect?.(e.employeeId || e.fullName);
+                          setShowDropdown(false);
+                        }}
+                        className="w-full text-left px-3 py-1.5 hover:bg-slate-50 rounded-lg flex items-center justify-between text-xs group transition-colors"
+                      >
+                        <div>
+                          <span className="font-semibold text-slate-800 group-hover:text-growth-teal">
+                            {e.fullName}
+                          </span>
+                          <span className="text-slate-400 ml-2 font-mono text-[11px]">
+                            {e.employeeId}
+                          </span>
+                        </div>
+                        <span className="text-[10px] text-slate-500">
+                          {e.designation}
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                )}
+
+                {/* Leads */}
+                {searchResults.results.leads?.length > 0 && (
+                  <div className="py-2">
+                    <div className="text-[10px] uppercase font-bold text-slate-400 px-3 mb-1 tracking-wider">
+                      Leads ({searchResults.results.leads.length})
+                    </div>
+                    {searchResults.results.leads.map((l: any) => (
+                      <button
+                        key={l.id}
+                        type="button"
+                        onClick={() => {
+                          onSearchSelect?.(l.leadNumber || l.fullName);
+                          setShowDropdown(false);
+                        }}
+                        className="w-full text-left px-3 py-1.5 hover:bg-slate-50 rounded-lg flex items-center justify-between text-xs group transition-colors"
+                      >
+                        <div>
+                          <span className="font-semibold text-slate-800 group-hover:text-growth-teal">
+                            {l.fullName}
+                          </span>
+                          <span className="text-slate-400 ml-2 font-mono text-[11px]">
+                            {l.leadNumber}
+                          </span>
+                        </div>
+                        <span className="text-[10px] px-1.5 py-0.5 rounded bg-blue-50 text-blue-600 font-semibold">
+                          {l.status}
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                )}
+
+                {/* Opportunities & Deals */}
+                {(searchResults.results.opportunities?.length > 0 || searchResults.results.deals?.length > 0) && (
+                  <div className="py-2">
+                    <div className="text-[10px] uppercase font-bold text-slate-400 px-3 mb-1 tracking-wider">
+                      Deals & Pipeline
+                    </div>
+                    {searchResults.results.deals?.map((d: any) => (
+                      <button
+                        key={d.id}
+                        type="button"
+                        onClick={() => {
+                          onSearchSelect?.(d.dealNumber || d.title);
+                          setShowDropdown(false);
+                        }}
+                        className="w-full text-left px-3 py-1.5 hover:bg-slate-50 rounded-lg flex items-center justify-between text-xs group transition-colors"
+                      >
+                        <div>
+                          <span className="font-semibold text-slate-800 group-hover:text-growth-teal">
+                            {d.title}
+                          </span>
+                          <span className="text-slate-400 ml-2 font-mono text-[11px]">
+                            {d.dealNumber}
+                          </span>
+                        </div>
+                        <span className="text-[10px] px-1.5 py-0.5 rounded bg-emerald-50 text-emerald-600 font-semibold">
+                          ₹{d.amount.toLocaleString()}
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Action Notification Toast */}
@@ -113,7 +299,8 @@ export const Header: React.FC<{ onSearchSelect?: (term: string) => void }> = ({ 
       {/* Right Controls: Quick Punch & Role Switcher */}
       <div className="flex items-center gap-4">
         {/* Attendance Punch Widget */}
-        <div className="hidden lg:flex items-center bg-slate-50 border border-slate-200 rounded-xl p-1.5 gap-2 shadow-sm">
+        {(!user || !['ADMIN', 'SUPER_ADMIN', 'ADMIN_HR'].includes(user.role)) && (
+          <div className="hidden lg:flex items-center bg-slate-50 border border-slate-200 rounded-xl p-1.5 gap-2 shadow-sm">
           {!isCheckedIn ? (
             <button
               onClick={handlePunchIn}
@@ -166,9 +353,13 @@ export const Header: React.FC<{ onSearchSelect?: (term: string) => void }> = ({ 
             </>
           )}
         </div>
+        )}
 
         {/* Role & Profile Switcher Dropdown */}
         <div className="relative flex items-center gap-2">
+          {/* Notification Bell Center */}
+          <NotificationBell />
+
           {/* Password Reset Requests Button */}
           <button
             onClick={() => setShowResetRequests(true)}

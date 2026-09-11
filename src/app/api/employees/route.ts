@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import bcrypt from 'bcryptjs';
-import { prisma, getClientLookup } from '@/lib/prisma';
+import { prisma, getClientLookup, isValidObjectId } from '@/lib/prisma';
 import { getSessionUser } from '@/lib/auth';
 import { isAdminOrHR } from '@/lib/rbac';
 import { logAuditEvent, maskPAN } from '@/lib/audit';
+import { generateEmployeeId } from '@/lib/id-generator';
 
 export async function GET(req: NextRequest) {
   try {
@@ -221,11 +222,9 @@ export async function POST(req: NextRequest) {
       targetClientId = clientRecord.id;
     } else if (clientId) {
       const clientRecord = await prisma.client.findFirst({
-        where: {
-          OR: [{ id: clientId }, { clientId: clientId }],
-        },
+        where: getClientLookup(clientId),
       });
-      targetClientId = clientRecord ? clientRecord.id : clientId;
+      targetClientId = clientRecord ? clientRecord.id : (isValidObjectId(clientId) ? clientId : null);
     }
 
     // Check unique phone number
@@ -256,28 +255,17 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Generate automatic sequential unique Employee ID: GI-EMP-000001, GI-EMP-000002...
-    const allEmployees = await prisma.employee.findMany({
-      select: { employeeId: true },
-    });
-
-    let maxNum = 0;
-    for (const e of allEmployees) {
-      if (e.employeeId && e.employeeId.startsWith('GI-EMP-')) {
-        const numPart = parseInt(e.employeeId.replace('GI-EMP-', ''), 10);
-        if (!isNaN(numPart) && numPart > maxNum) {
-          maxNum = numPart;
-        }
-      } else if (e.employeeId && e.employeeId.startsWith('EMP-')) {
-        const numPart = parseInt(e.employeeId.replace('EMP-', ''), 10);
-        if (!isNaN(numPart) && numPart > maxNum) {
-          maxNum = numPart;
-        }
-      }
+    // Resolve Company Name for EMP ID Prefix (EMP-XXX-0001)
+    let clientCompanyName: string | undefined;
+    if (targetClientId) {
+      const clientRecord = await prisma.client.findUnique({
+        where: { id: targetClientId },
+        select: { companyName: true },
+      });
+      clientCompanyName = clientRecord?.companyName;
     }
 
-    const nextNumber = maxNum + 1;
-    const newEmployeeId = `GI-EMP-${nextNumber.toString().padStart(6, '0')}`;
+    const newEmployeeId = await generateEmployeeId(clientCompanyName);
 
     // Target default role
     let employeeRole = await prisma.role.findFirst({

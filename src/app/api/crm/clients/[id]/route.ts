@@ -44,6 +44,23 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
         pipelineHistory: {
           orderBy: { timestamp: 'desc' },
         },
+        employees: {
+          where: { status: { not: 'BLOCKED' } },
+          select: { id: true, employeeId: true, fullName: true, designation: true, phone: true, status: true },
+          take: 50,
+        },
+        contacts: {
+          select: { id: true, contactNumber: true, fullName: true, designation: true, phone: true, email: true, isPrimary: true },
+          take: 50,
+        },
+        opportunities: {
+          select: { id: true, opportunityNumber: true, title: true, value: true, stage: true, probability: true },
+          take: 50,
+        },
+        deals: {
+          select: { id: true, dealNumber: true, title: true, amount: true, status: true, closingDate: true },
+          take: 50,
+        },
       },
     });
 

@@ -22,7 +22,7 @@ export const GrowthIndiaLogo: React.FC<LogoProps> = ({
   return (
     <div className={`inline-flex items-center select-none ${className}`}>
       <img
-        src="/logo.png"
+        src="/logo.png?v=2"
         alt="Growth India"
         className={`${heightClass} w-auto object-contain drop-shadow-sm transition-transform duration-200 hover:scale-[1.02]`}
       />

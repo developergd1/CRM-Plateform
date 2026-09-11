@@ -207,7 +207,7 @@ export const EmployeeDetailDrawer: React.FC<DrawerProps> = ({
         ) : (
           <>
             {/* Drawer Header */}
-            <div className="p-6 bg-slate-900 text-white flex items-start justify-between border-b border-slate-800">
+            <div className="p-6 bg-slate-900 text-white flex items-start justify-between border-b border-slate-800 panel-premium">
               <div className="flex items-center gap-4">
                 <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-growth-teal to-growth-gold flex items-center justify-center font-black text-xl text-white shadow-md">
                   {employee.fullName.charAt(0)}
@@ -229,16 +229,16 @@ export const EmployeeDetailDrawer: React.FC<DrawerProps> = ({
                       {employee.status}
                     </span>
                   </div>
-                  <h2 className="text-xl font-black mt-1 text-white tracking-tight">
+                  <h2 className="text-xl font-black mt-1 text-white tracking-tight title-interactive-hover">
                     {employee.fullName}
                   </h2>
-                  <p className="text-xs text-slate-400">
+                  <p className="text-xs text-slate-400 subtitle-interactive-hover">
                     {employee.designation} • {employee.departmentName || employee.department?.name || 'General'}
                   </p>
                 </div>
               </div>
 
-              <button onClick={onClose} className="p-2 text-slate-400 hover:text-white rounded-xl">
+              <button onClick={onClose} className="p-2 text-slate-400 hover:text-white rounded-xl interactive-btn-hover cursor-pointer">
                 <X className="w-5 h-5" />
               </button>
             </div>
@@ -248,7 +248,7 @@ export const EmployeeDetailDrawer: React.FC<DrawerProps> = ({
               <div className="flex items-center gap-2">
                 <button
                   onClick={() => setShowEditModal(true)}
-                  className="px-3 py-1.5 bg-white border border-slate-200 hover:border-slate-300 text-slate-700 rounded-xl font-bold text-xs flex items-center gap-1.5 transition-all shadow-sm"
+                  className="px-3 py-1.5 bg-white border border-slate-200 hover:border-slate-300 text-slate-700 rounded-xl font-bold text-xs flex items-center gap-1.5 transition-all shadow-sm interactive-btn-hover cursor-pointer"
                 >
                   <Edit className="w-3.5 h-3.5 text-growth-teal" />
                   <span>Edit Profile</span>
@@ -256,7 +256,7 @@ export const EmployeeDetailDrawer: React.FC<DrawerProps> = ({
 
                 <button
                   onClick={() => setShowResetPasswordModal(true)}
-                  className="px-3 py-1.5 bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-200/80 rounded-xl font-bold text-xs flex items-center gap-1.5 transition-all shadow-sm"
+                  className="px-3 py-1.5 bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-200/80 rounded-xl font-bold text-xs flex items-center gap-1.5 transition-all shadow-sm interactive-btn-hover cursor-pointer"
                 >
                   <KeyRound className="w-3.5 h-3.5 text-amber-600" />
                   <span>Assign / Reset Password</span>
@@ -277,7 +277,7 @@ export const EmployeeDetailDrawer: React.FC<DrawerProps> = ({
                     {isBlocked ? (
                       <button
                         onClick={() => setShowUnblockModal(true)}
-                        className="px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold text-xs flex items-center gap-1.5 transition-all shadow-sm"
+                        className="px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold text-xs flex items-center gap-1.5 transition-all shadow-sm interactive-btn-hover cursor-pointer"
                       >
                         <ShieldCheck className="w-3.5 h-3.5" />
                         <span>Unblock Employee</span>
@@ -293,7 +293,7 @@ export const EmployeeDetailDrawer: React.FC<DrawerProps> = ({
                     ) : (
                       <button
                         onClick={() => setShowBlockModal(true)}
-                        className="px-3.5 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 rounded-xl font-bold text-xs flex items-center gap-1.5 transition-all shadow-sm"
+                        className="px-3.5 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 rounded-xl font-bold text-xs flex items-center gap-1.5 transition-all shadow-sm interactive-btn-hover cursor-pointer"
                       >
                         <ShieldAlert className="w-3.5 h-3.5 text-rose-600" />
                         <span>Block Employee</span>
@@ -367,7 +367,7 @@ export const EmployeeDetailDrawer: React.FC<DrawerProps> = ({
               {activeTab === 'profile' && (
                 <div className="space-y-4 text-xs">
                   {/* Workspace Login Credentials & Password Management */}
-                  <div className="p-4 bg-gradient-to-br from-slate-900 via-slate-900 to-slate-950 text-white rounded-2xl border border-slate-800 space-y-3 shadow-lg">
+                  <div className="p-4 bg-gradient-to-br from-slate-900 via-slate-900 to-slate-950 text-white rounded-2xl border border-slate-800 space-y-3 shadow-lg panel-premium interactive-box-hover">
                     <div className="flex items-center justify-between flex-wrap gap-2">
                       <div className="flex items-center gap-2.5">
                         <div className="w-8 h-8 rounded-xl bg-growth-teal/20 border border-growth-teal/30 text-growth-teal flex items-center justify-center">
@@ -375,12 +375,12 @@ export const EmployeeDetailDrawer: React.FC<DrawerProps> = ({
                         </div>
                         <div>
                           <div className="font-bold text-white text-xs flex items-center gap-1.5">
-                            <span>Workspace Login Credentials</span>
+                            <span className="title-interactive-hover">Workspace Login Credentials</span>
                             <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
                               Active
                             </span>
                           </div>
-                          <div className="text-[10px] text-slate-400">
+                          <div className="text-[10px] text-slate-400 subtitle-interactive-hover">
                             Employee can sign in using their Email, Mobile, or Employee ID
                           </div>
                         </div>
@@ -388,7 +388,7 @@ export const EmployeeDetailDrawer: React.FC<DrawerProps> = ({
 
                       <button
                         onClick={() => setShowResetPasswordModal(true)}
-                        className="px-3 py-1.5 bg-growth-teal hover:bg-growth-tealDark text-white font-bold text-xs rounded-xl shadow-glow transition-all flex items-center gap-1.5"
+                        className="px-3 py-1.5 bg-growth-teal hover:bg-growth-tealDark text-white font-bold text-xs rounded-xl shadow-glow transition-all flex items-center gap-1.5 interactive-btn-hover cursor-pointer"
                       >
                         <KeyRound className="w-3.5 h-3.5" />
                         <span>Assign / Reset Password</span>
@@ -396,31 +396,31 @@ export const EmployeeDetailDrawer: React.FC<DrawerProps> = ({
                     </div>
 
                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 pt-1 text-[11px] font-mono">
-                      <div className="bg-slate-950/80 p-2.5 rounded-xl border border-slate-800">
-                        <span className="text-[10px] text-slate-400 font-sans block font-semibold">Login Email:</span>
+                      <div className="bg-slate-950/80 p-2.5 rounded-xl border border-slate-800 interactive-box-hover">
+                        <span className="text-[10px] text-slate-400 font-sans block font-semibold title-interactive-hover">Login Email:</span>
                         <span className="text-teal-400 font-bold break-all select-all">
                           {employee.personalEmail || employee.user?.email || 'N/A'}
                         </span>
                       </div>
-                      <div className="bg-slate-950/80 p-2.5 rounded-xl border border-slate-800">
-                        <span className="text-[10px] text-slate-400 font-sans block font-semibold">Employee ID:</span>
+                      <div className="bg-slate-950/80 p-2.5 rounded-xl border border-slate-800 interactive-box-hover">
+                        <span className="text-[10px] text-slate-400 font-sans block font-semibold title-interactive-hover">Employee ID:</span>
                         <span className="text-growth-gold font-bold select-all">{employee.employeeId}</span>
                       </div>
-                      <div className="bg-slate-950/80 p-2.5 rounded-xl border border-slate-800">
-                        <span className="text-[10px] text-slate-400 font-sans block font-semibold">Login Mobile:</span>
+                      <div className="bg-slate-950/80 p-2.5 rounded-xl border border-slate-800 interactive-box-hover">
+                        <span className="text-[10px] text-slate-400 font-sans block font-semibold title-interactive-hover">Login Mobile:</span>
                         <span className="text-slate-200 font-bold select-all">{employee.phone}</span>
                       </div>
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-4 p-4 bg-slate-50 rounded-2xl border border-slate-200">
+                  <div className="grid grid-cols-2 gap-4 p-4 bg-slate-50 rounded-2xl border border-slate-200 panel-premium interactive-box-hover">
                     <div>
-                      <span className="text-slate-400 font-bold uppercase text-[10px] block">Full Legal Name</span>
+                      <span className="text-slate-400 font-bold uppercase text-[10px] block title-interactive-hover">Full Legal Name</span>
                       <span className="font-bold text-slate-900 text-sm">{employee.fullName}</span>
                     </div>
 
                     <div>
-                      <span className="text-slate-400 font-bold uppercase text-[10px] block">Father&apos;s / Mother&apos;s Name</span>
+                      <span className="text-slate-400 font-bold uppercase text-[10px] block title-interactive-hover">Father&apos;s / Mother&apos;s Name</span>
                       <span className="font-semibold text-slate-800">{employee.fatherMotherName || 'Not Provided'}</span>
                     </div>
 

@@ -32,31 +32,32 @@ export const ClientWorkforceView: React.FC = () => {
   const [timelineLoading, setTimelineLoading] = useState(false);
 
   const fetchLiveWorkforce = useCallback(async (forceRefresh = false) => {
-    if (!forceRefresh) {
-      const cached = clientCache.get<any>(cacheKey, 5 * 60 * 1000);
-      if (cached) {
-        setData(cached);
-        setLoading(false);
-        return;
-      }
-    }
-    setLoading(true);
+    const cached = !forceRefresh ? clientCache.get<any>(cacheKey, 5 * 60 * 1000) : null;
+    if (!cached) setLoading(true);
+
     try {
-      const res = await fetch('/api/workforce/live');
-      if (res.ok) {
-        const json = await res.json();
-        setData(json);
-        clientCache.set(cacheKey, json);
-      }
+      const freshData = await clientCache.swrFetch(
+        cacheKey,
+        async () => {
+          const res = await fetch('/api/workforce/live');
+          if (!res.ok) throw new Error('Failed to load workforce');
+          return await res.json();
+        },
+        {
+          forceRefresh,
+          onUpdate: (json) => setData(json),
+        }
+      );
+      if (freshData) setData(freshData);
     } catch (err) {
       console.error('Failed to load workforce:', err);
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [cacheKey]);
 
   useEffect(() => {
-    fetchLiveWorkforce();
+    fetchLiveWorkforce(false);
   }, [fetchLiveWorkforce]);
 
   const fetchTimeline = async (emp: any) => {
@@ -144,18 +145,18 @@ export const ClientWorkforceView: React.FC = () => {
       {/* HEADER & CONTROLS */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h2 className="text-xl font-black text-slate-900 flex items-center gap-2">
+          <h2 className="title-interactive-hover text-xl font-black text-slate-900 flex items-center gap-2">
             <Activity className="w-5 h-5 text-growth-teal" />
             <span>Live Workforce Activity & Telemetry</span>
           </h2>
-          <p className="text-xs text-slate-500 mt-0.5">
+          <p className="subtitle-interactive-hover text-xs text-slate-500 mt-0.5">
             Real-time working state, active hours, and idle detection for assigned personnel
           </p>
         </div>
 
         <button
           onClick={() => fetchLiveWorkforce(true)}
-          className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-white hover:bg-slate-50 border border-slate-200 text-slate-700 text-xs font-bold transition shadow-sm self-start sm:self-auto"
+          className="interactive-btn-hover flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-white hover:bg-slate-50 border border-slate-200 text-slate-700 text-xs font-bold transition shadow-sm self-start sm:self-auto"
         >
           <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin text-growth-teal' : ''}`} />
           <span>Refresh Status</span>
@@ -166,7 +167,7 @@ export const ClientWorkforceView: React.FC = () => {
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
         <div
           onClick={() => setStatusFilter('ALL')}
-          className={`p-3.5 rounded-2xl border cursor-pointer transition-all shadow-sm ${
+          className={`card-premium interactive-box-hover p-3.5 rounded-2xl border cursor-pointer transition-all shadow-sm ${
             statusFilter === 'ALL'
               ? 'bg-slate-900 border-slate-900 text-white shadow-md'
               : 'bg-white border-slate-200 text-slate-600 hover:border-slate-300'
@@ -180,7 +181,7 @@ export const ClientWorkforceView: React.FC = () => {
 
         <div
           onClick={() => setStatusFilter('WORKING')}
-          className={`p-3.5 rounded-2xl border cursor-pointer transition-all shadow-sm ${
+          className={`card-premium interactive-box-hover p-3.5 rounded-2xl border cursor-pointer transition-all shadow-sm ${
             statusFilter === 'WORKING'
               ? 'bg-emerald-600 border-emerald-600 text-white shadow-md'
               : 'bg-white border-slate-200 text-slate-600 hover:border-emerald-300'
@@ -196,7 +197,7 @@ export const ClientWorkforceView: React.FC = () => {
 
         <div
           onClick={() => setStatusFilter('IDLE')}
-          className={`p-3.5 rounded-2xl border cursor-pointer transition-all shadow-sm ${
+          className={`card-premium interactive-box-hover p-3.5 rounded-2xl border cursor-pointer transition-all shadow-sm ${
             statusFilter === 'IDLE'
               ? 'bg-amber-500 border-amber-500 text-slate-950 shadow-md'
               : 'bg-white border-slate-200 text-slate-600 hover:border-amber-300'
@@ -212,7 +213,7 @@ export const ClientWorkforceView: React.FC = () => {
 
         <div
           onClick={() => setStatusFilter('ON_BREAK')}
-          className={`p-3.5 rounded-2xl border cursor-pointer transition-all shadow-sm ${
+          className={`card-premium interactive-box-hover p-3.5 rounded-2xl border cursor-pointer transition-all shadow-sm ${
             statusFilter === 'ON_BREAK'
               ? 'bg-orange-500 border-orange-500 text-white shadow-md'
               : 'bg-white border-slate-200 text-slate-600 hover:border-orange-300'
@@ -228,7 +229,7 @@ export const ClientWorkforceView: React.FC = () => {
 
         <div
           onClick={() => setStatusFilter('MISSING_CHECKIN')}
-          className={`p-3.5 rounded-2xl border cursor-pointer transition-all shadow-sm ${
+          className={`card-premium interactive-box-hover p-3.5 rounded-2xl border cursor-pointer transition-all shadow-sm ${
             statusFilter === 'MISSING_CHECKIN'
               ? 'bg-rose-600 border-rose-600 text-white shadow-md'
               : 'bg-white border-slate-200 text-slate-600 hover:border-rose-300'
@@ -244,7 +245,7 @@ export const ClientWorkforceView: React.FC = () => {
 
         <div
           onClick={() => setStatusFilter('OFFLINE')}
-          className={`p-3.5 rounded-2xl border cursor-pointer transition-all shadow-sm ${
+          className={`card-premium interactive-box-hover p-3.5 rounded-2xl border cursor-pointer transition-all shadow-sm ${
             statusFilter === 'OFFLINE'
               ? 'bg-slate-700 border-slate-700 text-white shadow-md'
               : 'bg-white border-slate-200 text-slate-600 hover:border-slate-300'
@@ -258,7 +259,7 @@ export const ClientWorkforceView: React.FC = () => {
       </div>
 
       {/* FILTER SEARCH BAR */}
-      <div className="flex flex-col sm:flex-row items-center gap-3 bg-white border border-slate-200 p-3 rounded-2xl shadow-sm">
+      <div className="panel-premium flex flex-col sm:flex-row items-center gap-3 bg-white border border-slate-200 p-3 rounded-2xl shadow-sm">
         <div className="relative flex-1 w-full">
           <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
           <input
@@ -285,7 +286,7 @@ export const ClientWorkforceView: React.FC = () => {
       </div>
 
       {/* WORKFORCE TABLE */}
-      <div className="bg-white border border-slate-200 rounded-3xl overflow-hidden shadow-sm">
+      <div className="panel-premium bg-white border border-slate-200 rounded-3xl overflow-hidden shadow-card">
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs">
             <thead className="bg-slate-50 text-slate-600 uppercase text-[10px] tracking-wider border-b border-slate-200 font-mono font-bold">
@@ -312,10 +313,10 @@ export const ClientWorkforceView: React.FC = () => {
                   const activePercent = totalSec > 0 ? Math.round((item.activeSeconds / totalSec) * 100) : 0;
 
                   return (
-                    <tr key={emp.id} className="hover:bg-slate-50/80 transition">
+                    <tr key={emp.id} className="interactive-row-hover hover:bg-teal-50/20 transition cursor-pointer">
                       {/* Employee Info */}
                       <td className="py-3.5 px-4">
-                        <div className="font-bold text-slate-900 text-xs">{emp.fullName}</div>
+                        <div className="title-interactive-hover font-bold text-slate-900 text-xs inline-block">{emp.fullName}</div>
                         <div className="text-[11px] text-slate-500 font-mono">
                           <span className="text-growth-teal font-bold">{emp.employeeId}</span> • {emp.designation}
                         </div>
@@ -389,7 +390,7 @@ export const ClientWorkforceView: React.FC = () => {
                       <td className="py-3.5 px-4 text-right">
                         <button
                           onClick={() => fetchTimeline(item)}
-                          className="px-2.5 py-1 rounded-xl bg-slate-100 hover:bg-slate-200 border border-slate-200 text-[11px] text-slate-700 inline-flex items-center gap-1 transition"
+                          className="interactive-btn-hover px-2.5 py-1 rounded-xl bg-slate-100 hover:bg-slate-200 border border-slate-200 text-[11px] text-slate-700 inline-flex items-center gap-1 transition"
                         >
                           <Eye className="w-3 h-3 text-growth-teal" />
                           <span>Timeline</span>
@@ -413,7 +414,7 @@ export const ClientWorkforceView: React.FC = () => {
       {/* TIMELINE DETAIL MODAL */}
       {selectedTimelineEmp && (
         <div className="fixed inset-0 bg-slate-950/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white border border-slate-200 rounded-3xl p-6 max-w-lg w-full shadow-2xl space-y-4 animate-in fade-in zoom-in duration-150 max-h-[85vh] flex flex-col">
+          <div className="panel-premium bg-white border border-slate-200 rounded-3xl p-6 max-w-lg w-full shadow-2xl space-y-4 animate-in fade-in zoom-in duration-150 max-h-[85vh] flex flex-col">
             <div className="flex items-center justify-between pb-3 border-b border-slate-200">
               <div>
                 <h3 className="font-bold text-sm text-slate-900 flex items-center gap-2">

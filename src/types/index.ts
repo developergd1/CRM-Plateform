@@ -8,6 +8,13 @@ export interface AuthUser {
   role: UserRoleType;
   roleDisplayName: string;
   employeeId?: string;
+  employeeProfileId?: string;
+  employeeProfile?: {
+    id: string;
+    employeeId: string;
+    fullName: string;
+    designation: string;
+  };
   clientId?: string;
   companyName?: string;
   canBlockEmployees?: boolean;
@@ -147,3 +154,6 @@ export interface Phase1DashboardStats {
   recentBlockHistories: EmployeeBlockHistoryItem[];
   clientsList: ClientItem[];
 }
+
+export * from './crm';
+

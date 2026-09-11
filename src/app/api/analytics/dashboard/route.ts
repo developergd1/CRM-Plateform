@@ -1,21 +1,36 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getSessionUser } from '@/lib/auth';
+import { getExecutiveDashboardMetrics, DateFilterPreset } from '@/lib/services/analytics-service';
+
+// Simple in-memory cache for dashboard metrics to avoid 27 DB queries on every tab click
+const dashboardCache = new Map<string, { timestamp: number; data: any }>();
+const CACHE_TTL_MS = 20 * 1000; // 20 seconds
 
 export async function GET(req: NextRequest) {
   try {
     const user = await getSessionUser(req);
     if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-    let totalClients = 0;
-    let totalEmployees = 0;
-    let activeEmployees = 0;
-    let blockedEmployees = 0;
-    let recentOnboardings: any[] = [];
-    let recentBlockHistories: any[] = [];
-    let clientsList: any[] = [];
+    const searchParams = req.nextUrl.searchParams;
+    const preset = (searchParams.get('preset') || 'THIS_MONTH') as DateFilterPreset;
+    const startDate = searchParams.get('startDate') || undefined;
+    const endDate = searchParams.get('endDate') || undefined;
+    const timezone = searchParams.get('timezone') || 'Asia/Kolkata';
+    const forceRefresh = searchParams.get('refresh') === 'true';
 
-    if (user.role === 'CLIENT') {
+    const cacheKey = `${user.id}_${user.role}_${preset}_${startDate || ''}_${endDate || ''}`;
+    if (!forceRefresh) {
+      const cached = dashboardCache.get(cacheKey);
+      if (cached && Date.now() - cached.timestamp < CACHE_TTL_MS) {
+        return NextResponse.json(cached.data);
+      }
+    }
+
+    // Fetch recent activity records & unified dashboard analytics concurrently
+    const isClient = user.role === 'CLIENT';
+    let clientWhere: any = {};
+    if (isClient) {
       const clientRecord = await prisma.client.findFirst({
         where: {
           OR: [
@@ -23,155 +38,98 @@ export async function GET(req: NextRequest) {
             ...(user.clientId ? [{ clientId: user.clientId }] : []),
           ],
         },
+        select: { id: true },
       });
-
       if (clientRecord) {
-        totalClients = 1;
-        clientsList = [clientRecord];
+        clientWhere = { clientId: clientRecord.id };
+      }
+    }
 
-        // Fetch client employee IDs first for blazing fast indexed queries
-        const clientEmployees = await prisma.employee.findMany({
-          where: { clientId: clientRecord.id },
-          select: { id: true },
-        });
-        const clientEmpIds = clientEmployees.map((e) => e.id);
-
-        [
-          totalEmployees,
-          activeEmployees,
-          blockedEmployees,
-          recentOnboardings,
-          recentBlockHistories,
-        ] = await Promise.all([
-          prisma.employee.count({ where: { clientId: clientRecord.id } }),
-          prisma.employee.count({ where: { clientId: clientRecord.id, status: 'ACTIVE', isBlocked: false } }),
-          prisma.employee.count({ where: { clientId: clientRecord.id, OR: [{ status: 'BLOCKED' }, { isBlocked: true }] } }),
-          prisma.employee.findMany({
-            where: { clientId: clientRecord.id },
+    const [metrics, recentOnboardings, recentBlockHistories, recentLeads, clientsList] = await Promise.all([
+      getExecutiveDashboardMetrics(
+        { preset, startDate, endDate, timezone },
+        user
+      ),
+      prisma.employee.findMany({
+        where: {
+          ...clientWhere,
+          employeeId: { not: 'GI-EMP-000001' },
+        },
+        take: 6,
+        orderBy: { createdAt: 'desc' },
+        include: {
+          client: {
+            select: { clientId: true, companyName: true },
+          },
+        },
+      }),
+      prisma.employeeBlockHistory.findMany({
+        where: clientWhere.clientId ? { employee: { clientId: clientWhere.clientId } } : {},
+        take: 6,
+        orderBy: { actionDate: 'desc' },
+        include: {
+          employee: {
+            select: {
+              employeeId: true,
+              fullName: true,
+              designation: true,
+              client: { select: { clientId: true, companyName: true } },
+            },
+          },
+        },
+      }),
+      !isClient
+        ? prisma.lead.findMany({
+            where: { isArchived: false },
             take: 6,
             orderBy: { createdAt: 'desc' },
             include: {
-              client: {
-                select: {
-                  clientId: true,
-                  companyName: true,
-                },
-              },
+              client: { select: { companyName: true } },
+              assignedTo: { select: { fullName: true } },
             },
-          }),
-          clientEmpIds.length > 0
-            ? prisma.employeeBlockHistory.findMany({
-                where: { employeeId: { in: clientEmpIds } },
-                take: 6,
-                orderBy: { actionDate: 'desc' },
-                include: {
-                  employee: {
-                    select: {
-                      employeeId: true,
-                      fullName: true,
-                      designation: true,
-                      client: {
-                        select: {
-                          clientId: true,
-                          companyName: true,
-                        },
-                      },
-                    },
-                  },
-                },
-              })
-            : Promise.resolve([]),
-        ]);
-      }
-    } else {
-      // Find admin user IDs once to avoid slow 2-stage multi-collection lookup pipelines in MongoDB
-      const adminUsers = await prisma.user.findMany({
-        where: {
-          role: {
-            name: { in: ['ADMIN', 'SUPER_ADMIN'] },
-          },
+          })
+        : Promise.resolve([]),
+      prisma.client.findMany({
+        where: clientWhere.clientId ? { id: clientWhere.clientId } : {},
+        take: 6,
+        orderBy: { createdAt: 'desc' },
+        include: {
+          _count: { select: { employees: true, deals: true } },
         },
-        select: { id: true },
-      });
-      const adminUserIds = adminUsers.map((u) => u.id);
+      }),
+    ]);
 
-      const employeeBaseWhere = {
-        employeeId: { not: 'GI-EMP-000001' },
-        ...(adminUserIds.length > 0 ? { userId: { notIn: adminUserIds } } : {}),
-      };
-
-      [
-        totalClients,
-        totalEmployees,
-        activeEmployees,
-        blockedEmployees,
-        recentOnboardings,
-        recentBlockHistories,
-        clientsList,
-      ] = await Promise.all([
-        prisma.client.count(),
-        prisma.employee.count({ where: employeeBaseWhere }),
-        prisma.employee.count({ where: { ...employeeBaseWhere, status: 'ACTIVE', isBlocked: false } }),
-        prisma.employee.count({ where: { ...employeeBaseWhere, OR: [{ status: 'BLOCKED' }, { isBlocked: true }] } }),
-        prisma.employee.findMany({
-          where: employeeBaseWhere,
-          take: 6,
-          orderBy: { createdAt: 'desc' },
-          include: {
-            client: {
-              select: {
-                clientId: true,
-                companyName: true,
-              },
-            },
-          },
-        }),
-        prisma.employeeBlockHistory.findMany({
-          take: 6,
-          orderBy: { actionDate: 'desc' },
-          include: {
-            employee: {
-              select: {
-                employeeId: true,
-                fullName: true,
-                designation: true,
-                client: {
-                  select: {
-                    clientId: true,
-                    companyName: true,
-                  },
-                },
-              },
-            },
-          },
-        }),
-        prisma.client.findMany({
-          take: 6,
-          orderBy: { dateAdded: 'desc' },
-          include: {
-            _count: {
-              select: { employees: true },
-            },
-          },
-        }),
-      ]);
-    }
-
-    return NextResponse.json({
+    const responsePayload = {
       success: true,
       stats: {
-        totalClients,
-        totalEmployees,
-        activeEmployees,
-        blockedEmployees,
-        inactiveEmployees: Math.max(0, totalEmployees - (activeEmployees + blockedEmployees)),
+        ...metrics,
+        totalClients: metrics.workforce.totalClients,
+        totalEmployees: metrics.workforce.totalEmployees,
+        activeEmployees: metrics.workforce.workingNow + metrics.workforce.onBreak,
+        blockedEmployees: metrics.workforce.blockedEmployees,
+        inactiveEmployees: Math.max(0, metrics.workforce.totalEmployees - metrics.workforce.presentToday),
+        workingNow: metrics.workforce.workingNow,
+        onBreak: metrics.workforce.onBreak,
+        absentToday: metrics.workforce.absentToday,
+        presentToday: metrics.workforce.presentToday,
+        lateToday: metrics.workforce.lateToday,
+        attendancePercentage: metrics.workforce.attendancePercentage,
+        activeSessions: metrics.workforce.activeSessions,
+        employeesCurrentlyOnline: metrics.workforce.employeesCurrentlyOnline,
+        dateRange: metrics.dateRange,
         recentOnboardings,
         recentBlockHistories,
         clientsList,
+        crm: metrics.crm,
+        recentLeads,
       },
-    });
+    };
+
+    dashboardCache.set(cacheKey, { timestamp: Date.now(), data: responsePayload });
+
+    return NextResponse.json(responsePayload);
   } catch (error: any) {
-    console.error('Error fetching dashboard stats:', error);
-    return NextResponse.json({ error: error.message || 'Failed to fetch dashboard stats' }, { status: 500 });
+    console.error('Error in Executive Dashboard API:', error);
+    return NextResponse.json({ error: error.message || 'Failed to fetch dashboard metrics' }, { status: 500 });
   }
 }

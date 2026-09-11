@@ -87,13 +87,13 @@ export const BlockHistoryView: React.FC = () => {
   return (
     <div className="space-y-6 pb-12">
       {/* Top Header */}
-      <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-card flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-card flex flex-col md:flex-row md:items-center justify-between gap-4 panel-premium">
         <div>
-          <h1 className="text-xl font-extrabold text-slate-900 tracking-tight flex items-center gap-2">
+          <h1 className="text-xl font-extrabold text-slate-900 tracking-tight flex items-center gap-2 title-interactive-hover">
             <History className="w-5 h-5 text-rose-600" />
             <span>Employee Block & Unblock Audit Log</span>
           </h1>
-          <p className="text-xs text-slate-500">
+          <p className="text-xs text-slate-500 subtitle-interactive-hover">
             Immutable company-wide trail of all Employee Block and Unblock operations with reasons and authorized administrators
           </p>
         </div>
@@ -101,7 +101,7 @@ export const BlockHistoryView: React.FC = () => {
         <div className="flex items-center gap-2.5">
           <button
             onClick={exportHistoryCSV}
-            className="flex items-center gap-1.5 px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-xl transition-all shadow-xs"
+            className="flex items-center gap-1.5 px-3.5 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-xl transition-all shadow-xs interactive-btn-hover cursor-pointer"
             title="Export History to CSV"
           >
             <Download className="w-3.5 h-3.5" />
@@ -111,7 +111,7 @@ export const BlockHistoryView: React.FC = () => {
           <button
             onClick={fetchHistory}
             disabled={loading}
-            className="flex items-center gap-2 px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-xl transition-all self-start md:self-auto"
+            className="flex items-center gap-2 px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-xl transition-all self-start md:self-auto interactive-btn-hover cursor-pointer"
           >
             <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
             <span>Refresh</span>
@@ -121,9 +121,9 @@ export const BlockHistoryView: React.FC = () => {
 
       {/* Metric summary badges */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex items-center justify-between">
+        <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex items-center justify-between card-premium interactive-box-hover cursor-pointer">
           <div>
-            <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">Total Recorded Actions</span>
+            <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block title-interactive-hover">Total Recorded Actions</span>
             <span className="text-2xl font-black text-slate-900">{histories.length}</span>
           </div>
           <div className="w-10 h-10 rounded-xl bg-slate-100 text-slate-700 flex items-center justify-center font-bold">
@@ -131,9 +131,9 @@ export const BlockHistoryView: React.FC = () => {
           </div>
         </div>
 
-        <div className="bg-white p-4 rounded-2xl border border-rose-100 shadow-sm flex items-center justify-between bg-rose-50/30">
+        <div className="bg-white p-4 rounded-2xl border border-rose-100 shadow-sm flex items-center justify-between bg-rose-50/30 card-premium interactive-box-hover cursor-pointer">
           <div>
-            <span className="text-[11px] font-bold text-rose-600 uppercase tracking-wider block">Total Block Actions</span>
+            <span className="text-[11px] font-bold text-rose-600 uppercase tracking-wider block title-interactive-hover">Total Block Actions</span>
             <span className="text-2xl font-black text-rose-700">{blockCount}</span>
           </div>
           <div className="w-10 h-10 rounded-xl bg-rose-100 text-rose-700 flex items-center justify-center font-bold">
@@ -141,9 +141,9 @@ export const BlockHistoryView: React.FC = () => {
           </div>
         </div>
 
-        <div className="bg-white p-4 rounded-2xl border border-emerald-100 shadow-sm flex items-center justify-between bg-emerald-50/30">
+        <div className="bg-white p-4 rounded-2xl border border-emerald-100 shadow-sm flex items-center justify-between bg-emerald-50/30 card-premium interactive-box-hover cursor-pointer">
           <div>
-            <span className="text-[11px] font-bold text-emerald-600 uppercase tracking-wider block">Total Unblock Actions</span>
+            <span className="text-[11px] font-bold text-emerald-600 uppercase tracking-wider block title-interactive-hover">Total Unblock Actions</span>
             <span className="text-2xl font-black text-emerald-700">{unblockCount}</span>
           </div>
           <div className="w-10 h-10 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center font-bold">
@@ -153,7 +153,7 @@ export const BlockHistoryView: React.FC = () => {
       </div>
 
       {/* Filter Toolbar */}
-      <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-card flex flex-wrap items-center gap-3">
+      <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-card flex flex-wrap items-center gap-3 panel-premium">
         <div className="relative flex-1 min-w-[240px]">
           <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
           <input
@@ -177,7 +177,7 @@ export const BlockHistoryView: React.FC = () => {
       </div>
 
       {/* Main History Table */}
-      <div className="bg-white rounded-3xl border border-slate-200 shadow-card overflow-hidden">
+      <div className="bg-white rounded-3xl border border-slate-200 shadow-card overflow-hidden panel-premium">
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs">
             <thead>
@@ -212,7 +212,7 @@ export const BlockHistoryView: React.FC = () => {
                   return (
                     <tr
                       key={h.id}
-                      className={`hover:bg-slate-50/80 transition-colors ${
+                      className={`interactive-row-hover cursor-pointer transition-colors ${
                         isBlock ? 'bg-rose-50/10' : 'bg-emerald-50/10'
                       }`}
                     >
@@ -236,7 +236,7 @@ export const BlockHistoryView: React.FC = () => {
 
                       {/* Employee ID & Name */}
                       <td className="py-3.5 px-4">
-                        <div className="font-bold text-slate-900">{h.employee?.fullName}</div>
+                        <div className="font-bold text-slate-900 title-interactive-hover">{h.employee?.fullName}</div>
                         <span className="font-mono text-[11px] font-semibold text-growth-teal">
                           {h.employee?.employeeId}
                         </span>
@@ -246,13 +246,13 @@ export const BlockHistoryView: React.FC = () => {
                       <td className="py-3.5 px-4 text-slate-700">
                         <div className="flex items-center gap-1.5">
                           <Building2 className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                          <span>{h.employee?.client?.companyName || 'Internal Staff'}</span>
+                          <span className="font-medium">{h.employee?.client?.companyName || 'Internal Staff'}</span>
                         </div>
                       </td>
 
                       {/* Reason & Remarks */}
                       <td className="py-3.5 px-4 max-w-sm">
-                        <div className="font-bold text-slate-800">{h.reason}</div>
+                        <div className="font-bold text-slate-800 title-interactive-hover">{h.reason}</div>
                         {h.remarks && (
                           <div className="text-[11px] text-slate-500 line-clamp-2 mt-0.5">
                             {h.remarks}

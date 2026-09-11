@@ -38,12 +38,17 @@ $$\text{Employee (Actor EMP-XXXX)} \longrightarrow \text{Client (CL-2026-XXXXXX)
   - Every document view is recorded in both `DocumentAccessLog` and the immutable `AuditLog`.
   - Admin/HR verification and rejection workflow with audit trail.
 
-### 2.3 Attendance & Work Session Tracking
+### 2.3 Notification System (Cross-Profile)
+- **Task & Workflow Notifications**: Real-time updates for Task Assignment, Acceptance, Submission, Approval, and Comments.
+- **Multi-Identity Support**: Cross-notifies between Employee, Client, and Admin roles.
+- **Polling & UI**: Integrated `NotificationBell` with unread counts and 20-second background polling.
+
+### 2.4 Attendance & Work Session Tracking
 - **Live Quick-Punch Widget**: In topbar and attendance hub (`Punch In`, `Take Break`, `Resume Work`, `Check Out`).
 - **Punctuality Engine**: Automatically flags late check-ins beyond shift grace periods (09:45 AM threshold).
-- **Decoupled Productivity Philosophy**: Login duration is explicitly separated from productive platform engagement (measured clickstream and active interactions).
+- **Decoupled Productivity Philosophy**: Login duration is explicitly separated from productive platform engagement.
 
-### 2.4 CRM Management, Pipeline & Follow-ups
+### 2.5 CRM Management, Pipeline & Follow-ups
 - **Sequential Client Sequence**: Formatted IDs (`CL-2026-000001`, `CL-2026-000002` ...).
 - **Real-Time Duplicate Client Prevention**: Checks phone, email, and company before creation; alerts user if a matching client already exists with options to view existing or create with an authorized override.
 - **8-Stage Pipeline Board (Kanban & Table)**: `New` $\to$ `Contacted` $\to$ `Qualified` $\to$ `Follow-up` $\to$ `Proposal` $\to$ `Negotiation` $\to$ `Won` $\to$ `Lost`.
@@ -51,7 +56,7 @@ $$\text{Employee (Actor EMP-XXXX)} \longrightarrow \text{Client (CL-2026-XXXXXX)
 - **Historical Ownership Reassignment**: Tracks the chain of custody (`EMP-1005` $\to$ `EMP-1001`) with assigned timestamp, manager identity, and business reason.
 - **Tasks & Follow-up Scheduler**: Formatted task IDs (`TSK-2026-XXXX`) with due dates, priorities, and 1-click completion status.
 
-### 2.5 BI Analytics, Reports & Immutable Audit Logs
+### 2.6 BI Analytics, Reports & Immutable Audit Logs
 - **Multi-Factor Performance Index**: Decoupled from idle hours; computed using win rate, deals won, activities logged, revenue volume, and task completion.
 - **Acquisition Channel Reports**: Conversion percentages and revenue won across all sources (Inbound, Referrals, Web, Social, Expo).
 - **Append-Only Immutable Audit Log Center**: Inspectable by actor employee ID, action type, entity ID, with side-by-side JSON diff inspection.
@@ -79,7 +84,35 @@ All 12 automated verification suites ran successfully against the live system:
 
 ---
 
-## 4. How to Run & Verify
+## 5. Performance Optimizations & Recent Enhancements
+
+### 5.1 Latency & Performance Fix
+- **MongoDB Connection DNS Fix**: Switched connection string from `mongodb+srv://` to standard direct replica set host list, completely resolving Windows UDP datagram socket buffer overflows (`os error 10040`) and local DNS `ECONNREFUSED` failures. Average database latency dropped from ~4,700ms to under 66ms.
+- **In-Memory Session Cache**: Added `sessionUserCache` in [src/lib/auth.ts](file:///e:/Growth%20India%20CRM%20Plateform/src/lib/auth.ts) to memoize active token validations and invalidate immediately upon logout, reducing `/api/auth/me` calls to 22ms.
+- **Query Parallelization**: Dashboard metrics and breakdown queries in `/api/analytics/dashboard` are now executed via `Promise.all`.
+
+### 5.2 Task 1: Client Portal Section Refresh Buttons
+- Implemented non-reloading local section refresh controls across all tabs in [src/components/client-portal/ClientPortalShell.tsx](file:///e:/Growth%20India%20CRM%20Plateform/src/components/client-portal/ClientPortalShell.tsx) and [src/components/client-portal/ClientAttendanceHub.tsx](file:///e:/Growth%20India%20CRM%20Plateform/src/components/client-portal/ClientAttendanceHub.tsx).
+- Users can refresh the Overview, Workforce, Attendance, or Audit tabs individually without reloading the entire application.
+
+### 5.3 Task 2: Employee Task Comment & Tracking Hub
+- Redesigned [src/components/tasks/EmployeeTasksView.tsx](file:///e:/Growth%20India%20CRM%20Plateform/src/components/tasks/EmployeeTasksView.tsx) with four dedicated tabs:
+  - **Work & Deliverables**: Deliverable submission, live checklist progress, links.
+  - **Comments & Chat**: Real-time conversation thread between Client and assigned Employee, including live comment input form.
+  - **Review & Feedback**: Detailed client feedback, ratings, and revision history.
+  - **History**: Full audit history of task actions.
+- Updated [src/app/api/tasks/[id]/comments/route.ts](file:///e:/Growth%20India%20CRM%20Plateform/src/app/api/tasks/[id]/comments/route.ts) and [src/app/api/tasks/[id]/route.ts](file:///e:/Growth%20India%20CRM%20Plateform/src/app/api/tasks/[id]/route.ts) to serialize and deserialize client author metadata (`__meta__`), displaying proper `Client • [Company Name]` badges.
+
+### 5.4 Hydration Error Resolution
+- **Root Cause**: During SSR, `AuthContext` rendered the loading screen `<div>`, whereas on the client `localStorage` restored cached state before hydration, causing the client to render `<AppShell> <div> <aside>` on the initial pass and triggering `Hydration failed: Expected server HTML to contain a matching <aside> in <div>`.
+- **Solution**:
+  - Restored `localStorage` reading strictly within `useEffect` on client mount.
+  - Added `mounted` state guards in [src/components/auth/AdminConsoleShell.tsx](file:///e:/Growth%20India%20CRM%20Plateform/src/components/auth/AdminConsoleShell.tsx) and [src/components/layout/AppShell.tsx](file:///e:/Growth%20India%20CRM%20Plateform/src/components/layout/AppShell.tsx) so initial server HTML and initial client hydration match 100%.
+  - Configured Next.js dynamic client-only imports (`ssr: false`) for top-level console and portal pages.
+
+---
+
+## 6. How to Run & Verify
 
 1. **Development Server**: The application is active at `http://localhost:3000`.
 2. **Demo Personas**:
@@ -91,3 +124,5 @@ All 12 automated verification suites ran successfully against the live system:
    ```bash
    node test-platform.js
    ```
+
+

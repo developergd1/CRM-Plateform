@@ -179,6 +179,18 @@ export async function POST(req: NextRequest) {
       status: 'SUCCESS',
     });
 
+    try {
+      const { notifyPasswordResetResolved } = await import('@/lib/notifications');
+      await notifyPasswordResetResolved({
+        requestId: targetReq.id,
+        requesterName: targetReq.requesterName,
+        requesterId: targetReq.requesterId || targetReq.userId,
+        resolvedBy: targetReq.resolvedBy,
+      });
+    } catch (e) {
+      console.error('Failed to send password reset notification:', e);
+    }
+
     return NextResponse.json({
       success: true,
       message: `Password reset successfully for ${targetReq.requesterName}.`,

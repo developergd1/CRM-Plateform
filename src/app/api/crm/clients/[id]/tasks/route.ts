@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma, getClientLookup } from '@/lib/prisma';
+import { prisma, getClientLookup, getEmployeeLookup } from '@/lib/prisma';
 import { getSessionUser } from '@/lib/auth';
 
 export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
@@ -35,7 +35,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     let targetAssigneeId = currentEmp.id;
     if (assignedToEmployeeId) {
       const targetEmp = await prisma.employee.findFirst({
-        where: { OR: [{ id: assignedToEmployeeId }, { employeeId: assignedToEmployeeId }] },
+        where: getEmployeeLookup(assignedToEmployeeId),
       });
       if (targetEmp) targetAssigneeId = targetEmp.id;
     }

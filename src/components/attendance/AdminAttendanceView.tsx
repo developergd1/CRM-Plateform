@@ -22,17 +22,33 @@ import {
   AlertCircle,
   Moon,
   Send,
+  FileText,
 } from 'lucide-react';
 import { TimePicker12, formatTo12Hour, formatClockTime } from '@/components/common/TimePicker12';
+import { clientCache } from '@/lib/client-cache';
 
-export const AdminAttendanceView: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<'workforce' | 'logs' | 'policy'>('workforce');
-  const [clients, setClients] = useState<any[]>([]);
+export interface AdminAttendanceViewProps {
+  initialTab?: 'workforce' | 'logs' | 'policy';
+}
+
+export const AdminAttendanceView: React.FC<AdminAttendanceViewProps> = ({ initialTab }) => {
+  const [activeTab, setActiveTab] = useState<'workforce' | 'logs' | 'policy'>(initialTab || 'workforce');
+
+  useEffect(() => {
+    if (initialTab) {
+      setActiveTab(initialTab);
+    }
+  }, [initialTab]);
+
+  const cachedClients = clientCache.get<any[]>('crm_clients_list', 15 * 60 * 1000);
+  const [clients, setClients] = useState<any[]>(() => cachedClients || []);
   const [selectedClientId, setSelectedClientId] = useState<string>('');
-  const [loading, setLoading] = useState(true);
 
-  // Workforce live state
-  const [workforceData, setWorkforceData] = useState<any>(null);
+  const workforceCacheKey = `workforce_live_${selectedClientId || 'all'}`;
+  const cachedWorkforce = clientCache.get<any>(workforceCacheKey, 5 * 60 * 1000);
+  const [workforceData, setWorkforceData] = useState<any>(() => cachedWorkforce || null);
+  const [loading, setLoading] = useState(() => !cachedWorkforce);
+
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('ALL');
   const [selectedTimelineEmp, setSelectedTimelineEmp] = useState<any | null>(null);
@@ -65,31 +81,38 @@ export const AdminAttendanceView: React.FC = () => {
 
   // Fetch Clients list for filtering
   useEffect(() => {
-    const fetchClients = async () => {
-      try {
-        const res = await fetch('/api/clients');
-        if (res.ok) {
-          const json = await res.json();
-          setClients(json.clients || []);
-        }
-      } catch (e) {
-        console.error('Error fetching clients for attendance view:', e);
-      }
-    };
-    fetchClients();
+    clientCache.swrFetch('crm_clients_list', async () => {
+      const res = await fetch('/api/clients');
+      if (!res.ok) return [];
+      const json = await res.json();
+      return json.clients || [];
+    }, { onUpdate: (data) => setClients(data) }).then(data => data && setClients(data));
   }, []);
 
   // Fetch Live Workforce
-  const fetchWorkforce = useCallback(async () => {
+  const fetchWorkforce = useCallback(async (forceRefresh = false) => {
+    const currentKey = `workforce_live_${selectedClientId || 'all'}`;
+    const cachedData = !forceRefresh ? clientCache.get<any>(currentKey, 5 * 60 * 1000) : null;
+    if (!cachedData) setLoading(true);
+
     try {
       const url = selectedClientId
         ? `/api/workforce/live?clientId=${selectedClientId}`
         : '/api/workforce/live';
-      const res = await fetch(url);
-      if (res.ok) {
-        const json = await res.json();
-        setWorkforceData(json);
-      }
+
+      const result = await clientCache.swrFetch(
+        currentKey,
+        async () => {
+          const res = await fetch(url);
+          if (!res.ok) throw new Error('Error fetching live workforce');
+          return await res.json();
+        },
+        {
+          forceRefresh,
+          onUpdate: (json) => setWorkforceData(json),
+        }
+      );
+      if (result) setWorkforceData(result);
     } catch (e) {
       console.error('Error fetching live workforce:', e);
     } finally {
@@ -254,36 +277,36 @@ export const AdminAttendanceView: React.FC = () => {
     switch (status) {
       case 'WORKING':
         return (
-          <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-black bg-emerald-950 text-emerald-400 border border-emerald-800/60">
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-black bg-emerald-50 text-emerald-700 border border-emerald-200 shadow-xs">
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
             <span>WORKING</span>
           </span>
         );
       case 'IDLE':
         return (
-          <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-black bg-amber-950 text-amber-400 border border-amber-800/60">
-            <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse" />
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-black bg-amber-50 text-amber-700 border border-amber-200 shadow-xs">
+            <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />
             <span>IDLE (&gt;5M)</span>
           </span>
         );
       case 'ON_BREAK':
         return (
-          <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-black bg-orange-950 text-orange-400 border border-orange-800/60">
-            <Coffee className="w-3 h-3" />
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-black bg-orange-50 text-orange-700 border border-orange-200 shadow-xs">
+            <Coffee className="w-3 h-3 text-orange-600" />
             <span>ON BREAK</span>
           </span>
         );
       case 'MISSING_CHECKIN':
         return (
-          <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-black bg-rose-950 text-rose-400 border border-rose-800/60 animate-pulse">
-            <AlertCircle className="w-3 h-3" />
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-black bg-rose-50 text-rose-700 border border-rose-200 animate-pulse shadow-xs">
+            <AlertCircle className="w-3 h-3 text-rose-600" />
             <span>MISSING CHECK-IN</span>
           </span>
         );
       default:
         return (
-          <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-black bg-slate-800 text-slate-400 border border-slate-700">
-            <Moon className="w-3 h-3" />
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-black bg-slate-100 text-slate-600 border border-slate-200 shadow-xs">
+            <Moon className="w-3 h-3 text-slate-500" />
             <span>OFFLINE</span>
           </span>
         );
@@ -293,14 +316,19 @@ export const AdminAttendanceView: React.FC = () => {
   return (
     <div className="space-y-6">
       {/* TOP BAR */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div className="panel-premium bg-white p-6 rounded-3xl border border-slate-200 shadow-card flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-black text-slate-900 tracking-tight flex items-center gap-2">
-            <Activity className="w-6 h-6 text-growth-teal" />
-            <span>Attendance & Workforce Telemetry Console</span>
-          </h1>
-          <p className="text-xs text-slate-500 mt-1">
-            Platform-wide governance: Login vs Working time verification, real-time activity, policy rules & regularization
+          <div className="flex items-center gap-2.5">
+            <h1 className="title-interactive-hover text-2xl font-black text-slate-900 tracking-tight flex items-center gap-2 cursor-pointer">
+              <Clock className="w-6 h-6 text-growth-teal" />
+              <span>Attendance Hub</span>
+            </h1>
+            <span className="chip-premium-highlight text-[10px] font-extrabold uppercase px-2.5 py-0.5 rounded-full bg-teal-50 text-growth-teal border border-growth-teal/30">
+              Unified 3-in-1 Suite
+            </span>
+          </div>
+          <p className="subtitle-interactive-hover text-xs text-slate-500 mt-1">
+            Centralized platform governance for Live Clock-in Telemetry, Shifts & Work Policies, and Monthly Timesheet Logs
           </p>
         </div>
 
@@ -327,7 +355,7 @@ export const AdminAttendanceView: React.FC = () => {
               fetchWorkforce();
               fetchHistory();
             }}
-            className="p-2 rounded-xl bg-white border border-slate-200 text-slate-600 hover:text-growth-teal shadow-sm transition"
+            className="p-2 rounded-xl bg-white border border-slate-200 text-slate-600 hover:text-growth-teal shadow-sm transition interactive-btn-hover cursor-pointer"
             title="Refresh All"
           >
             <RefreshCw className="w-4 h-4" />
@@ -337,80 +365,85 @@ export const AdminAttendanceView: React.FC = () => {
 
       {/* MACRO KPI CARDS */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
-        <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
-          <span className="text-slate-400 text-[10px] font-bold uppercase tracking-wider block">Total Tracked Staff</span>
+        <div className="card-premium interactive-box-hover bg-white p-4 rounded-2xl border border-slate-200 shadow-sm cursor-pointer">
+          <span className="title-interactive-hover text-slate-400 text-[10px] font-bold uppercase tracking-wider block">Total Tracked Staff</span>
           <div className="text-2xl font-black text-slate-900 font-mono mt-1">{summary.totalEmployees}</div>
         </div>
 
-        <div className="bg-white p-4 rounded-2xl border border-emerald-200 shadow-sm">
-          <span className="text-emerald-600 text-[10px] font-bold uppercase tracking-wider block">Working Right Now</span>
+        <div className="card-premium interactive-box-hover bg-white p-4 rounded-2xl border border-emerald-200 shadow-sm cursor-pointer">
+          <span className="title-interactive-hover text-emerald-600 text-[10px] font-bold uppercase tracking-wider block">Working Right Now</span>
           <div className="text-2xl font-black text-emerald-600 font-mono mt-1">{summary.workingCount}</div>
         </div>
 
-        <div className="bg-white p-4 rounded-2xl border border-amber-200 shadow-sm">
-          <span className="text-amber-600 text-[10px] font-bold uppercase tracking-wider block">Idle (&gt;5m Inactive)</span>
+        <div className="card-premium interactive-box-hover bg-white p-4 rounded-2xl border border-amber-200 shadow-sm cursor-pointer">
+          <span className="title-interactive-hover text-amber-600 text-[10px] font-bold uppercase tracking-wider block">Idle (&gt;5m Inactive)</span>
           <div className="text-2xl font-black text-amber-600 font-mono mt-1">{summary.idleCount}</div>
         </div>
 
-        <div className="bg-white p-4 rounded-2xl border border-orange-200 shadow-sm">
-          <span className="text-orange-600 text-[10px] font-bold uppercase tracking-wider block">On Break</span>
+        <div className="card-premium interactive-box-hover bg-white p-4 rounded-2xl border border-orange-200 shadow-sm cursor-pointer">
+          <span className="title-interactive-hover text-orange-600 text-[10px] font-bold uppercase tracking-wider block">On Break</span>
           <div className="text-2xl font-black text-orange-600 font-mono mt-1">{summary.onBreakCount}</div>
         </div>
 
-        <div className="bg-white p-4 rounded-2xl border border-rose-200 shadow-sm">
-          <span className="text-rose-600 text-[10px] font-bold uppercase tracking-wider block">Missing Check-In</span>
+        <div className="card-premium interactive-box-hover bg-white p-4 rounded-2xl border border-rose-200 shadow-sm cursor-pointer">
+          <span className="title-interactive-hover text-rose-600 text-[10px] font-bold uppercase tracking-wider block">Missing Check-In</span>
           <div className="text-2xl font-black text-rose-600 font-mono mt-1">{summary.missingCheckinCount}</div>
         </div>
 
-        <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
-          <span className="text-slate-400 text-[10px] font-bold uppercase tracking-wider block">Offline / Logged Out</span>
+        <div className="card-premium interactive-box-hover bg-white p-4 rounded-2xl border border-slate-200 shadow-sm cursor-pointer">
+          <span className="title-interactive-hover text-slate-400 text-[10px] font-bold uppercase tracking-wider block">Offline / Logged Out</span>
           <div className="text-2xl font-black text-slate-600 font-mono mt-1">{summary.offlineCount}</div>
         </div>
       </div>
 
-      {/* SUB-TABS NAVIGATION */}
-      <div className="flex items-center gap-2 border-b border-slate-200 pb-3">
+      {/* SUB-TABS NAVIGATION: ATTENDANCE, SHIFTS & POLICIES, TIMESHEETS */}
+      <div className="flex flex-wrap items-center gap-2 border-b border-slate-200 pb-3">
         <button
           onClick={() => setActiveTab('workforce')}
-          className={`px-4 py-2 rounded-xl text-xs font-black transition-all flex items-center gap-2 ${
+          className={`px-4 py-2.5 rounded-xl text-xs font-black transition-all flex items-center gap-2 interactive-btn-hover cursor-pointer ${
             activeTab === 'workforce'
-              ? 'bg-growth-teal text-white shadow-sm'
-              : 'text-slate-600 hover:text-slate-900 bg-white border border-slate-200'
+              ? 'bg-gradient-to-r from-growth-teal to-growth-tealDark text-white shadow-tealGlow border border-growth-teal'
+              : 'text-slate-600 hover:text-slate-900 bg-white border border-slate-200 shadow-sm'
           }`}
         >
-          <Activity className="w-3.5 h-3.5" />
-          <span>Live Workforce Telemetry</span>
-        </button>
-
-        <button
-          onClick={() => setActiveTab('logs')}
-          className={`px-4 py-2 rounded-xl text-xs font-black transition-all flex items-center gap-2 ${
-            activeTab === 'logs'
-              ? 'bg-growth-teal text-white shadow-sm'
-              : 'text-slate-600 hover:text-slate-900 bg-white border border-slate-200'
-          }`}
-        >
-          <Calendar className="w-3.5 h-3.5" />
-          <span>Attendance Reports & Logs</span>
+          <Clock className={`w-4 h-4 ${activeTab === 'workforce' ? 'text-growth-gold' : 'text-slate-500'}`} />
+          <span>Attendance & Live Telemetry</span>
+          <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-mono font-bold ${
+            activeTab === 'workforce' ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-600'
+          }`}>
+            {summary.workingCount} Live
+          </span>
         </button>
 
         <button
           onClick={() => setActiveTab('policy')}
-          className={`px-4 py-2 rounded-xl text-xs font-black transition-all flex items-center gap-2 ${
+          className={`px-4 py-2.5 rounded-xl text-xs font-black transition-all flex items-center gap-2 interactive-btn-hover cursor-pointer ${
             activeTab === 'policy'
-              ? 'bg-growth-teal text-white shadow-sm'
-              : 'text-slate-600 hover:text-slate-900 bg-white border border-slate-200'
+              ? 'bg-gradient-to-r from-growth-teal to-growth-tealDark text-white shadow-tealGlow border border-growth-teal'
+              : 'text-slate-600 hover:text-slate-900 bg-white border border-slate-200 shadow-sm'
           }`}
         >
-          <Sliders className="w-3.5 h-3.5" />
-          <span>Shift & Work Policy Rules</span>
+          <Sliders className={`w-4 h-4 ${activeTab === 'policy' ? 'text-growth-gold' : 'text-slate-500'}`} />
+          <span>Shifts & Policies</span>
+        </button>
+
+        <button
+          onClick={() => setActiveTab('logs')}
+          className={`px-4 py-2.5 rounded-xl text-xs font-black transition-all flex items-center gap-2 interactive-btn-hover cursor-pointer ${
+            activeTab === 'logs'
+              ? 'bg-gradient-to-r from-growth-teal to-growth-tealDark text-white shadow-tealGlow border border-growth-teal'
+              : 'text-slate-600 hover:text-slate-900 bg-white border border-slate-200 shadow-sm'
+          }`}
+        >
+          <FileText className={`w-4 h-4 ${activeTab === 'logs' ? 'text-growth-gold' : 'text-slate-500'}`} />
+          <span>Timesheets & Reports</span>
         </button>
       </div>
 
       {/* TAB 1: LIVE WORKFORCE */}
       {activeTab === 'workforce' && (
         <div className="space-y-4">
-          <div className="flex flex-col sm:flex-row items-center gap-3 bg-white p-3 rounded-2xl border border-slate-200 shadow-sm">
+          <div className="panel-premium flex flex-col sm:flex-row items-center gap-3 bg-white p-3 rounded-2xl border border-slate-200 shadow-sm">
             <div className="relative flex-1 w-full">
               <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
               <input
@@ -436,10 +469,10 @@ export const AdminAttendanceView: React.FC = () => {
             </select>
           </div>
 
-          <div className="bg-slate-900 border border-slate-800 rounded-3xl overflow-hidden shadow-xl">
+          <div className="panel-premium bg-white border border-slate-200 rounded-3xl overflow-hidden shadow-card">
             <div className="overflow-x-auto">
               <table className="w-full text-left text-xs">
-                <thead className="bg-slate-950/80 text-slate-400 uppercase text-[10px] tracking-wider border-b border-slate-800 font-mono">
+                <thead className="bg-slate-50/90 text-slate-500 uppercase text-[11px] font-bold tracking-wider border-b border-slate-200">
                   <tr>
                     <th className="py-3.5 px-4">Employee</th>
                     <th className="py-3.5 px-4">Client Company</th>
@@ -452,7 +485,7 @@ export const AdminAttendanceView: React.FC = () => {
                     <th className="py-3.5 px-4 text-right">Audit Timeline</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-800/60 font-sans">
+                <tbody className="divide-y divide-slate-100 font-sans">
                   {filteredWorkforce.length > 0 ? (
                     filteredWorkforce.map((item: any) => {
                       const emp = item.employee;
@@ -463,13 +496,13 @@ export const AdminAttendanceView: React.FC = () => {
                       const activePercent = totalSec > 0 ? Math.round((item.activeSeconds / totalSec) * 100) : 0;
 
                       return (
-                        <tr key={emp.id} className="hover:bg-slate-850/40 transition">
+                        <tr key={emp.id} className="interactive-row-hover hover:bg-teal-50/20 transition cursor-pointer">
                           <td className="py-3.5 px-4">
-                            <div className="font-bold text-white text-xs">{emp.fullName}</div>
-                            <div className="text-[11px] text-slate-400 font-mono">
-                              <span className="text-growth-teal">{emp.employeeId}</span> • {emp.designation}
+                            <div className="title-interactive-hover font-bold text-slate-900 text-xs">{emp.fullName}</div>
+                            <div className="subtitle-interactive-hover text-[11px] text-slate-500 font-mono">
+                              <span className="text-growth-teal font-semibold">{emp.employeeId}</span> • {emp.designation}
                             </div>
-                            <div className="mt-1 flex items-center gap-1 font-mono text-[10px] text-teal-300 font-bold">
+                            <div className="mt-1 flex items-center gap-1 font-mono text-[10px] text-teal-700 font-semibold">
                               <Clock className="w-3 h-3 text-growth-teal" />
                               <span>
                                 Shift: {emp.shiftStartTime === 'FLEXIBLE'
@@ -479,14 +512,15 @@ export const AdminAttendanceView: React.FC = () => {
                             </div>
                           </td>
                           <td className="py-3.5 px-4">
-                            <span className="font-semibold text-growth-gold text-xs">
-                              {emp.client?.companyName || 'Internal / HQ'}
-                            </span>
+                            <div className="flex items-center gap-1.5 font-semibold text-slate-800 text-xs">
+                              <Building2 className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                              <span>{emp.client?.companyName || 'Internal / HQ'}</span>
+                            </div>
                           </td>
                           <td className="py-3.5 px-4">{getStatusBadge(item.liveStatus)}</td>
-                          <td className="py-3.5 px-4 font-mono text-slate-300">
+                          <td className="py-3.5 px-4 font-mono text-slate-700">
                             {loginStr !== '—' ? (
-                              <span className="px-2 py-0.5 rounded bg-slate-950 border border-slate-800 text-slate-300">
+                              <span className="px-2 py-0.5 rounded-lg bg-slate-100 border border-slate-200 text-slate-700 text-xs font-medium">
                                 {loginStr}
                               </span>
                             ) : (
@@ -495,34 +529,34 @@ export const AdminAttendanceView: React.FC = () => {
                           </td>
                           <td className="py-3.5 px-4 font-mono">
                             {checkInStr !== '—' ? (
-                              <span className="px-2 py-0.5 rounded bg-teal-950/60 border border-teal-800/50 text-teal-400 font-bold">
+                              <span className="px-2 py-0.5 rounded-lg bg-teal-50 border border-teal-200 text-teal-800 font-bold text-xs">
                                 {checkInStr}
                                 {item.isLate && (
-                                  <span className="ml-1.5 text-[9px] text-amber-400 font-sans uppercase font-black">
+                                  <span className="ml-1.5 text-[9px] text-amber-700 bg-amber-50 border border-amber-200 rounded px-1 py-0.2 uppercase font-black">
                                     LATE
                                   </span>
                                 )}
                               </span>
                             ) : (
-                              <span className="text-rose-400/80 italic text-[11px]">Not Punched In</span>
+                              <span className="text-rose-500 font-medium italic text-[11px]">Not Punched In</span>
                             )}
                           </td>
                           <td className="py-3.5 px-4 font-mono">
-                            <div className="text-emerald-400 font-bold">{formatSecToHM(item.activeSeconds || 0)}</div>
-                            <div className="w-20 bg-slate-800 rounded-full h-1.5 mt-1 overflow-hidden">
+                            <div className="text-slate-900 font-bold text-xs">{formatSecToHM(item.activeSeconds || 0)}</div>
+                            <div className="w-20 bg-slate-100 border border-slate-200 rounded-full h-1.5 mt-1 overflow-hidden">
                               <div
-                                className="bg-emerald-500 h-1.5 rounded-full"
+                                className="bg-growth-teal h-1.5 rounded-full"
                                 style={{ width: `${activePercent}%` }}
                               />
                             </div>
                           </td>
-                          <td className="py-3.5 px-4 font-mono text-amber-400">
+                          <td className="py-3.5 px-4 font-mono text-amber-700 font-semibold text-xs">
                             {item.idleSeconds > 0 ? formatSecToHM(item.idleSeconds) : '0m'}
                           </td>
-                          <td className="py-3.5 px-4 font-mono text-slate-300">
+                          <td className="py-3.5 px-4 font-mono text-slate-600 text-xs">
                             {item.totalBreakMinutes > 0 ? `${item.totalBreakMinutes}m` : '0m'}
                             {item.activeBreak && (
-                              <span className="block text-[10px] text-orange-400">
+                              <span className="block text-[10px] text-orange-600 font-bold">
                                 Current: {item.activeBreak.breakType}
                               </span>
                             )}
@@ -530,7 +564,7 @@ export const AdminAttendanceView: React.FC = () => {
                           <td className="py-3.5 px-4 text-right">
                             <button
                               onClick={() => fetchTimeline(item)}
-                              className="px-2.5 py-1 rounded-xl bg-slate-800 hover:bg-slate-750 border border-slate-700 text-[11px] text-slate-200 hover:text-white inline-flex items-center gap-1 transition"
+                              className="interactive-btn-hover px-2.5 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 border border-slate-200 text-[11px] font-bold text-slate-700 hover:text-slate-900 inline-flex items-center gap-1 transition shadow-xs cursor-pointer"
                             >
                               <Eye className="w-3 h-3 text-growth-teal" />
                               <span>Timeline</span>
@@ -541,7 +575,7 @@ export const AdminAttendanceView: React.FC = () => {
                     })
                   ) : (
                     <tr>
-                      <td colSpan={9} className="py-8 text-center text-slate-500">
+                      <td colSpan={9} className="py-8 text-center text-slate-400">
                         No employees found matching the filters.
                       </td>
                     </tr>
@@ -576,7 +610,7 @@ export const AdminAttendanceView: React.FC = () => {
           </div>
 
           {/* Table */}
-          <div className="bg-white border border-slate-200 rounded-3xl overflow-hidden shadow-sm">
+          <div className="panel-premium bg-white border border-slate-200 rounded-3xl overflow-hidden shadow-sm">
             <div className="overflow-x-auto">
               <table className="w-full text-left text-xs">
                 <thead className="bg-slate-50 text-slate-500 uppercase text-[10px] font-bold tracking-wider border-b border-slate-200 font-mono">
@@ -604,13 +638,13 @@ export const AdminAttendanceView: React.FC = () => {
                       if (r.status === 'HALF_DAY') badgeColor = 'bg-yellow-50 text-yellow-700 border-yellow-200';
 
                       return (
-                        <tr key={r.id} className="hover:bg-slate-50/60 transition">
+                        <tr key={r.id} className="interactive-row-hover hover:bg-teal-50/20 transition">
                           <td className="py-3.5 px-4 font-mono font-bold text-slate-900">{r.date}</td>
                           <td className="py-3.5 px-4 font-semibold text-slate-700">
                             {r.employee?.client?.companyName || 'Internal'}
                           </td>
                           <td className="py-3.5 px-4">
-                            <div className="font-bold text-slate-900">{r.employee?.fullName}</div>
+                            <div className="title-interactive-hover font-bold text-slate-900">{r.employee?.fullName}</div>
                             <div className="text-[11px] text-slate-400 font-mono">
                               <span className="text-growth-teal font-semibold">{r.employee?.employeeId}</span> •{' '}
                               {r.employee?.designation}
@@ -655,13 +689,13 @@ export const AdminAttendanceView: React.FC = () => {
 
       {/* TAB 3: POLICY RULES */}
       {activeTab === 'policy' && (
-        <div className="bg-white border border-slate-200 rounded-3xl p-6 shadow-sm space-y-6 max-w-2xl">
+        <div className="panel-premium bg-white border border-slate-200 rounded-3xl p-6 shadow-sm space-y-6 max-w-2xl">
           <div>
-            <h3 className="text-base font-black text-slate-900 flex items-center gap-2">
+            <h3 className="title-interactive-hover text-base font-black text-slate-900 flex items-center gap-2 cursor-pointer">
               <Sliders className="w-5 h-5 text-growth-teal" />
               <span>Shift Timings, Grace Period & Inactivity Rules</span>
             </h3>
-            <p className="text-xs text-slate-500 mt-1">
+            <p className="subtitle-interactive-hover text-xs text-slate-500 mt-1">
               Configure attendance calculation parameters, late mark cutoff, and idle telemetry sensitivity
             </p>
           </div>
@@ -804,70 +838,68 @@ export const AdminAttendanceView: React.FC = () => {
               </button>
             </div>
           </form>
-        </div>
-      )}
-
-      {/* TIMELINE DETAIL MODAL */}
+           {/* TIMELINE DETAIL MODAL */}
       {selectedTimelineEmp && (
-        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 max-w-lg w-full shadow-2xl space-y-4 animate-in fade-in zoom-in duration-150 max-h-[85vh] flex flex-col text-white">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-800">
+        <div className="fixed inset-0 bg-slate-950/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white border border-slate-200 rounded-3xl p-6 max-w-lg w-full shadow-2xl space-y-4 animate-in fade-in zoom-in duration-150 max-h-[85vh] flex flex-col text-slate-900 panel-premium">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
               <div>
-                <h3 className="font-bold text-sm text-white flex items-center gap-2">
+                <h3 className="font-bold text-sm text-slate-900 flex items-center gap-2 title-interactive-hover">
                   <Clock className="w-4 h-4 text-growth-teal" />
                   <span>Workday Timeline: {selectedTimelineEmp.employee.fullName}</span>
                 </h3>
-                <p className="text-[11px] text-slate-400 font-mono mt-0.5">
+                <p className="text-[11px] text-slate-500 font-mono mt-0.5 subtitle-interactive-hover">
                   ID: {selectedTimelineEmp.employee.employeeId} • Client:{' '}
                   {selectedTimelineEmp.employee.client?.companyName || 'Internal'}
                 </p>
               </div>
-              <button onClick={() => setSelectedTimelineEmp(null)} className="text-slate-500 hover:text-white p-1">
+              <button onClick={() => setSelectedTimelineEmp(null)} className="text-slate-400 hover:text-slate-600 p-1 interactive-btn-hover cursor-pointer">
                 <X className="w-5 h-5" />
               </button>
             </div>
 
             <div className="flex-1 overflow-y-auto space-y-3 pr-1">
-              <div className="text-xs font-bold text-slate-300 uppercase tracking-wider text-[10px]">
+              <div className="text-xs font-bold text-slate-400 uppercase tracking-wider text-[10px]">
                 Today&apos;s Verified Telemetry Stream
               </div>
 
               {timelineLoading ? (
                 <div className="text-center py-6 text-xs text-slate-400">Loading timeline events...</div>
               ) : timelineEvents.length > 0 ? (
-                <div className="space-y-2 relative border-l-2 border-slate-800 ml-3 pl-4">
+                <div className="space-y-2 relative border-l-2 border-slate-200 ml-3 pl-4">
                   {timelineEvents.map((evt: any, idx: number) => (
                     <div key={idx} className="relative group">
-                      <div className="absolute -left-[21px] top-1.5 w-2.5 h-2.5 rounded-full bg-growth-teal ring-4 ring-slate-900" />
-                      <div className="bg-slate-950/70 border border-slate-800/80 p-2.5 rounded-xl text-xs space-y-1">
+                      <div className="absolute -left-[21px] top-1.5 w-2.5 h-2.5 rounded-full bg-growth-teal ring-4 ring-teal-50" />
+                      <div className="bg-slate-50 border border-slate-200 p-2.5 rounded-xl text-xs space-y-1 interactive-box-hover">
                         <div className="flex items-center justify-between">
-                          <span className="font-bold text-white text-[11px]">{evt.eventType}</span>
-                          <span className="font-mono text-[10px] text-slate-400">
+                          <span className="font-bold text-slate-900 text-[11px] title-interactive-hover">{evt.eventType}</span>
+                          <span className="font-mono text-[10px] text-slate-500 font-semibold">
                             {formatClockTime(evt.timestamp, true)}
                           </span>
                         </div>
-                        <p className="text-slate-300 text-[11px]">{evt.description}</p>
+                        <p className="text-slate-600 text-[11px]">{evt.description}</p>
                       </div>
                     </div>
                   ))}
                 </div>
               ) : (
-                <div className="text-center py-8 text-xs text-slate-500 bg-slate-950 rounded-2xl border border-slate-800/60">
+                <div className="text-center py-8 text-xs text-slate-500 bg-slate-50 rounded-2xl border border-slate-200">
                   No discrete activity events logged for this session yet.
                 </div>
               )}
             </div>
 
-            <div className="pt-2 border-t border-slate-800 text-right">
+            <div className="pt-2 border-t border-slate-100 text-right">
               <button
                 onClick={() => setSelectedTimelineEmp(null)}
-                className="px-4 py-2 rounded-xl bg-slate-800 text-xs text-slate-200 hover:text-white"
+                className="px-4 py-2 rounded-xl bg-slate-900 text-xs font-bold text-white hover:bg-slate-800 transition shadow-sm interactive-btn-hover cursor-pointer"
               >
-                Close
+                Close Inspector
               </button>
             </div>
           </div>
         </div>
+      )}       </div>
       )}
 
     </div>

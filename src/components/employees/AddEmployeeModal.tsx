@@ -358,10 +358,10 @@ export const AddEmployeeModal: React.FC<ModalProps> = ({
               </div>
 
               <div>
-                <label className="block font-bold text-slate-700 mb-1">Email</label>
+                <label className="block font-bold text-slate-700 mb-1">Email ID</label>
                 <input
                   type="email"
-                  placeholder="e.g. priya.patel@growthindia.co"
+                  placeholder="Email ID"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 font-medium placeholder:text-slate-400 focus:bg-white focus:outline-none focus:ring-1 focus:ring-growth-teal"
@@ -494,7 +494,7 @@ export const AddEmployeeModal: React.FC<ModalProps> = ({
                 <div className="relative">
                   <input
                     type={showPassword ? 'text' : 'password'}
-                    placeholder="e.g. Priya@2026 or SecretPass123"
+                    placeholder="Enter Password"
                     value={customPassword}
                     onChange={(e) => setCustomPassword(e.target.value)}
                     className="w-full px-3.5 pr-10 py-2 bg-slate-950 border border-slate-700 rounded-xl text-white font-mono text-xs placeholder:text-slate-500 focus:outline-none focus:ring-1 focus:ring-growth-teal"

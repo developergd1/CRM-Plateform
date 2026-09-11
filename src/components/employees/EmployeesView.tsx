@@ -282,13 +282,13 @@ export const EmployeesView: React.FC = () => {
       )}
 
       {/* Header Bar */}
-      <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-card flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div className="panel-premium bg-white p-6 rounded-3xl border border-slate-200 shadow-card flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-xl font-extrabold text-slate-900 tracking-tight flex items-center gap-2">
+          <h1 className="title-interactive-hover text-xl font-extrabold text-slate-900 tracking-tight flex items-center gap-2 cursor-pointer">
             <Users className="w-5 h-5 text-growth-teal" />
             <span>Employee Master Registry</span>
           </h1>
-          <p className="text-xs text-slate-500">
+          <p className="subtitle-interactive-hover text-xs text-slate-500">
             Sequential <strong className="text-growth-goldDark font-mono">GI-EMP-XXXXXX</strong> numbering, credentials, and block/unblock lifecycle governance
           </p>
         </div>
@@ -296,7 +296,7 @@ export const EmployeesView: React.FC = () => {
         <div className="flex items-center gap-2.5">
           <button
             onClick={() => fetchEmployees(true)}
-            className="flex items-center gap-2 px-3.5 py-2.5 bg-slate-50 hover:bg-slate-100 text-slate-700 font-bold text-xs rounded-xl border border-slate-200 transition-all shadow-sm"
+            className="interactive-btn-hover flex items-center gap-2 px-3.5 py-2.5 bg-slate-50 hover:bg-slate-100 text-slate-700 font-bold text-xs rounded-xl border border-slate-200 transition-all shadow-sm cursor-pointer"
             title="Refresh Employees List"
           >
             <RefreshCw className="w-4 h-4 text-slate-500" />
@@ -305,7 +305,7 @@ export const EmployeesView: React.FC = () => {
 
           <button
             onClick={() => exportEmployeesCSV()}
-            className="flex items-center gap-2 px-3.5 py-2.5 bg-slate-50 hover:bg-slate-100 text-slate-700 font-bold text-xs rounded-xl border border-slate-200 transition-all"
+            className="interactive-btn-hover flex items-center gap-2 px-3.5 py-2.5 bg-slate-50 hover:bg-slate-100 text-slate-700 font-bold text-xs rounded-xl border border-slate-200 transition-all cursor-pointer"
             title="Export CSV"
           >
             <Download className="w-4 h-4 text-slate-500" />
@@ -314,7 +314,7 @@ export const EmployeesView: React.FC = () => {
 
           <button
             onClick={() => setShowAddModal(true)}
-            className="flex items-center gap-2 px-4 py-2.5 bg-growth-teal hover:bg-growth-tealDark text-white font-bold text-xs rounded-xl shadow-tealGlow transition-all"
+            className="interactive-btn-hover flex items-center gap-2 px-4 py-2.5 bg-growth-teal hover:bg-growth-tealDark text-white font-bold text-xs rounded-xl shadow-tealGlow transition-all cursor-pointer"
           >
             <Plus className="w-4 h-4" />
             <span>Onboard Employee</span>
@@ -323,7 +323,7 @@ export const EmployeesView: React.FC = () => {
       </div>
 
       {/* Filter and Search Bar */}
-      <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex flex-col md:flex-row items-center justify-between gap-3">
+      <div className="panel-premium bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex flex-col md:flex-row items-center justify-between gap-3">
         <div className="relative w-full md:w-96">
           <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
           <input
@@ -363,8 +363,8 @@ export const EmployeesView: React.FC = () => {
           </select>
 
           <button
-            onClick={() => fetchEmployees()}
-            className="p-2 text-slate-500 hover:text-slate-800 hover:bg-slate-100 rounded-xl transition-all"
+            onClick={() => fetchEmployees(true)}
+            className="interactive-btn-hover p-2 text-slate-500 hover:text-slate-800 hover:bg-slate-100 rounded-xl transition-all cursor-pointer"
             title="Refresh List"
           >
             <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
@@ -373,7 +373,7 @@ export const EmployeesView: React.FC = () => {
       </div>
 
       {/* Main Employee Table */}
-      <div className="bg-white rounded-3xl border border-slate-200 shadow-card overflow-hidden">
+      <div className="panel-premium bg-white rounded-3xl border border-slate-200 shadow-card overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs">
             <thead className="bg-slate-50 text-slate-500 uppercase text-[10px] font-black tracking-wider border-b border-slate-200">
@@ -411,7 +411,7 @@ export const EmployeesView: React.FC = () => {
                   return (
                     <tr
                       key={emp.id}
-                      className={`hover:bg-slate-50/80 transition-colors ${
+                      className={`interactive-row-hover hover:bg-teal-50/20 transition-colors ${
                         isEmpBlocked ? 'bg-rose-50/20' : ''
                       }`}
                     >
@@ -419,7 +419,7 @@ export const EmployeesView: React.FC = () => {
                       <td className="py-3.5 px-4 font-mono font-black text-growth-teal tracking-tight whitespace-nowrap">
                         <button
                           onClick={() => setSelectedEmpId(emp.employeeId)}
-                          className="hover:underline flex items-center gap-1 text-growth-teal"
+                          className="hover:underline flex items-center gap-1 text-growth-teal cursor-pointer"
                         >
                           <span>{emp.employeeId}</span>
                         </button>
@@ -429,11 +429,11 @@ export const EmployeesView: React.FC = () => {
                       <td className="py-3.5 px-4 font-bold text-slate-900">
                         <button
                           onClick={() => setSelectedEmpId(emp.employeeId)}
-                          className="hover:text-growth-teal text-left"
+                          className="title-interactive-hover hover:text-growth-teal text-left cursor-pointer"
                         >
                           <div>{emp.fullName}</div>
                           {emp.gender && (
-                            <span className="text-[10px] text-slate-400 font-normal">
+                            <span className="subtitle-interactive-hover text-[10px] text-slate-400 font-normal">
                               {emp.gender} • {emp.employmentType}
                             </span>
                           )}
@@ -524,7 +524,7 @@ export const EmployeesView: React.FC = () => {
                                 phone: emp.phone,
                               });
                             }}
-                            className="p-1.5 hover:bg-amber-50 text-slate-600 hover:text-growth-goldDark rounded-lg transition-colors"
+                            className="interactive-btn-hover p-1.5 hover:bg-amber-50 text-slate-600 hover:text-growth-goldDark rounded-lg transition-colors cursor-pointer"
                             title="View / Assign Employee Login Credentials"
                           >
                             <KeyRound className="w-4 h-4" />
@@ -533,7 +533,7 @@ export const EmployeesView: React.FC = () => {
                           {/* View Profile */}
                           <button
                             onClick={() => setSelectedEmpId(emp.employeeId)}
-                            className="p-1.5 hover:bg-slate-100 text-slate-600 hover:text-growth-teal rounded-lg transition-colors"
+                            className="interactive-btn-hover p-1.5 hover:bg-slate-100 text-slate-600 hover:text-growth-teal rounded-lg transition-colors cursor-pointer"
                             title="View Profile"
                           >
                             <Eye className="w-4 h-4" />
@@ -543,7 +543,7 @@ export const EmployeesView: React.FC = () => {
                           {isAdminOrHR(user?.role) && (
                             <button
                               onClick={() => setEditingEmployee(emp)}
-                              className="p-1.5 hover:bg-slate-100 text-slate-600 hover:text-indigo-600 rounded-lg transition-colors"
+                              className="interactive-btn-hover p-1.5 hover:bg-slate-100 text-slate-600 hover:text-indigo-600 rounded-lg transition-colors cursor-pointer"
                               title="Edit Employee"
                             >
                               <Edit className="w-4 h-4" />
@@ -554,7 +554,7 @@ export const EmployeesView: React.FC = () => {
                           {isAdminOrHR(user?.role) && (
                             <button
                               onClick={() => setResetPasswordTarget(emp)}
-                              className="p-1.5 hover:bg-amber-50 text-slate-400 hover:text-amber-600 rounded-lg transition-colors"
+                              className="interactive-btn-hover p-1.5 hover:bg-amber-50 text-slate-400 hover:text-amber-600 rounded-lg transition-colors cursor-pointer"
                               title="Assign / Reset Password"
                             >
                               <KeyRound className="w-4 h-4" />
@@ -576,7 +576,7 @@ export const EmployeesView: React.FC = () => {
                                   setDeleteError(null);
                                   setDeleteEmployeeTarget(emp);
                                 }}
-                                className="p-1.5 hover:bg-rose-50 text-slate-400 hover:text-rose-600 rounded-lg transition-colors"
+                                className="interactive-btn-hover p-1.5 hover:bg-rose-50 text-slate-400 hover:text-rose-600 rounded-lg transition-colors cursor-pointer"
                                 title="Delete Employee"
                               >
                                 <Trash2 className="w-4 h-4" />
@@ -590,7 +590,7 @@ export const EmployeesView: React.FC = () => {
                               {isEmpBlocked ? (
                                 <button
                                   onClick={() => setUnblockTarget(emp)}
-                                  className="px-2 py-1 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 rounded-lg text-[11px] font-bold transition-all"
+                                  className="interactive-btn-hover px-2 py-1 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 rounded-lg text-[11px] font-bold transition-all cursor-pointer"
                                   title="Unblock this employee"
                                 >
                                   Unblock
@@ -605,7 +605,7 @@ export const EmployeesView: React.FC = () => {
                               ) : (
                                 <button
                                   onClick={() => setBlockTarget(emp)}
-                                  className="px-2 py-1 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 rounded-lg text-[11px] font-bold transition-all"
+                                  className="interactive-btn-hover px-2 py-1 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 rounded-lg text-[11px] font-bold transition-all cursor-pointer"
                                   title="Block this employee"
                                 >
                                   Block

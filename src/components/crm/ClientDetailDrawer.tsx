@@ -23,6 +23,11 @@ import {
   History,
   AlertCircle,
   Pin,
+  Info,
+  Users,
+  Briefcase,
+  DollarSign,
+  Layers,
 } from 'lucide-react';
 import { canReassignClients } from '@/lib/rbac';
 import { SearchableSelect } from '@/components/common/SearchableSelect';
@@ -37,7 +42,9 @@ export const ClientDetailDrawer: React.FC<DrawerProps> = ({ clientId, onClose, o
   const { user } = useAuth();
   const [client, setClient] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<'timeline' | 'notes' | 'tasks' | 'assignments'>('timeline');
+  const [activeTab, setActiveTab] = useState<
+    'overview' | 'crm' | 'contacts' | 'employees' | 'timeline' | 'notes' | 'tasks' | 'assignments'
+  >('overview');
 
   // Form states
   const [newNote, setNewNote] = useState('');
@@ -342,55 +349,282 @@ export const ClientDetailDrawer: React.FC<DrawerProps> = ({ clientId, onClose, o
               </div>
 
               {/* Navigation Tabs */}
-              <div className="flex border-b border-slate-200">
+              <div className="flex border-b border-slate-200 overflow-x-auto">
+                <button
+                  onClick={() => setActiveTab('overview')}
+                  className={`pb-2.5 px-3.5 text-xs font-bold border-b-2 whitespace-nowrap transition-all flex items-center gap-1.5 ${
+                    activeTab === 'overview'
+                      ? 'border-growth-teal text-growth-teal'
+                      : 'border-transparent text-slate-400 hover:text-slate-700'
+                  }`}
+                >
+                  <Info className="w-3.5 h-3.5" />
+                  <span>Overview</span>
+                </button>
+
+                <button
+                  onClick={() => setActiveTab('crm')}
+                  className={`pb-2.5 px-3.5 text-xs font-bold border-b-2 whitespace-nowrap transition-all flex items-center gap-1.5 ${
+                    activeTab === 'crm'
+                      ? 'border-growth-teal text-growth-teal'
+                      : 'border-transparent text-slate-400 hover:text-slate-700'
+                  }`}
+                >
+                  <DollarSign className="w-3.5 h-3.5" />
+                  <span>CRM & Deals ({(client.opportunities?.length || 0) + (client.deals?.length || 0)})</span>
+                </button>
+
+                <button
+                  onClick={() => setActiveTab('contacts')}
+                  className={`pb-2.5 px-3.5 text-xs font-bold border-b-2 whitespace-nowrap transition-all flex items-center gap-1.5 ${
+                    activeTab === 'contacts'
+                      ? 'border-growth-teal text-growth-teal'
+                      : 'border-transparent text-slate-400 hover:text-slate-700'
+                  }`}
+                >
+                  <User className="w-3.5 h-3.5" />
+                  <span>Contacts ({client.contacts?.length || 0})</span>
+                </button>
+
+                <button
+                  onClick={() => setActiveTab('employees')}
+                  className={`pb-2.5 px-3.5 text-xs font-bold border-b-2 whitespace-nowrap transition-all flex items-center gap-1.5 ${
+                    activeTab === 'employees'
+                      ? 'border-growth-teal text-growth-teal'
+                      : 'border-transparent text-slate-400 hover:text-slate-700'
+                  }`}
+                >
+                  <Users className="w-3.5 h-3.5" />
+                  <span>Workforce ({client.employees?.length || 0})</span>
+                </button>
+
                 <button
                   onClick={() => setActiveTab('timeline')}
-                  className={`pb-2.5 px-4 text-xs font-bold border-b-2 transition-all flex items-center gap-1.5 ${
+                  className={`pb-2.5 px-3.5 text-xs font-bold border-b-2 whitespace-nowrap transition-all flex items-center gap-1.5 ${
                     activeTab === 'timeline'
                       ? 'border-growth-teal text-growth-teal'
                       : 'border-transparent text-slate-400 hover:text-slate-700'
                   }`}
                 >
-                  <History className="w-4 h-4" />
-                  <span>Activity Timeline ({client.activities?.length || 0})</span>
+                  <History className="w-3.5 h-3.5" />
+                  <span>Activity ({client.activities?.length || 0})</span>
                 </button>
 
                 <button
                   onClick={() => setActiveTab('tasks')}
-                  className={`pb-2.5 px-4 text-xs font-bold border-b-2 transition-all flex items-center gap-1.5 ${
+                  className={`pb-2.5 px-3.5 text-xs font-bold border-b-2 whitespace-nowrap transition-all flex items-center gap-1.5 ${
                     activeTab === 'tasks'
                       ? 'border-growth-teal text-growth-teal'
                       : 'border-transparent text-slate-400 hover:text-slate-700'
                   }`}
                 >
-                  <Calendar className="w-4 h-4" />
-                  <span>Tasks & Follow-ups ({client.tasks?.length || 0})</span>
+                  <Calendar className="w-3.5 h-3.5" />
+                  <span>Tasks ({client.tasks?.length || 0})</span>
                 </button>
 
                 <button
                   onClick={() => setActiveTab('notes')}
-                  className={`pb-2.5 px-4 text-xs font-bold border-b-2 transition-all flex items-center gap-1.5 ${
+                  className={`pb-2.5 px-3.5 text-xs font-bold border-b-2 whitespace-nowrap transition-all flex items-center gap-1.5 ${
                     activeTab === 'notes'
                       ? 'border-growth-teal text-growth-teal'
                       : 'border-transparent text-slate-400 hover:text-slate-700'
                   }`}
                 >
-                  <FileText className="w-4 h-4" />
-                  <span>Internal Notes ({client.notes?.length || 0})</span>
+                  <FileText className="w-3.5 h-3.5" />
+                  <span>Notes ({client.notes?.length || 0})</span>
                 </button>
 
                 <button
                   onClick={() => setActiveTab('assignments')}
-                  className={`pb-2.5 px-4 text-xs font-bold border-b-2 transition-all flex items-center gap-1.5 ${
+                  className={`pb-2.5 px-3.5 text-xs font-bold border-b-2 whitespace-nowrap transition-all flex items-center gap-1.5 ${
                     activeTab === 'assignments'
                       ? 'border-growth-teal text-growth-teal'
                       : 'border-transparent text-slate-400 hover:text-slate-700'
                   }`}
                 >
-                  <UserCheck className="w-4 h-4" />
-                  <span>Ownership Chain ({client.assignments?.length || 0})</span>
+                  <UserCheck className="w-3.5 h-3.5" />
+                  <span>Ownership ({client.assignments?.length || 0})</span>
                 </button>
               </div>
+
+              {/* Tab 0: Overview */}
+              {activeTab === 'overview' && (
+                <div className="space-y-4">
+                  <div className="bg-white rounded-2xl p-5 border border-slate-200 shadow-sm space-y-3">
+                    <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400">Corporate Identity</h3>
+                    <div className="grid grid-cols-2 gap-4 text-xs">
+                      <div>
+                        <span className="text-slate-400 block text-[10px] uppercase font-bold">Company Name</span>
+                        <span className="font-bold text-slate-800">{client.companyName || client.company || client.name}</span>
+                      </div>
+                      <div>
+                        <span className="text-slate-400 block text-[10px] uppercase font-bold">Client System ID</span>
+                        <span className="font-mono font-bold text-growth-teal">{client.clientId}</span>
+                      </div>
+                      <div>
+                        <span className="text-slate-400 block text-[10px] uppercase font-bold">Primary Contact</span>
+                        <span className="font-semibold text-slate-700">{client.contactPerson || client.name || 'N/A'}</span>
+                      </div>
+                      <div>
+                        <span className="text-slate-400 block text-[10px] uppercase font-bold">Industry Domain</span>
+                        <span className="font-semibold text-slate-700">{client.industry || 'General Corporate'}</span>
+                      </div>
+                      <div>
+                        <span className="text-slate-400 block text-[10px] uppercase font-bold">Account Status</span>
+                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold uppercase bg-emerald-50 text-emerald-700 border border-emerald-200">
+                          {client.status || 'ACTIVE'}
+                        </span>
+                      </div>
+                      <div>
+                        <span className="text-slate-400 block text-[10px] uppercase font-bold">Enrolled Date</span>
+                        <span className="text-slate-600">
+                          {client.dateAdded ? new Date(client.dateAdded).toLocaleDateString() : 'N/A'}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="bg-white rounded-2xl p-5 border border-slate-200 shadow-sm">
+                    <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">Requirement & Scope</h3>
+                    <p className="text-xs text-slate-700 bg-slate-50 p-3 rounded-xl border border-slate-200/60 leading-relaxed">
+                      {client.requirement || 'No custom requirement description specified.'}
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              {/* Tab: CRM Pipeline (Opportunities & Deals) */}
+              {activeTab === 'crm' && (
+                <div className="space-y-6">
+                  {/* Opportunities */}
+                  <div>
+                    <div className="flex items-center justify-between mb-3">
+                      <h3 className="text-xs font-bold uppercase tracking-wider text-slate-700 flex items-center gap-1.5">
+                        <Briefcase className="w-3.5 h-3.5 text-growth-teal" />
+                        <span>Opportunities ({client.opportunities?.length || 0})</span>
+                      </h3>
+                    </div>
+                    {(!client.opportunities || client.opportunities.length === 0) ? (
+                      <div className="p-4 text-center bg-slate-50 rounded-xl border border-slate-200 text-xs text-slate-400">
+                        No active pipeline opportunities logged for this organization.
+                      </div>
+                    ) : (
+                      <div className="space-y-2">
+                        {client.opportunities.map((opp: any) => (
+                          <div key={opp.id} className="p-3 bg-white rounded-xl border border-slate-200 flex items-center justify-between text-xs">
+                            <div>
+                              <div className="font-bold text-slate-800">{opp.title}</div>
+                              <div className="text-[10px] text-slate-400 font-mono">{opp.opportunityNumber}</div>
+                            </div>
+                            <div className="text-right">
+                              <div className="font-bold text-growth-teal">₹{Number(opp.value).toLocaleString()}</div>
+                              <span className="text-[10px] px-2 py-0.5 rounded-full bg-blue-50 text-blue-600 font-bold uppercase">
+                                {opp.stage}
+                              </span>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Deals */}
+                  <div>
+                    <div className="flex items-center justify-between mb-3">
+                      <h3 className="text-xs font-bold uppercase tracking-wider text-slate-700 flex items-center gap-1.5">
+                        <DollarSign className="w-3.5 h-3.5 text-growth-gold" />
+                        <span>Contracts & Deals ({client.deals?.length || 0})</span>
+                      </h3>
+                    </div>
+                    {(!client.deals || client.deals.length === 0) ? (
+                      <div className="p-4 text-center bg-slate-50 rounded-xl border border-slate-200 text-xs text-slate-400">
+                        No signed or closed deals logged for this organization.
+                      </div>
+                    ) : (
+                      <div className="space-y-2">
+                        {client.deals.map((deal: any) => (
+                          <div key={deal.id} className="p-3 bg-white rounded-xl border border-slate-200 flex items-center justify-between text-xs">
+                            <div>
+                              <div className="font-bold text-slate-800">{deal.title}</div>
+                              <div className="text-[10px] text-slate-400 font-mono">{deal.dealNumber}</div>
+                            </div>
+                            <div className="text-right">
+                              <div className="font-bold text-emerald-600">₹{Number(deal.amount).toLocaleString()}</div>
+                              <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 font-bold uppercase">
+                                {deal.status}
+                              </span>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Tab: Contacts */}
+              {activeTab === 'contacts' && (
+                <div className="space-y-3">
+                  {(!client.contacts || client.contacts.length === 0) ? (
+                    <div className="p-6 text-center bg-slate-50 rounded-xl border border-slate-200 text-xs text-slate-400">
+                      No corporate contacts registered for this client yet.
+                    </div>
+                  ) : (
+                    client.contacts.map((c: any) => (
+                      <div key={c.id} className="p-3.5 bg-white rounded-xl border border-slate-200 flex items-center justify-between text-xs hover:border-growth-teal transition-all">
+                        <div>
+                          <div className="font-bold text-slate-800 flex items-center gap-2">
+                            <span>{c.fullName}</span>
+                            {c.isPrimary && (
+                              <span className="text-[9px] px-1.5 py-0.2 rounded bg-growth-teal/10 text-growth-teal font-bold">
+                                PRIMARY
+                              </span>
+                            )}
+                          </div>
+                          <div className="text-[10px] text-slate-400">{c.designation || 'Contact Person'}</div>
+                        </div>
+                        <div className="text-right text-slate-600">
+                          <div className="flex items-center gap-1">
+                            <Phone className="w-3 h-3 text-slate-400" />
+                            <span>{c.phone}</span>
+                          </div>
+                          {c.email && (
+                            <div className="text-[10px] text-slate-400">{c.email}</div>
+                          )}
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
+              )}
+
+              {/* Tab: Workforce / Employees */}
+              {activeTab === 'employees' && (
+                <div className="space-y-3">
+                  <div className="text-xs text-slate-500 font-medium">
+                    Employees deployed to or affiliated with {client.companyName || client.name}:
+                  </div>
+                  {(!client.employees || client.employees.length === 0) ? (
+                    <div className="p-6 text-center bg-slate-50 rounded-xl border border-slate-200 text-xs text-slate-400">
+                      No employees deployed under this client organization yet.
+                    </div>
+                  ) : (
+                    client.employees.map((emp: any) => (
+                      <div key={emp.id} className="p-3 bg-white rounded-xl border border-slate-200 flex items-center justify-between text-xs">
+                        <div>
+                          <div className="font-bold text-slate-800">{emp.fullName}</div>
+                          <div className="text-[10px] text-slate-400 font-mono">{emp.employeeId} • {emp.designation}</div>
+                        </div>
+                        <div className="text-right">
+                          <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 font-bold uppercase">
+                            {emp.status}
+                          </span>
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
+              )}
 
               {/* Tab 1: Chronological Activity Timeline */}
               {activeTab === 'timeline' && (

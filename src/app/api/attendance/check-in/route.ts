@@ -33,7 +33,7 @@ export async function POST(req: NextRequest) {
       userAgent,
     });
 
-    // 2. Check if already checked in today
+    // 2. Check if already checked in and active today
     const existing = await prisma.attendance.findUnique({
       where: {
         employeeId_date: {
@@ -46,12 +46,52 @@ export async function POST(req: NextRequest) {
       },
     });
 
-    if (existing && existing.checkInTime) {
+    if (existing && existing.checkInTime && !existing.checkOutTime) {
       return NextResponse.json({
-        error: 'You have already checked in today.',
+        error: 'You are already checked in and currently on duty.',
         attendance: existing,
         workSession,
       }, { status: 400 });
+    }
+
+    if (existing && existing.checkInTime && existing.checkOutTime) {
+      // Resume working session
+      const resumedAttendance = await prisma.attendance.update({
+        where: { id: existing.id },
+        data: {
+          checkOutTime: null,
+          status: 'PRESENT',
+        },
+        include: {
+          breaks: true,
+        },
+      });
+
+      await recordActivityEvent({
+        sessionId: workSession.sessionId,
+        employeeId: employee.id,
+        eventType: 'CHECK_IN',
+        description: `Employee resumed work session at ${now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true })}`,
+        metadata: { ipAddress: ip },
+      });
+
+      await logAuditEvent({
+        actorUserId: user.id,
+        actorEmployeeId: user.employeeId,
+        action: 'ATTENDANCE_RESUME_WORK',
+        entityType: 'ATTENDANCE',
+        entityId: resumedAttendance.id,
+        newData: { checkOutTime: null, status: 'PRESENT' },
+        ipAddress: ip,
+        status: 'SUCCESS',
+      });
+
+      return NextResponse.json({
+        success: true,
+        message: 'Work session resumed! Activity tracking is active.',
+        attendance: resumedAttendance,
+        workSession,
+      });
     }
 
     // 3. Determine late status from effective policy & employee shift

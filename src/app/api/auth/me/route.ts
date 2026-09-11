@@ -9,20 +9,22 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ authenticated: false }, { status: 401 });
     }
 
-    // Get today's attendance status
-    const today = new Date().toISOString().split('T')[0];
+    // Only fetch today's attendance for employees (Admins/Clients don't need attendance punches)
     let attendance = null;
-    
-    if (user.employeeId) {
-      const emp = await prisma.employee.findUnique({
-        where: { employeeId: user.employeeId },
-      });
+    if (user.role === 'EMPLOYEE' && (user.employeeProfileId || user.employeeId)) {
+      const today = new Date().toISOString().split('T')[0];
+      const targetEmpId = user.employeeProfileId || (
+        await prisma.employee.findUnique({
+          where: { employeeId: user.employeeId },
+          select: { id: true },
+        })
+      )?.id;
 
-      if (emp) {
+      if (targetEmpId) {
         attendance = await prisma.attendance.findUnique({
           where: {
             employeeId_date: {
-              employeeId: emp.id,
+              employeeId: targetEmpId,
               date: today,
             },
           },

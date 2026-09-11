@@ -173,7 +173,7 @@ export const ResetPasswordModal: React.FC<ResetPasswordModalProps> = ({
               <input
                 type={showPassword ? 'text' : 'password'}
                 required
-                placeholder="e.g. Mohit@123 or Emp#4921"
+                placeholder="Enter New Password"
                 value={newPassword}
                 onChange={(e) => setNewPassword(e.target.value)}
                 className="w-full pl-3.5 pr-10 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 font-medium placeholder:text-slate-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-growth-teal text-xs"

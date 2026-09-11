@@ -19,16 +19,41 @@ import {
   FileText,
   Clock,
   CheckCircle2,
+  ChevronDown,
+  ChevronUp,
+  Coffee,
 } from 'lucide-react';
 import { clientCache } from '@/lib/client-cache';
+import { EmployeeTasksView } from '@/components/tasks/EmployeeTasksView';
+import { LeaveView } from '@/components/leave/LeaveView';
+import { EmployeeRegularizationView } from './EmployeeRegularizationView';
+import { NotificationBell } from '@/components/notifications/NotificationBell';
 
 export const EmployeePortalShell: React.FC = () => {
   const { user, logout } = useAuth();
-  const [activeTab, setActiveTab] = useState<'attendance' | 'profile'>('attendance');
+  const [activeTab, setActiveTab] = useState<string>('work-today');
+  const [isWorkOpen, setIsWorkOpen] = useState(true);
   const cacheKey = user?.employeeId ? `emp_profile_${user.employeeId}` : null;
   const initialProfile = cacheKey ? clientCache.get<any>(cacheKey, 30 * 60 * 1000) : null;
   const [employeeProfile, setEmployeeProfile] = useState<any>(() => initialProfile);
   const [loading, setLoading] = useState(() => !initialProfile);
+
+  // Sync tab with URL search parameters on mount & history navigation (prevents hydration mismatch)
+  useEffect(() => {
+    const syncTabFromUrl = () => {
+      if (typeof window === 'undefined') return;
+      const p = new URLSearchParams(window.location.search).get('tab');
+      if (p === 'tasks' || p === 'work-tasks') setActiveTab('work-tasks');
+      else if (p === 'leave' || p === 'work-leave') setActiveTab('work-leave');
+      else if (p === 'regularization' || p === 'work-regularization') setActiveTab('work-regularization');
+      else if (p === 'profile') setActiveTab('profile');
+      else if (p === 'attendance' || p === 'work-today') setActiveTab('work-today');
+    };
+
+    syncTabFromUrl();
+    window.addEventListener('popstate', syncTabFromUrl);
+    return () => window.removeEventListener('popstate', syncTabFromUrl);
+  }, []);
 
   useEffect(() => {
     const fetchProfile = async (force = false) => {
@@ -52,9 +77,15 @@ export const EmployeePortalShell: React.FC = () => {
 
   const emp = employeeProfile || user;
 
+  const workSubItems = [
+    { id: 'work-today', label: 'Attendance', icon: Calendar },
+    { id: 'work-tasks', label: 'Tasks', icon: CheckCircle2 },
+    { id: 'work-leave', label: 'Leave', icon: Coffee },
+  ];
+
   return (
     <div className="flex h-screen bg-slate-100/70 overflow-hidden font-sans">
-      {/* LEFT SIDEBAR (Matching Admin Panel) */}
+      {/* LEFT SIDEBAR (Growth India Dark Theme) */}
       <aside className="w-64 bg-slate-900 text-slate-300 flex flex-col shrink-0 border-r border-slate-800 select-none">
         {/* Brand Header */}
         <div className="h-16 flex items-center px-5 border-b border-slate-800 bg-slate-950/50">
@@ -62,50 +93,88 @@ export const EmployeePortalShell: React.FC = () => {
         </div>
 
         {/* Employee Status Badge */}
-        <div className="mx-4 mt-4 p-3 bg-slate-950/70 rounded-2xl border border-growth-teal/30">
+        <div className="mx-3 mt-3.5 p-2.5 bg-slate-950/70 rounded-xl border border-growth-teal/30 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <div className="w-2 h-2 rounded-full bg-growth-teal animate-pulse" />
-            <span className="text-xs font-black text-white truncate">Employee Portal</span>
+            <span className="text-[11px] font-bold text-slate-200 uppercase tracking-wider">EMPLOYEE</span>
           </div>
-          <div className="flex items-center gap-1.5 mt-1.5">
-            <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-growth-teal/20 text-growth-teal border border-growth-teal/40">
-              {user?.employeeId}
-            </span>
-            <span className="text-[10px] text-slate-400 font-semibold">• Active Staff</span>
-          </div>
+          <span className="text-[9px] font-mono font-extrabold px-1.5 py-0.5 rounded bg-growth-teal/20 text-growth-teal border border-growth-teal/40">
+            {user?.employeeId || 'STAFF'}
+          </span>
         </div>
 
-        {/* Navigation Links */}
-        <div className="flex-1 overflow-y-auto py-4 px-3 space-y-5">
-          <div>
-            <div className="text-[10px] font-extrabold uppercase tracking-wider text-slate-500 px-3 mb-2">
-              STAFF WORKSPACE
-            </div>
-            <div className="space-y-1">
-              <button
-                onClick={() => setActiveTab('attendance')}
-                className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all ${
-                  activeTab === 'attendance'
-                    ? 'bg-gradient-to-r from-growth-teal to-growth-tealDark text-white shadow-tealGlow font-bold'
-                    : 'text-slate-400 hover:text-slate-100 hover:bg-slate-800/60'
-                }`}
-              >
-                <Clock className={`w-4 h-4 shrink-0 ${activeTab === 'attendance' ? 'text-growth-gold' : 'text-slate-400'}`} />
-                <span>Attendance & Work</span>
-              </button>
+        {/* Navigation Links Area */}
+        <div className="flex-1 overflow-y-auto py-3 px-3 space-y-3">
+          {/* Collapsible My Work */}
+          <div className="space-y-1">
+            <button
+              type="button"
+              onClick={() => setIsWorkOpen((prev) => !prev)}
+              className="w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-bold text-slate-300 hover:text-white hover:bg-slate-800/60 transition-all select-none"
+            >
+              <div className="flex items-center gap-2.5">
+                <Briefcase className="w-4 h-4 text-growth-teal shrink-0" />
+                <span>My Work</span>
+              </div>
+              {isWorkOpen ? (
+                <ChevronUp className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+              ) : (
+                <ChevronDown className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+              )}
+            </button>
 
-              <button
-                onClick={() => setActiveTab('profile')}
-                className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all ${
-                  activeTab === 'profile'
-                    ? 'bg-gradient-to-r from-growth-teal to-growth-tealDark text-white shadow-tealGlow font-bold'
-                    : 'text-slate-400 hover:text-slate-100 hover:bg-slate-800/60'
+            {/* My Work Sub-Items with Bullets */}
+            {isWorkOpen && (
+              <div className="space-y-1 pl-3 pt-0.5">
+                {workSubItems.map((item) => {
+                  const ItemIcon = item.icon;
+                  const isActive = activeTab === item.id;
+
+                  return (
+                    <button
+                      key={item.id}
+                      type="button"
+                      onClick={() => setActiveTab(item.id)}
+                      className={`w-full flex items-center gap-2.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all text-left ${
+                        isActive
+                          ? 'bg-gradient-to-r from-growth-teal to-growth-tealDark text-white shadow-tealGlow font-bold'
+                          : 'text-slate-400 hover:text-slate-100 hover:bg-slate-800/60'
+                      }`}
+                    >
+                      <span className={`text-base leading-none shrink-0 ${isActive ? 'text-growth-gold' : 'text-slate-500'}`}>
+                        •
+                      </span>
+                      <ItemIcon
+                        className={`w-3.5 h-3.5 shrink-0 ${
+                          isActive ? 'text-growth-gold' : 'text-slate-400'
+                        }`}
+                      />
+                      <span className="truncate">{item.label}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+
+          {/* My Profile Link */}
+          <div className="pt-1 border-t border-slate-800/80">
+            <button
+              type="button"
+              onClick={() => setActiveTab('profile')}
+              className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all ${
+                activeTab === 'profile'
+                  ? 'bg-gradient-to-r from-growth-teal to-growth-tealDark text-white shadow-tealGlow font-bold'
+                  : 'text-slate-400 hover:text-slate-100 hover:bg-slate-800/60'
+              }`}
+            >
+              <User
+                className={`w-4 h-4 shrink-0 ${
+                  activeTab === 'profile' ? 'text-growth-gold' : 'text-slate-400'
                 }`}
-              >
-                <User className={`w-4 h-4 shrink-0 ${activeTab === 'profile' ? 'text-growth-gold' : 'text-slate-400'}`} />
-                <span>My Profile & Details</span>
-              </button>
-            </div>
+              />
+              <span>My Profile</span>
+            </button>
           </div>
         </div>
 
@@ -145,8 +214,12 @@ export const EmployeePortalShell: React.FC = () => {
         {/* Top Header */}
         <header className="h-16 bg-white border-b border-slate-200 px-6 flex items-center justify-between shrink-0 shadow-sm sticky top-0 z-30">
           <div className="flex items-center gap-3">
-            <h1 className="text-base font-black text-slate-800">
-              {activeTab === 'attendance' ? 'Work Telemetry & Attendance' : 'Personal & Employment Profile'}
+            <h1 className="title-interactive-hover text-base font-black text-slate-800">
+              {activeTab === 'work-today' && 'Attendance & Timesheet'}
+              {activeTab === 'work-tasks' && 'My Assigned Tasks'}
+              {activeTab === 'work-leave' && 'Leave Applications & Approvals'}
+              {activeTab === 'work-regularization' && 'Attendance Regularization'}
+              {activeTab === 'profile' && 'Personal & Employment Profile'}
             </h1>
             <span className="hidden sm:inline-flex px-2.5 py-0.5 rounded text-[10px] font-mono font-bold bg-teal-50 text-growth-teal border border-teal-200">
               {emp?.client?.companyName || user?.companyName || 'Assigned Workplace'}
@@ -154,6 +227,8 @@ export const EmployeePortalShell: React.FC = () => {
           </div>
 
           <div className="flex items-center gap-3">
+            <NotificationBell variant="light" />
+
             <div className="text-right hidden sm:block">
               <div className="text-xs font-bold text-slate-900">{user?.fullName}</div>
               <div className="text-[10px] text-slate-500">{emp?.designation || user?.designation}</div>
@@ -161,7 +236,7 @@ export const EmployeePortalShell: React.FC = () => {
 
             <button
               onClick={logout}
-              className="flex items-center gap-1.5 px-3 py-1.5 text-xs text-slate-500 hover:text-rose-600 hover:bg-rose-50 border border-transparent hover:border-rose-200 rounded-xl transition-all"
+              className="interactive-btn-hover flex items-center gap-1.5 px-3 py-1.5 text-xs text-slate-500 hover:text-rose-600 hover:bg-rose-50 border border-transparent hover:border-rose-200 rounded-xl transition-all"
               title="Sign Out"
             >
               <LogOut className="w-4 h-4" />
@@ -174,36 +249,36 @@ export const EmployeePortalShell: React.FC = () => {
         <main className="flex-1 overflow-y-auto p-6 md:p-8 bg-slate-50 text-slate-800 space-y-6">
           <div className="max-w-5xl mx-auto space-y-6">
             {/* Welcome Card */}
-            <div className="bg-gradient-to-r from-growth-navy via-slate-900 to-growth-navyLight rounded-3xl p-6 text-white shadow-md flex flex-col md:flex-row md:items-center justify-between gap-6 border border-slate-800">
+            <div className="card-premium interactive-box-hover bg-white rounded-3xl p-6 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-6 border border-slate-200">
               <div className="flex items-center gap-4">
-                <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-growth-teal to-teal-700 flex items-center justify-center font-black text-2xl text-white shadow-lg">
+                <div className="w-16 h-16 rounded-2xl bg-teal-50 border border-teal-200 flex items-center justify-center font-black text-2xl text-growth-teal shadow-inner">
                   {user?.fullName?.charAt(0) || 'E'}
                 </div>
                 <div>
-                  <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 bg-emerald-950/80 border border-emerald-800/60 rounded-full text-[10px] font-black text-emerald-400 mb-1.5">
-                    <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                  <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 bg-emerald-50 border border-emerald-200 rounded-full text-[10px] font-black text-emerald-700 mb-1.5">
+                    <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
                     <span>ACTIVE WORKSPACE</span>
                   </div>
-                  <h1 className="text-2xl font-black">{user?.fullName}</h1>
-                  <p className="text-xs text-slate-300 mt-0.5">
-                    <span className="font-mono text-growth-gold font-bold">{user?.employeeId}</span> • {emp?.designation || user?.designation} • {emp?.departmentName || user?.departmentName}
+                  <h1 className="title-interactive-hover text-2xl font-black text-slate-900">{user?.fullName}</h1>
+                  <p className="subtitle-interactive-hover text-xs text-slate-500 mt-0.5">
+                    <span className="font-mono text-growth-teal font-bold">{user?.employeeId}</span> • {emp?.designation || user?.designation} • {emp?.departmentName || user?.departmentName}
                   </p>
                 </div>
               </div>
 
               <div className="flex items-center gap-3 flex-wrap">
-                <div className="bg-slate-950/60 p-4 rounded-2xl border border-slate-800/80 text-xs space-y-1 shrink-0">
-                  <div className="text-slate-400">Assigned Client / Company:</div>
-                  <div className="font-bold text-growth-gold flex items-center gap-1.5 text-sm">
+                <div className="card-premium interactive-box-hover bg-slate-50 p-4 rounded-2xl border border-slate-200 text-xs space-y-1 shrink-0 cursor-pointer">
+                  <div className="text-slate-500">Assigned Client / Company:</div>
+                  <div className="font-bold text-amber-600 flex items-center gap-1.5 text-sm">
                     <Building2 className="w-4 h-4" />
                     <span>{emp?.client?.companyName || user?.companyName || 'Growth India'}</span>
                   </div>
                 </div>
 
-                <div className="bg-slate-950/60 p-4 rounded-2xl border border-slate-800/80 text-xs space-y-1 shrink-0">
-                  <div className="text-slate-400">Assigned Shift Window:</div>
-                  <div className="font-bold text-teal-300 flex items-center gap-1.5 text-sm font-mono">
-                    <Clock className="w-4 h-4 text-growth-teal" />
+                <div className="card-premium interactive-box-hover bg-slate-50 p-4 rounded-2xl border border-slate-200 text-xs space-y-1 shrink-0 cursor-pointer">
+                  <div className="text-slate-500">Assigned Shift Window:</div>
+                  <div className="font-bold text-growth-teal flex items-center gap-1.5 text-sm font-mono">
+                    <Clock className="w-4 h-4" />
                     <span>
                       {emp?.shiftStartTime === 'FLEXIBLE'
                         ? 'Flexible Hours'
@@ -215,19 +290,25 @@ export const EmployeePortalShell: React.FC = () => {
             </div>
 
             {/* Tab View Switcher */}
-            {activeTab === 'attendance' ? (
-              <EmployeeAttendanceView />
-            ) : (
+            {activeTab === 'work-tasks' ? (
+              <div className="h-[800px] flex flex-col bg-white rounded-3xl shadow-sm border border-slate-200">
+                 <EmployeeTasksView />
+              </div>
+            ) : activeTab === 'work-leave' ? (
+              <LeaveView />
+            ) : activeTab === 'work-regularization' ? (
+              <EmployeeRegularizationView />
+            ) : activeTab === 'profile' ? (
               <div className="space-y-6">
                 {/* Profile Information Grid */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   {/* Personal Information */}
-                  <div className="bg-white border border-slate-200 rounded-3xl p-6 shadow-sm space-y-4">
+                  <div className="card-premium interactive-box-hover bg-white border border-slate-200 rounded-3xl p-6 shadow-sm space-y-4 cursor-pointer">
                     <div className="flex items-center gap-2.5 pb-3 border-b border-slate-200">
                       <div className="p-2 rounded-xl bg-teal-50 text-growth-teal border border-teal-100">
                         <User className="w-4 h-4" />
                       </div>
-                      <h3 className="text-sm font-black text-slate-900">Personal Profile</h3>
+                      <h3 className="title-interactive-hover text-sm font-black text-slate-900">Personal Profile</h3>
                     </div>
 
                     <div className="space-y-3 text-xs">
@@ -310,12 +391,12 @@ export const EmployeePortalShell: React.FC = () => {
                   </div>
 
                   {/* Employment & Job Details */}
-                  <div className="bg-white border border-slate-200 rounded-3xl p-6 shadow-sm space-y-4">
+                  <div className="card-premium interactive-box-hover bg-white border border-slate-200 rounded-3xl p-6 shadow-sm space-y-4 cursor-pointer">
                     <div className="flex items-center gap-2.5 pb-3 border-b border-slate-200">
                       <div className="p-2 rounded-xl bg-amber-50 text-amber-600 border border-amber-100">
                         <Briefcase className="w-4 h-4" />
                       </div>
-                      <h3 className="text-sm font-black text-slate-900">Employment Information</h3>
+                      <h3 className="title-interactive-hover text-sm font-black text-slate-900">Employment Information</h3>
                     </div>
 
                     <div className="space-y-3 text-xs">
@@ -367,7 +448,7 @@ export const EmployeePortalShell: React.FC = () => {
                 </div>
 
                 {/* Security & Governance Notice */}
-                <div className="p-4 bg-amber-50/70 border border-amber-200 rounded-2xl text-xs text-amber-900 flex items-start gap-3 shadow-sm">
+                <div className="panel-premium p-4 bg-amber-50/70 border border-amber-200 rounded-2xl text-xs text-amber-900 flex items-start gap-3 shadow-sm">
                   <ShieldCheck className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
                   <div>
                     <span className="font-bold text-slate-900">Platform Security & Governance Notice:</span>
@@ -377,6 +458,8 @@ export const EmployeePortalShell: React.FC = () => {
                   </div>
                 </div>
               </div>
+            ) : (
+              <EmployeeAttendanceView />
             )}
           </div>
         </main>

@@ -4,6 +4,7 @@ import { prisma } from '@/lib/prisma';
 import { getSessionUser } from '@/lib/auth';
 import { isAdminOrHR } from '@/lib/rbac';
 import { logAuditEvent } from '@/lib/audit';
+import { generateClientId } from '@/lib/id-generator';
 
 export async function GET(req: NextRequest) {
   try {
@@ -122,27 +123,13 @@ export async function POST(req: NextRequest) {
     }
 
     // Generate automatic sequential unique Client ID: CLI-00001, CLI-00002...
-    const allClients = await prisma.client.findMany({
-      select: { clientId: true },
-    });
-
-    let maxNum = 0;
-    for (const c of allClients) {
-      if (c.clientId && c.clientId.startsWith('CLI-')) {
-        const numPart = parseInt(c.clientId.replace('CLI-', ''), 10);
-        if (!isNaN(numPart) && numPart > maxNum) {
-          maxNum = numPart;
-        }
-      }
-    }
-
-    const nextNumber = maxNum + 1;
-    const clientId = `CLI-${nextNumber.toString().padStart(5, '0')}`;
+    const clientId = await generateClientId(companyName);
 
     // Target email
+    const numPart = clientId.replace(/\D/g, '');
     const clientEmail = email
       ? email.toLowerCase().trim()
-      : `client.${nextNumber}@growthindia.in`;
+      : `client.${numPart}@growthindia.in`;
 
     // Auto-generate client password
     const generatedPassword = customPassword || `Client#${Math.floor(1000 + Math.random() * 9000)}`;

@@ -37,8 +37,27 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
           },
           orderBy: { employeeId: 'asc' },
         },
+        accountOwner: {
+          select: { id: true, employeeId: true, fullName: true, designation: true },
+        },
+        departments: {
+          take: 20,
+          orderBy: { name: 'asc' },
+        },
+        documents: {
+          take: 20,
+          orderBy: { createdAt: 'desc' },
+        },
         _count: {
-          select: { employees: true },
+          select: {
+            employees: true,
+            deals: true,
+            opportunities: true,
+            contacts: true,
+            leads: true,
+            departments: true,
+            documents: true,
+          },
         },
       },
     });
@@ -104,10 +123,19 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
       temporaryAddress,
       permanentAddress,
       industry,
-      status,
+      legalName,
+      alternatePhone,
+      website,
+      city,
+      state,
+      country,
+      onboardingDate,
+      salesOwnerId,
+      accountOwnerId,
       canBlockEmployees,
       canDeleteEmployees,
       newPassword,
+      status,
     } = data;
 
     let computedAddress = address;
@@ -133,25 +161,81 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
     }
 
     // Optional password reset for client
-    if (newPassword && existing.userId) {
+    if (newPassword) {
       const hashedPassword = await bcrypt.hash(newPassword, 10);
-      await prisma.user.update({
-        where: { id: existing.userId },
-        data: { passwordHash: hashedPassword },
-      });
+      if (existing.userId) {
+        await prisma.user.update({
+          where: { id: existing.userId },
+          data: {
+            passwordHash: hashedPassword,
+            failedAttempts: 0,
+            lockoutUntil: null,
+            isSuspended: false,
+          },
+        });
+      } else {
+        // If client didn't have a linked user account yet, create or link one
+        let clientRole = await prisma.role.findUnique({ where: { name: 'CLIENT' } });
+        if (!clientRole) {
+          clientRole = await prisma.role.create({
+            data: {
+              name: 'CLIENT',
+              displayName: 'Client Account',
+              description: 'Corporate client portal',
+              isSystem: true,
+            },
+          });
+        }
+        const clientEmail = (email || existing.email || `client.${existing.clientId.toLowerCase()}@growthindia.in`).toLowerCase().trim();
+        let userRecord = await prisma.user.findUnique({ where: { email: clientEmail } });
+        if (userRecord) {
+          userRecord = await prisma.user.update({
+            where: { id: userRecord.id },
+            data: {
+              passwordHash: hashedPassword,
+              failedAttempts: 0,
+              lockoutUntil: null,
+              isSuspended: false,
+            },
+          });
+        } else {
+          userRecord = await prisma.user.create({
+            data: {
+              email: clientEmail,
+              passwordHash: hashedPassword,
+              roleId: clientRole.id,
+              isActive: true,
+              isSuspended: false,
+            },
+          });
+        }
+        await prisma.client.update({
+          where: { id: existing.id },
+          data: { userId: userRecord.id },
+        });
+      }
     }
 
     const updated = await prisma.client.update({
       where: { id: existing.id },
       data: {
         ...(companyName ? { companyName: companyName.trim(), company: companyName.trim() } : {}),
+        ...(legalName !== undefined ? { legalName: legalName?.trim() || null } : {}),
         ...(contactPerson ? { contactPerson: contactPerson.trim(), name: contactPerson.trim() } : {}),
         ...(mobile ? { mobile: mobile.trim(), phone: mobile.trim() } : {}),
+        ...(alternatePhone !== undefined ? { alternatePhone: alternatePhone?.trim() || null } : {}),
         ...(email !== undefined ? { email: email ? email.toLowerCase().trim() : null } : {}),
+        ...(website !== undefined ? { website: website?.trim() || null } : {}),
+        ...(city !== undefined ? { city: city?.trim() || null } : {}),
+        ...(state !== undefined ? { state: state?.trim() || null } : {}),
+        ...(country !== undefined ? { country: country?.trim() || 'India' } : {}),
         ...(computedAddress !== undefined ? { address: computedAddress ? computedAddress.trim() : null } : {}),
         ...(permanentAddress !== undefined ? { location: permanentAddress ? permanentAddress.trim() : null } : {}),
         ...(industry !== undefined ? { industry: industry ? industry.trim() : null } : {}),
-        ...(status ? { status } : {}),
+        ...(status !== undefined ? { status: status ? status.trim().toUpperCase() : existing.status } : {}),
+        ...(salesOwnerId !== undefined ? { salesOwnerId: salesOwnerId || null } : {}),
+        ...(accountOwnerId !== undefined ? { accountOwnerId: accountOwnerId || null, assignedEmployeeId: accountOwnerId || null } : {}),
+        ...(onboardingDate ? { onboardingDate: new Date(onboardingDate) } : {}),
         ...(canBlockEmployees !== undefined ? { canBlockEmployees: !!canBlockEmployees } : {}),
         ...(canDeleteEmployees !== undefined ? { canDeleteEmployees: !!canDeleteEmployees } : {}),
         ...(updatedTags !== undefined ? { tags: updatedTags } : {}),

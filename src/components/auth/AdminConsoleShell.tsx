@@ -10,8 +10,13 @@ import Link from 'next/link';
 
 export const AdminConsoleShell: React.FC = () => {
   const { user, loading, logout } = useAuth();
+  const [mounted, setMounted] = React.useState(false);
 
-  if (loading) {
+  React.useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  if (!mounted || loading) {
     return (
       <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center space-y-4">
         <GrowthIndiaLogo size="lg" />

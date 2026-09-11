@@ -371,10 +371,10 @@ export const EditEmployeeModal: React.FC<EditEmployeeModalProps> = ({
               </div>
 
               <div>
-                <label className="block font-bold text-slate-700 mb-1">Email</label>
+                <label className="block font-bold text-slate-700 mb-1">Email ID</label>
                 <input
                   type="email"
-                  placeholder="e.g. priya.patel@growthindia.co"
+                  placeholder="Email ID"
                   value={personalEmail}
                   onChange={(e) => setPersonalEmail(e.target.value)}
                   className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 font-medium placeholder:text-slate-400 focus:bg-white focus:outline-none focus:ring-1 focus:ring-growth-teal"

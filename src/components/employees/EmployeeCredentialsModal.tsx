@@ -293,7 +293,7 @@ Portal Login:  ${origin}
           <form onSubmit={handleSaveNewPassword} className="flex gap-2">
             <input
               type="text"
-              placeholder="e.g. Mohit@2026 or click Quick Generate"
+              placeholder="Enter new password or click Quick Generate"
               value={newPassword}
               onChange={(e) => setNewPassword(e.target.value)}
               className="flex-1 px-3 py-2 bg-slate-900 border border-slate-700 rounded-xl text-xs font-mono text-white placeholder:text-slate-500 focus:outline-none focus:ring-1 focus:ring-growth-teal"

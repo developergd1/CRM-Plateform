@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getSessionUser, AUTH_COOKIE_NAME } from '@/lib/auth';
+import { getSessionUser, AUTH_COOKIE_NAME, invalidateSessionUserCache } from '@/lib/auth';
 import { logAuditEvent } from '@/lib/audit';
 
 export async function POST(req: NextRequest) {
@@ -33,6 +33,8 @@ export async function POST(req: NextRequest) {
     }
 
     const response = NextResponse.json({ success: true, message: 'Logged out successfully' });
+    const token = req.cookies.get(AUTH_COOKIE_NAME)?.value;
+    invalidateSessionUserCache(token);
     response.cookies.delete(AUTH_COOKIE_NAME);
     return response;
   } catch (error: any) {

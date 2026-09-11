@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma';
 import { getSessionUser } from '@/lib/auth';
 import { isAdminOrHR, isManagerOrAbove } from '@/lib/rbac';
 import { logAuditEvent } from '@/lib/audit';
+import { notifyLeaveApplied } from '@/lib/notifications';
 
 export async function GET(req: NextRequest) {
   try {
@@ -75,6 +76,17 @@ export async function POST(req: NextRequest) {
       newData: { leaveType, startDate, endDate, totalDays },
       ipAddress: ip,
       status: 'SUCCESS',
+    });
+
+    // Notify Client and Admin
+    await notifyLeaveApplied({
+      leaveId: leave.id,
+      employeeName: currentEmp.fullName,
+      employeeId: currentEmp.id,
+      leaveType,
+      startDate,
+      endDate,
+      clientId: currentEmp.clientId,
     });
 
     return NextResponse.json({ success: true, leave });

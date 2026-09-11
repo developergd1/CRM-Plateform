@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
+import { prisma, getEmployeeLookup } from '@/lib/prisma';
 import { getSessionUser } from '@/lib/auth';
 import { isAdminOrHR } from '@/lib/rbac';
 import { logAuditEvent } from '@/lib/audit';
@@ -11,7 +11,7 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
 
     const { id } = params;
     const employee = await prisma.employee.findFirst({
-      where: { OR: [{ id }, { employeeId: id }] },
+      where: getEmployeeLookup(id),
     });
 
     if (!employee) return NextResponse.json({ error: 'Employee not found' }, { status: 404 });
@@ -45,7 +45,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
 
     const { id } = params;
     const employee = await prisma.employee.findFirst({
-      where: { OR: [{ id }, { employeeId: id }] },
+      where: getEmployeeLookup(id),
     });
 
     if (!employee) return NextResponse.json({ error: 'Employee not found' }, { status: 404 });

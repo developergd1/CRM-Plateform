@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { GrowthIndiaLogo } from '@/components/brand/GrowthIndiaLogo';
 import {
@@ -24,6 +24,15 @@ export const LoginView: React.FC = () => {
   const [showForgotPassword, setShowForgotPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+
+  useEffect(() => {
+    // Clear browser-forced autofill on initial mount
+    const timer = setTimeout(() => {
+      setIdentifier('');
+      setPassword('');
+    }, 120);
+    return () => clearTimeout(timer);
+  }, []);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -97,17 +106,24 @@ export const LoginView: React.FC = () => {
 
         {/* Clean Sign In Card */}
         <div className="w-full bg-slate-900/90 backdrop-blur-2xl border border-slate-800 rounded-3xl p-6 md:p-8 shadow-2xl">
-          <form onSubmit={handleLogin} className="space-y-4">
+          <form onSubmit={handleLogin} className="space-y-4" autoComplete="off">
+            {/* Dummy hidden inputs to absorb browser autofill */}
+            <input type="text" name="fake_user" style={{ display: 'none' }} tabIndex={-1} aria-hidden="true" autoComplete="username" />
+            <input type="password" name="fake_pass" style={{ display: 'none' }} tabIndex={-1} aria-hidden="true" autoComplete="current-password" />
+
             <div>
               <label className="block text-xs font-bold text-slate-300 mb-1.5">
-                Email
+                Email ID
               </label>
               <div className="relative">
                 <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                 <input
                   type="email"
+                  name="workspace_user_login"
+                  id="workspace_user_login"
+                  autoComplete="off"
                   required
-                  placeholder="Enter your email"
+                  placeholder="Email ID"
                   value={identifier}
                   onChange={(e) => setIdentifier(e.target.value)}
                   className="w-full pl-10 pr-4 py-3 bg-slate-950 border border-slate-700/80 rounded-xl text-xs md:text-sm text-white font-medium placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-growth-teal focus:border-transparent transition-all"
@@ -123,8 +139,11 @@ export const LoginView: React.FC = () => {
                 <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                 <input
                   type={showPassword ? 'text' : 'password'}
+                  name="workspace_pass_login"
+                  id="workspace_pass_login"
+                  autoComplete="new-password"
                   required
-                  placeholder="Enter your password"
+                  placeholder="Enter Password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   className="w-full pl-10 pr-10 py-3 bg-slate-950 border border-slate-700/80 rounded-xl text-xs md:text-sm text-white font-medium placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-growth-teal focus:border-transparent transition-all"

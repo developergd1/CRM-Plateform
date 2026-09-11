@@ -12,72 +12,72 @@ generator client {
 // ----------------------------------------------------
 
 model User {
-  id               String       @id @default(auto()) @map("_id") @db.ObjectId
-  email            String       @unique
-  passwordHash     String
-  roleId           String       @db.ObjectId
-  role             Role         @relation(fields: [roleId], references: [id])
-  isActive         Boolean      @default(true)
-  isSuspended      Boolean      @default(false)
-  failedAttempts   Int          @default(0)
-  lockoutUntil     DateTime?
-  lastLoginAt      DateTime?
-  mfaSecret        String?
-  mfaEnabled       Boolean      @default(false)
-  createdAt        DateTime     @default(now())
-  updatedAt        DateTime     @updatedAt
+  id             String    @id @default(auto()) @map("_id") @db.ObjectId
+  email          String    @unique
+  passwordHash   String
+  roleId         String    @db.ObjectId
+  role           Role      @relation(fields: [roleId], references: [id])
+  isActive       Boolean   @default(true)
+  isSuspended    Boolean   @default(false)
+  failedAttempts Int       @default(0)
+  lockoutUntil   DateTime?
+  lastLoginAt    DateTime?
+  mfaSecret      String?
+  mfaEnabled     Boolean   @default(false)
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
 
-  employeeProfile  Employee?
-  clientProfile    Client?
-  workSessions     WorkSession[]
-  auditLogs        AuditLog[]
-  sessions         ActiveUserSession[]
+  employeeProfile Employee?
+  clientProfile   Client?
+  workSessions    WorkSession[]
+  auditLogs       AuditLog[]
+  sessions        ActiveUserSession[]
 
   @@index([roleId])
 }
 
 model ActiveUserSession {
-  id               String       @id @default(auto()) @map("_id") @db.ObjectId
-  userId           String       @db.ObjectId
-  user             User         @relation(fields: [userId], references: [id], onDelete: Cascade)
-  sessionToken     String       @unique
-  ipAddress        String?
-  userAgent        String?
-  deviceType       String?
-  isValid          Boolean      @default(true)
-  expiresAt        DateTime
-  createdAt        DateTime     @default(now())
-  lastActiveAt     DateTime     @default(now())
+  id           String   @id @default(auto()) @map("_id") @db.ObjectId
+  userId       String   @db.ObjectId
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  sessionToken String   @unique
+  ipAddress    String?
+  userAgent    String?
+  deviceType   String?
+  isValid      Boolean  @default(true)
+  expiresAt    DateTime
+  createdAt    DateTime @default(now())
+  lastActiveAt DateTime @default(now())
 
   @@index([userId])
 }
 
 model Role {
-  id               String           @id @default(auto()) @map("_id") @db.ObjectId
-  name             String           @unique // SUPER_ADMIN, ADMIN_HR, MANAGER_TL, EMPLOYEE, ADMIN, CLIENT
-  displayName      String
-  description      String?
-  isSystem         Boolean          @default(true)
-  permissions      RolePermission[]
-  users            User[]
-  createdAt        DateTime         @default(now())
-  updatedAt        DateTime         @updatedAt
+  id          String           @id @default(auto()) @map("_id") @db.ObjectId
+  name        String           @unique // SUPER_ADMIN, ADMIN_HR, MANAGER_TL, EMPLOYEE, ADMIN, CLIENT
+  displayName String
+  description String?
+  isSystem    Boolean          @default(true)
+  permissions RolePermission[]
+  users       User[]
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
 }
 
 model Permission {
-  id               String           @id @default(auto()) @map("_id") @db.ObjectId
-  code             String           @unique
-  module           String
-  description      String
-  roles            RolePermission[]
+  id          String           @id @default(auto()) @map("_id") @db.ObjectId
+  code        String           @unique
+  module      String
+  description String
+  roles       RolePermission[]
 }
 
 model RolePermission {
-  id               String           @id @default(auto()) @map("_id") @db.ObjectId
-  roleId           String           @db.ObjectId
-  permissionId     String           @db.ObjectId
-  role             Role             @relation(fields: [roleId], references: [id], onDelete: Cascade)
-  permission       Permission       @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+  id           String     @id @default(auto()) @map("_id") @db.ObjectId
+  roleId       String     @db.ObjectId
+  permissionId String     @db.ObjectId
+  role         Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  permission   Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
 
   @@unique([roleId, permissionId])
 }
@@ -87,110 +87,133 @@ model RolePermission {
 // ----------------------------------------------------
 
 model Department {
-  id               String       @id @default(auto()) @map("_id") @db.ObjectId
-  name             String       @unique
-  code             String       @unique
-  description      String?
-  teams            Team[]
-  employees        Employee[]
-  createdAt        DateTime     @default(now())
-  updatedAt        DateTime     @updatedAt
+  id          String     @id @default(auto()) @map("_id") @db.ObjectId
+  name        String     @unique
+  code        String     @unique
+  description String?
+  teams       Team[]
+  employees   Employee[]
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
 }
 
 model Team {
-  id               String       @id @default(auto()) @map("_id") @db.ObjectId
-  name             String
-  departmentId     String       @db.ObjectId
-  department       Department   @relation(fields: [departmentId], references: [id])
-  leadEmployeeId   String?
-  employees        Employee[]
-  createdAt        DateTime     @default(now())
-  updatedAt        DateTime     @updatedAt
+  id             String     @id @default(auto()) @map("_id") @db.ObjectId
+  name           String
+  departmentId   String     @db.ObjectId
+  department     Department @relation(fields: [departmentId], references: [id])
+  leadEmployeeId String?
+  employees      Employee[]
+  createdAt      DateTime   @default(now())
+  updatedAt      DateTime   @updatedAt
 
   @@index([departmentId])
 }
 
 model Employee {
-  id                 String            @id @default(auto()) @map("_id") @db.ObjectId
-  employeeId         String            @unique // e.g. GI-EMP-000001
-  userId             String            @unique @db.ObjectId
-  user               User              @relation(fields: [userId], references: [id], onDelete: Cascade)
-  
+  id         String @id @default(auto()) @map("_id") @db.ObjectId
+  employeeId String @unique // e.g. GI-EMP-000001
+  userId     String @unique @db.ObjectId
+  user       User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
   // Client Relation (Phase 1: Selected Client)
-  clientId           String?           @db.ObjectId
-  client             Client?           @relation("ClientEmployees", fields: [clientId], references: [id])
+  clientId String? @db.ObjectId
+  client   Client? @relation("ClientEmployees", fields: [clientId], references: [id])
 
   // Personal Information (Phase 1 Specs)
-  fullName           String
-  fatherMotherName   String?
-  dob                DateTime?
-  gender             String?
-  phone              String            @unique
-  personalEmail      String?
-  panNumber          String?
-  panMasked          String?
-  aadhaarMasked      String?
-  address            String?
-  profilePhotoUrl    String?
-  emergencyContact   String?
-  emergencyName      String?
+  fullName         String
+  fatherMotherName String?
+  dob              DateTime?
+  gender           String?
+  phone            String    @unique
+  personalEmail    String?
+  panNumber        String?
+  panMasked        String?
+  aadhaarMasked    String?
+  address          String?
+  profilePhotoUrl  String?
+  emergencyContact String?
+  emergencyName    String?
 
   // Employment Information (Phase 1 Specs)
-  departmentId       String?           @db.ObjectId
-  department         Department?       @relation(fields: [departmentId], references: [id])
-  departmentName     String?           // Direct text or relation name
-  teamId             String?           @db.ObjectId
-  team               Team?             @relation(fields: [teamId], references: [id])
-  designation        String
-  jobLocation        String            @default("Headquarters")
-  location           String            @default("Headquarters")
-  joiningDate        DateTime          @default(now())
-  probationEndDate   DateTime?
-  employmentType     String            @default("Full-Time") // Full-Time, Contract, Part-Time, Intern, Consultant
-  workMode           String            @default("OFFICE")
-  shiftStartTime     String            @default("09:30")
-  shiftEndTime       String            @default("18:30")
-  remarks            String?
+  departmentId     String?     @db.ObjectId
+  department       Department? @relation(fields: [departmentId], references: [id])
+  departmentName   String? // Direct text or relation name
+  teamId           String?     @db.ObjectId
+  team             Team?       @relation(fields: [teamId], references: [id])
+  designation      String
+  jobLocation      String      @default("Headquarters")
+  location         String      @default("Headquarters")
+  joiningDate      DateTime    @default(now())
+  probationEndDate DateTime?
+  employmentType   String      @default("Full-Time") // Full-Time, Contract, Part-Time, Intern, Consultant
+  workMode         String      @default("OFFICE")
+  shiftStartTime   String      @default("09:30")
+  shiftEndTime     String      @default("18:30")
+  remarks          String?
 
   // Status & Block/Unblock Management (Phase 1 Specs)
-  status             String            @default("ACTIVE") // ACTIVE, INACTIVE, BLOCKED
-  isBlocked          Boolean           @default(false)
-  blockedReason      String?
-  blockedRemarks     String?
-  blockedBy          String?
-  blockedAt          DateTime?
-  unblockedBy        String?
-  unblockedAt        DateTime?
+  status         String    @default("ACTIVE") // ACTIVE, INACTIVE, BLOCKED
+  isBlocked      Boolean   @default(false)
+  blockedReason  String?
+  blockedRemarks String?
+  blockedBy      String?
+  blockedAt      DateTime?
+  unblockedBy    String?
+  unblockedAt    DateTime?
 
   // Audit Info (Phase 1 Specs)
-  createdBy          String?
-  updatedBy          String?
-  createdAt          DateTime          @default(now())
-  updatedAt          DateTime          @updatedAt
+  createdBy String?
+  updatedBy String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   // Manager Hierarchy
-  reportingManagerId String?           @db.ObjectId
-  reportingManager   Employee?         @relation("ManagerSubordinates", fields: [reportingManagerId], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  subordinates       Employee[]        @relation("ManagerSubordinates")
+  reportingManagerId String?    @db.ObjectId
+  reportingManager   Employee?  @relation("ManagerSubordinates", fields: [reportingManagerId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  subordinates       Employee[] @relation("ManagerSubordinates")
 
   // Relationships
-  blockHistories     EmployeeBlockHistory[]
-  documents          EmployeeDocument[]
-  attendanceRecords  Attendance[]
-  workSessions       WorkSession[]
-  leaveRequests      LeaveRequest[]
-  allocatedAssets    Asset[]
-  
-  // CRM Relationships
-  createdClients     Client[]          @relation("ClientCreator")
-  assignedClients    Client[]          @relation("ClientOwner")
-  assignedHistory    ClientAssignment[] @relation("AssignedToHistory")
-  executedHistory    ClientAssignment[] @relation("AssignedByHistory")
+  blockHistories    EmployeeBlockHistory[]
+  documents         EmployeeDocument[]
+  attendanceRecords Attendance[]
+  workSessions      WorkSession[]
+  leaveRequests     LeaveRequest[]
+  allocatedAssets   Asset[]
+
+  // CRM Relationships (Legacy Client specific)
+  createdClients      Client[]           @relation("ClientCreator")
+  assignedClients     Client[]           @relation("ClientOwner")
+  assignedHistory     ClientAssignment[] @relation("AssignedToHistory")
+  executedHistory     ClientAssignment[] @relation("AssignedByHistory")
   activitiesPerformed ClientActivity[]
-  notesWritten       ClientNote[]
-  tasksAssigned      ClientTask[]      @relation("TaskAssignee")
-  tasksCreated       ClientTask[]      @relation("TaskCreator")
-  notifications      Notification[]
+  notesWritten        ClientNote[]
+  tasksAssigned       ClientTask[]       @relation("TaskAssignee")
+  tasksCreated        ClientTask[]       @relation("TaskCreator")
+  notifications       Notification[]
+
+  // CRM Generalized Relationships
+  assignedLeads      Lead[]        @relation("LeadOwner")
+  ownedOpportunities Opportunity[] @relation("OpportunityOwner")
+  ownedDeals         Deal[]        @relation("DealOwner")
+  assignedActivities Activity[]    @relation("ActivityAssignee")
+  assignedCrmTasks   Task[]        @relation("CrmTaskAssignee")
+  createdCrmTasks    Task[]        @relation("CrmTaskCreator")
+  reviewedCrmTasks   Task[]        @relation("CrmTaskReviewer")
+  authoredCrmNotes   Note[]        @relation("CrmNoteAuthor")
+
+  // Task Extensions
+  taskCommentsAuthored TaskComment[] @relation("TaskCommentAuthor")
+  taskHistoryActions   TaskHistory[] @relation("TaskHistoryActor")
+
+  // Lead Assignments & Follow-ups
+  leadAssignmentsFrom LeadAssignment[]   @relation("LeadReassignFrom")
+  leadAssignmentsTo   LeadAssignment[]   @relation("LeadReassignTo")
+  leadAssignmentsBy   LeadAssignment[]   @relation("LeadReassignBy")
+  assignedFollowUps   FollowUp[]         @relation("FollowUpAssignee")
+  createdFollowUps    FollowUp[]         @relation("FollowUpCreator")
+  changedDealStages   DealStageHistory[] @relation("DealStageChanger")
+  ownedClientAccounts Client[]           @relation("ClientAccountOwner")
 
   @@index([status])
   @@index([clientId])
@@ -202,16 +225,16 @@ model Employee {
 // ----------------------------------------------------
 
 model EmployeeBlockHistory {
-  id                 String       @id @default(auto()) @map("_id") @db.ObjectId
-  employeeId         String       @db.ObjectId
-  employee           Employee     @relation(fields: [employeeId], references: [id], onDelete: Cascade)
-  actionType         String       // BLOCK or UNBLOCK
-  reason             String
-  remarks            String?
-  actionBy           String       // Admin Name / ID
-  actionDate         DateTime     @default(now())
-  previousStatus     String
-  newStatus          String
+  id             String   @id @default(auto()) @map("_id") @db.ObjectId
+  employeeId     String   @db.ObjectId
+  employee       Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  actionType     String // BLOCK or UNBLOCK
+  reason         String
+  remarks        String?
+  actionBy       String // Admin Name / ID
+  actionDate     DateTime @default(now())
+  previousStatus String
+  newStatus      String
 
   @@index([employeeId])
   @@index([actionDate])
@@ -223,110 +246,169 @@ model EmployeeBlockHistory {
 // ----------------------------------------------------
 
 model Client {
-  id                 String                  @id @default(auto()) @map("_id") @db.ObjectId
-  clientId           String                  @unique // e.g. CLI-00001
-  
+  id       String @id @default(auto()) @map("_id") @db.ObjectId
+  clientId String @unique // e.g. CLI-00001
+
   // Phase 1 Fields
-  companyName        String                  // Company Name
-  contactPerson      String                  // Contact Person
-  mobile             String                  // Mobile Number
-  email              String?
-  address            String?
-  industry           String?                 // IT, Manufacturing, Logistics, Healthcare, Finance, Retail, etc.
-  status             String                  @default("ACTIVE") // ACTIVE, INACTIVE
-  dateAdded          DateTime                @default(now())
+  companyName   String // Company Name
+  contactPerson String // Contact Person
+  mobile        String // Mobile Number
+  email         String?
+  address       String?
+  industry      String? // IT, Manufacturing, Logistics, Healthcare, Finance, Retail, etc.
+  status        String   @default("ACTIVE") // ACTIVE, INACTIVE
+  dateAdded     DateTime @default(now())
 
   // Authentication & Governance (Phase 1)
-  userId             String?                 @unique @db.ObjectId
-  user               User?                   @relation(fields: [userId], references: [id], onDelete: SetNull)
-  canBlockEmployees  Boolean                 @default(false)
-  canDeleteEmployees Boolean                 @default(false)
+  userId             String? @unique @db.ObjectId
+  user               User?   @relation(fields: [userId], references: [id], onDelete: SetNull)
+  canBlockEmployees  Boolean @default(false)
+  canDeleteEmployees Boolean @default(false)
 
   // Backwards compatibility & CRM fields
-  name               String?
-  phone              String?
-  company            String?
-  location           String?
-  source             String                  @default("Direct Call")
-  requirement        String?
-  estimatedValue     Float?                  @default(0)
-  priority           String                  @default("MEDIUM")
-  stage              String                  @default("NEW")
-  
+  name           String?
+  phone          String?
+  company        String?
+  location       String?
+  source         String  @default("Direct Call")
+  requirement    String?
+  estimatedValue Float?  @default(0)
+  priority       String  @default("MEDIUM")
+  stage          String  @default("NEW")
+
+  // Extended Part 4 Fields
+  legalName      String?
+  alternatePhone String?
+  website        String?
+  city           String?
+  state          String?
+  country        String?   @default("India")
+  onboardingDate DateTime?
+  salesOwnerId   String?   @db.ObjectId
+  accountOwnerId String?   @db.ObjectId
+  accountOwner   Employee? @relation("ClientAccountOwner", fields: [accountOwnerId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
   // Ownership
-  createdById        String?                 @db.ObjectId
-  createdBy          Employee?               @relation("ClientCreator", fields: [createdById], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  assignedEmployeeId String?                 @db.ObjectId
-  assignedEmployee   Employee?               @relation("ClientOwner", fields: [assignedEmployeeId], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  
+  createdById        String?   @db.ObjectId
+  createdBy          Employee? @relation("ClientCreator", fields: [createdById], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  assignedEmployeeId String?   @db.ObjectId
+  assignedEmployee   Employee? @relation("ClientOwner", fields: [assignedEmployeeId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
   lastContactedAt    DateTime?
   nextFollowUpDate   DateTime?
-  tags               String                  @default("[]")
-  isDuplicateMerged  Boolean                 @default(false)
+  tags               String    @default("[]")
+  isDuplicateMerged  Boolean   @default(false)
   mergedIntoClientId String?
-  createdAt          DateTime                @default(now())
-  updatedAt          DateTime                @updatedAt
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
 
   // Relationships
-  employees          Employee[]              @relation("ClientEmployees")
-  assignments        ClientAssignment[]
-  activities         ClientActivity[]
-  notes              ClientNote[]
-  tasks              ClientTask[]
-  pipelineHistory    ClientPipelineHistory[]
+  employees       Employee[]              @relation("ClientEmployees")
+  assignments     ClientAssignment[]
+  activities      ClientActivity[]
+  notes           ClientNote[]
+  tasks           ClientTask[]
+  pipelineHistory ClientPipelineHistory[]
+
+  // Generalized CRM Relations
+  leads         Lead[]
+  contacts      Contact[]
+  opportunities Opportunity[]
+  deals         Deal[]
+  crmActivities Activity[]
+  crmTasks      Task[]
+  crmNotes      Note[]
+  followUps     FollowUp[]
+
+  // Part 4 Organizational Relations
+  departments ClientDepartment[]
+  documents   ClientDocument[]
 
   @@index([mobile])
   @@index([status])
   @@index([industry])
   @@index([assignedEmployeeId])
+  @@index([accountOwnerId])
   @@index([createdAt])
 }
 
+model ClientDepartment {
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  clientId    String   @db.ObjectId
+  client      Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  name        String
+  code        String?
+  description String?
+  managerId   String?  @db.ObjectId
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([clientId, name])
+  @@index([clientId])
+}
+
+model ClientDocument {
+  id         String   @id @default(auto()) @map("_id") @db.ObjectId
+  clientId   String   @db.ObjectId
+  client     Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  title      String
+  category   String // AGREEMENT, CONTRACT, PROPOSAL, COMPANY_DOC, COMPLIANCE, OTHER
+  fileUrl    String?
+  fileType   String?
+  fileSize   Int?
+  uploadedBy String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([clientId])
+  @@index([category])
+}
+
 model ClientAssignment {
-  id                 String       @id @default(auto()) @map("_id") @db.ObjectId
-  clientId           String       @db.ObjectId
-  client             Client       @relation(fields: [clientId], references: [id], onDelete: Cascade)
-  fromEmployeeId     String?      @db.ObjectId
-  toEmployeeId       String       @db.ObjectId
-  toEmployee         Employee     @relation("AssignedToHistory", fields: [toEmployeeId], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  assignedById       String       @db.ObjectId
-  assignedBy         Employee     @relation("AssignedByHistory", fields: [assignedById], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  assignmentReason   String?
-  assignedAt         DateTime     @default(now())
+  id               String   @id @default(auto()) @map("_id") @db.ObjectId
+  clientId         String   @db.ObjectId
+  client           Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  fromEmployeeId   String?  @db.ObjectId
+  toEmployeeId     String   @db.ObjectId
+  toEmployee       Employee @relation("AssignedToHistory", fields: [toEmployeeId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  assignedById     String   @db.ObjectId
+  assignedBy       Employee @relation("AssignedByHistory", fields: [assignedById], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  assignmentReason String?
+  assignedAt       DateTime @default(now())
 
   @@index([clientId])
   @@index([toEmployeeId])
 }
 
 model ClientPipelineHistory {
-  id                 String        @id @default(auto()) @map("_id") @db.ObjectId
-  clientId           String        @db.ObjectId
-  client             Client        @relation(fields: [clientId], references: [id], onDelete: Cascade)
-  fromStage          String
-  toStage            String
-  changedById        String
-  remarks            String?
-  timestamp          DateTime      @default(now())
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  clientId    String   @db.ObjectId
+  client      Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  fromStage   String
+  toStage     String
+  changedById String
+  remarks     String?
+  timestamp   DateTime @default(now())
 
   @@index([clientId])
   @@index([toStage])
 }
 
 model ClientActivity {
-  id                 String       @id @default(auto()) @map("_id") @db.ObjectId
-  activityId         String       @unique
-  clientId           String       @db.ObjectId
-  client             Client       @relation(fields: [clientId], references: [id], onDelete: Cascade)
-  actorEmployeeId    String       @db.ObjectId
-  actorEmployee      Employee     @relation(fields: [actorEmployeeId], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  activityType       String
-  title              String
-  description        String?
-  previousValue      String?
-  newValue           String?
-  metadata           String?
-  ipAddress          String?
-  timestamp          DateTime     @default(now())
+  id              String   @id @default(auto()) @map("_id") @db.ObjectId
+  activityId      String   @unique
+  clientId        String   @db.ObjectId
+  client          Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  actorEmployeeId String   @db.ObjectId
+  actorEmployee   Employee @relation(fields: [actorEmployeeId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  activityType    String
+  title           String
+  description     String?
+  previousValue   String?
+  newValue        String?
+  metadata        String?
+  ipAddress       String?
+  timestamp       DateTime @default(now())
 
   @@index([clientId])
   @@index([actorEmployeeId])
@@ -335,39 +417,39 @@ model ClientActivity {
 }
 
 model ClientNote {
-  id                 String       @id @default(auto()) @map("_id") @db.ObjectId
-  clientId           String       @db.ObjectId
-  client             Client       @relation(fields: [clientId], references: [id], onDelete: Cascade)
-  authorId           String       @db.ObjectId
-  author             Employee     @relation(fields: [authorId], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  content            String
-  isPinned           Boolean      @default(false)
-  createdAt          DateTime     @default(now())
-  updatedAt          DateTime     @updatedAt
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  clientId  String   @db.ObjectId
+  client    Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  authorId  String   @db.ObjectId
+  author    Employee @relation(fields: [authorId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  content   String
+  isPinned  Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([clientId])
 }
 
 model ClientTask {
-  id                 String        @id @default(auto()) @map("_id") @db.ObjectId
-  taskId             String        @unique
-  clientId           String        @db.ObjectId
-  client             Client        @relation(fields: [clientId], references: [id], onDelete: Cascade)
-  assignedToId       String        @db.ObjectId
-  assignedTo         Employee      @relation("TaskAssignee", fields: [assignedToId], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  createdById        String        @db.ObjectId
-  createdBy          Employee      @relation("TaskCreator", fields: [createdById], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  taskType           String
-  title              String
-  description        String?
-  priority           String        @default("MEDIUM")
-  dueDate            DateTime
-  reminderTime       DateTime?
-  status             String        @default("PENDING")
-  completedAt        DateTime?
-  completionNotes    String?
-  createdAt          DateTime      @default(now())
-  updatedAt          DateTime      @updatedAt
+  id              String    @id @default(auto()) @map("_id") @db.ObjectId
+  taskId          String    @unique
+  clientId        String    @db.ObjectId
+  client          Client    @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  assignedToId    String    @db.ObjectId
+  assignedTo      Employee  @relation("TaskAssignee", fields: [assignedToId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  createdById     String    @db.ObjectId
+  createdBy       Employee  @relation("TaskCreator", fields: [createdById], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  taskType        String
+  title           String
+  description     String?
+  priority        String    @default("MEDIUM")
+  dueDate         DateTime
+  reminderTime    DateTime?
+  status          String    @default("PENDING")
+  completedAt     DateTime?
+  completionNotes String?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
 
   @@index([clientId])
   @@index([assignedToId])
@@ -380,25 +462,25 @@ model ClientTask {
 // ----------------------------------------------------
 
 model EmployeeDocument {
-  id                 String                     @id @default(auto()) @map("_id") @db.ObjectId
-  documentId         String                     @unique
-  employeeId         String                     @db.ObjectId
-  employee           Employee                   @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  id                 String    @id @default(auto()) @map("_id") @db.ObjectId
+  documentId         String    @unique
+  employeeId         String    @db.ObjectId
+  employee           Employee  @relation(fields: [employeeId], references: [id], onDelete: Cascade)
   documentType       String
   title              String
   fileStoragePath    String
-  mimeType           String                     @default("application/pdf")
-  fileSizeBytes      Int                        @default(102400)
-  verificationStatus String                     @default("PENDING_VERIFICATION")
+  mimeType           String    @default("application/pdf")
+  fileSizeBytes      Int       @default(102400)
+  verificationStatus String    @default("PENDING_VERIFICATION")
   verifiedById       String?
   verifiedAt         DateTime?
   rejectionReason    String?
   expiryDate         DateTime?
-  version            Int                        @default(1)
-  createdAt          DateTime                   @default(now())
-  updatedAt          DateTime                   @updatedAt
+  version            Int       @default(1)
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
 
-  accessLogs         DocumentAccessLog[]
+  accessLogs DocumentAccessLog[]
 
   @@index([employeeId])
   @@index([documentType])
@@ -406,14 +488,14 @@ model EmployeeDocument {
 }
 
 model DocumentAccessLog {
-  id                 String           @id @default(auto()) @map("_id") @db.ObjectId
-  documentId         String           @db.ObjectId
-  document           EmployeeDocument @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  id                   String           @id @default(auto()) @map("_id") @db.ObjectId
+  documentId           String           @db.ObjectId
+  document             EmployeeDocument @relation(fields: [documentId], references: [id], onDelete: Cascade)
   accessedByEmployeeId String
-  actionType         String
-  ipAddress          String?
-  userAgent          String?
-  accessedAt         DateTime         @default(now())
+  actionType           String
+  ipAddress            String?
+  userAgent            String?
+  accessedAt           DateTime         @default(now())
 
   @@index([documentId])
   @@index([accessedByEmployeeId])
@@ -424,25 +506,25 @@ model DocumentAccessLog {
 // ----------------------------------------------------
 
 model Attendance {
-  id                 String            @id @default(auto()) @map("_id") @db.ObjectId
-  employeeId         String            @db.ObjectId
-  employee           Employee          @relation(fields: [employeeId], references: [id], onDelete: Cascade)
-  date               String
-  checkInTime        DateTime?
-  checkOutTime       DateTime?
-  status             String            @default("PRESENT")
-  isLate             Boolean           @default(false)
-  isEarlyCheckout    Boolean           @default(false)
-  totalWorkMinutes   Int               @default(0)
-  totalBreakMinutes  Int               @default(0)
-  overtimeMinutes    Int               @default(0)
-  checkInIp          String?
-  checkOutIp         String?
-  remarks            String?
-  createdAt          DateTime          @default(now())
-  updatedAt          DateTime          @updatedAt
+  id                String    @id @default(auto()) @map("_id") @db.ObjectId
+  employeeId        String    @db.ObjectId
+  employee          Employee  @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  date              String
+  checkInTime       DateTime?
+  checkOutTime      DateTime?
+  status            String    @default("PRESENT")
+  isLate            Boolean   @default(false)
+  isEarlyCheckout   Boolean   @default(false)
+  totalWorkMinutes  Int       @default(0)
+  totalBreakMinutes Int       @default(0)
+  overtimeMinutes   Int       @default(0)
+  checkInIp         String?
+  checkOutIp        String?
+  remarks           String?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
 
-  breaks             AttendanceBreak[]
+  breaks AttendanceBreak[]
 
   @@unique([employeeId, date])
   @@index([date])
@@ -450,35 +532,35 @@ model Attendance {
 }
 
 model AttendanceBreak {
-  id                 String       @id @default(auto()) @map("_id") @db.ObjectId
-  attendanceId       String       @db.ObjectId
-  attendance         Attendance   @relation(fields: [attendanceId], references: [id], onDelete: Cascade)
-  breakStartTime     DateTime     @default(now())
-  breakEndTime       DateTime?
-  durationMinutes    Int          @default(0)
-  breakType          String       @default("TEA_LUNCH")
-  createdAt          DateTime     @default(now())
+  id              String     @id @default(auto()) @map("_id") @db.ObjectId
+  attendanceId    String     @db.ObjectId
+  attendance      Attendance @relation(fields: [attendanceId], references: [id], onDelete: Cascade)
+  breakStartTime  DateTime   @default(now())
+  breakEndTime    DateTime?
+  durationMinutes Int        @default(0)
+  breakType       String     @default("TEA_LUNCH")
+  createdAt       DateTime   @default(now())
 
   @@index([attendanceId])
 }
 
 model WorkSession {
-  id                 String        @id @default(auto()) @map("_id") @db.ObjectId
-  sessionId          String        @unique
-  userId             String        @db.ObjectId
-  user               User          @relation(fields: [userId], references: [id], onDelete: Cascade)
-  employeeId         String        @db.ObjectId
-  employee           Employee      @relation(fields: [employeeId], references: [id], onDelete: Cascade)
-  loginTimestamp     DateTime      @default(now())
+  id                 String    @id @default(auto()) @map("_id") @db.ObjectId
+  sessionId          String    @unique
+  userId             String    @db.ObjectId
+  user               User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  employeeId         String    @db.ObjectId
+  employee           Employee  @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  loginTimestamp     DateTime  @default(now())
   logoutTimestamp    DateTime?
-  sessionDurationSec Int           @default(0)
-  activeSeconds      Int           @default(0)
+  sessionDurationSec Int       @default(0)
+  activeSeconds      Int       @default(0)
   ipAddress          String?
   userAgent          String?
   deviceInfo         String?
-  status             String        @default("ACTIVE")
-  createdAt          DateTime      @default(now())
-  updatedAt          DateTime      @updatedAt
+  status             String    @default("ACTIVE")
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
 
   @@index([employeeId])
   @@index([status])
@@ -489,40 +571,40 @@ model WorkSession {
 // ----------------------------------------------------
 
 model LeaveRequest {
-  id                 String       @id @default(auto()) @map("_id") @db.ObjectId
-  employeeId         String       @db.ObjectId
-  employee           Employee     @relation(fields: [employeeId], references: [id], onDelete: Cascade)
-  leaveType          String
-  startDate          String
-  endDate            String
-  totalDays          Float
-  reason             String
-  status             String       @default("PENDING")
-  reviewedById       String?
-  reviewedAt         DateTime?
-  reviewRemarks      String?
-  createdAt          DateTime     @default(now())
-  updatedAt          DateTime     @updatedAt
+  id            String    @id @default(auto()) @map("_id") @db.ObjectId
+  employeeId    String    @db.ObjectId
+  employee      Employee  @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  leaveType     String
+  startDate     String
+  endDate       String
+  totalDays     Float
+  reason        String
+  status        String    @default("PENDING")
+  reviewedById  String?
+  reviewedAt    DateTime?
+  reviewRemarks String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
 
   @@index([employeeId])
   @@index([status])
 }
 
 model Asset {
-  id                 String       @id @default(auto()) @map("_id") @db.ObjectId
-  assetTag           String       @unique
+  id                 String    @id @default(auto()) @map("_id") @db.ObjectId
+  assetTag           String    @unique
   name               String
   assetType          String
-  serialNumber       String       @unique
-  assignedEmployeeId String?      @db.ObjectId
-  assignedEmployee   Employee?    @relation(fields: [assignedEmployeeId], references: [id])
+  serialNumber       String    @unique
+  assignedEmployeeId String?   @db.ObjectId
+  assignedEmployee   Employee? @relation(fields: [assignedEmployeeId], references: [id])
   assignedDate       DateTime?
   returnDate         DateTime?
-  condition          String       @default("GOOD")
-  status             String       @default("ALLOCATED")
+  condition          String    @default("GOOD")
+  status             String    @default("ALLOCATED")
   notes              String?
-  createdAt          DateTime     @default(now())
-  updatedAt          DateTime     @updatedAt
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
 
   @@index([assignedEmployeeId])
 }
@@ -532,37 +614,56 @@ model Asset {
 // ----------------------------------------------------
 
 model Notification {
-  id                 String       @id @default(auto()) @map("_id") @db.ObjectId
-  recipientId        String       @db.ObjectId
-  recipient          Employee     @relation(fields: [recipientId], references: [id], onDelete: Cascade)
-  title              String
-  message            String
-  category           String
-  entityType         String?
-  entityId           String?
-  isRead             Boolean      @default(false)
-  readAt             DateTime?
-  createdAt          DateTime     @default(now())
+  id          String    @id @default(auto()) @map("_id") @db.ObjectId
+  recipientId String    @db.ObjectId
+  recipient   Employee  @relation(fields: [recipientId], references: [id], onDelete: Cascade)
+  title       String
+  message     String
+  category    String
+  entityType  String?
+  entityId    String?
+  actionUrl   String?
+  isRead      Boolean   @default(false)
+  readAt      DateTime?
+  createdAt   DateTime  @default(now())
 
   @@index([recipientId])
   @@index([isRead])
+  @@index([recipientId, isRead])
+  @@index([createdAt])
+}
+
+model AutomationLog {
+  id         String   @id @default(auto()) @map("_id") @db.ObjectId
+  event      String // e.g. FOLLOW_UP_DUE, DEAL_WON, ATTENDANCE_LATE
+  action     String // e.g. SEND_NOTIFICATION, CONVERT_DEAL_TO_CLIENT
+  entityType String // e.g. FollowUp, Deal, Attendance, Lead
+  entityId   String
+  status     String   @default("SUCCESS") // SUCCESS, SKIPPED, FAILED
+  message    String?
+  metadata   String?
+  executedAt DateTime @default(now())
+
+  @@index([event])
+  @@index([entityType, entityId])
+  @@index([executedAt])
 }
 
 model AuditLog {
-  id                 String       @id @default(auto()) @map("_id") @db.ObjectId
-  actorUserId        String?      @db.ObjectId
-  actorUser          User?        @relation(fields: [actorUserId], references: [id])
-  actorEmployeeId    String?
-  action             String
-  entityType         String
-  entityId           String?
-  previousData       String?
-  newData            String?
-  reason             String?
-  ipAddress          String?
-  userAgent          String?
-  status             String       @default("SUCCESS")
-  timestamp          DateTime     @default(now())
+  id              String   @id @default(auto()) @map("_id") @db.ObjectId
+  actorUserId     String?  @db.ObjectId
+  actorUser       User?    @relation(fields: [actorUserId], references: [id])
+  actorEmployeeId String?
+  action          String
+  entityType      String
+  entityId        String?
+  previousData    String?
+  newData         String?
+  reason          String?
+  ipAddress       String?
+  userAgent       String?
+  status          String   @default("SUCCESS")
+  timestamp       DateTime @default(now())
 
   @@index([actorEmployeeId])
   @@index([action])
@@ -571,11 +672,467 @@ model AuditLog {
 }
 
 model SystemSetting {
-  id                 String       @id @default(auto()) @map("_id") @db.ObjectId
-  key                String       @unique
-  value              String
-  category           String
-  description        String?
+  id                  String   @id @default(auto()) @map("_id") @db.ObjectId
+  key                 String   @unique
+  value               String
+  category            String
+  description         String?
   updatedByEmployeeId String?
-  updatedAt          DateTime     @updatedAt
+  updatedAt           DateTime @updatedAt
+}
+
+// ----------------------------------------------------
+// 9. GENERALIZED CRM MODELS (ENTERPRISE EXPANSION)
+// ----------------------------------------------------
+
+model Lead {
+  id              String    @id @default(auto()) @map("_id") @db.ObjectId
+  leadNumber      String    @unique // e.g. LEAD-000001
+  companyName     String // Company Name
+  contactPerson   String // Contact Person
+  fullName        String? // Backward compatibility alias for contactPerson
+  email           String?
+  phone           String
+  alternatePhone  String?
+  website         String?
+  industry        String?
+  location        String?
+  city            String?
+  state           String?
+  country         String?   @default("India")
+  source          String    @default("WEBSITE") // WEBSITE, REFERRAL, COLD_CALL, EMAIL, LINKEDIN, ADVERTISEMENT, CAMPAIGN, MANUAL, OTHER
+  status          String    @default("NEW") // NEW, CONTACTED, QUALIFIED, FOLLOW_UP, UNQUALIFIED, CONVERTED, LOST
+  priority        String    @default("MEDIUM") // LOW, MEDIUM, HIGH, URGENT
+  leadScore       Int       @default(0)
+  estimatedValue  Float?    @default(0)
+  description     String?
+  isArchived      Boolean   @default(false)
+  lastContactedAt DateTime?
+  nextFollowUpAt  DateTime?
+  createdBy       String?
+
+  // Organization / Tenant linkage (nullable for raw inbound leads before client association)
+  clientId String? @db.ObjectId
+  client   Client? @relation(fields: [clientId], references: [id], onDelete: SetNull)
+
+  // Assigned Employee
+  assignedToId String?   @db.ObjectId
+  assignedTo   Employee? @relation("LeadOwner", fields: [assignedToId], references: [id], onDelete: SetNull)
+
+  // Conversion link
+  convertedAt          DateTime?
+  convertedToContactId String?
+  convertedToDealId    String?
+
+  // Relations
+  contacts      Contact[]
+  opportunities Opportunity[]
+  deals         Deal[]
+  activities    Activity[]
+  tasks         Task[]
+  notes         Note[]
+  assignments   LeadAssignment[]
+  followUps     FollowUp[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([status])
+  @@index([priority])
+  @@index([source])
+  @@index([clientId])
+  @@index([assignedToId])
+  @@index([phone])
+  @@index([companyName])
+  @@index([createdAt])
+  @@index([nextFollowUpAt])
+}
+
+model LeadAssignment {
+  id               String    @id @default(auto()) @map("_id") @db.ObjectId
+  leadId           String    @db.ObjectId
+  lead             Lead      @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  fromEmployeeId   String?   @db.ObjectId
+  fromEmployee     Employee? @relation("LeadReassignFrom", fields: [fromEmployeeId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  toEmployeeId     String    @db.ObjectId
+  toEmployee       Employee  @relation("LeadReassignTo", fields: [toEmployeeId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  assignedById     String    @db.ObjectId
+  assignedBy       Employee  @relation("LeadReassignBy", fields: [assignedById], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  assignmentReason String?
+  assignedAt       DateTime  @default(now())
+
+  @@index([leadId])
+  @@index([toEmployeeId])
+  @@index([assignedAt])
+}
+
+model Contact {
+  id              String  @id @default(auto()) @map("_id") @db.ObjectId
+  contactNumber   String  @unique // e.g. CON-000001
+  fullName        String
+  designation     String?
+  email           String?
+  phone           String
+  alternatePhone  String?
+  isDecisionMaker Boolean @default(false)
+  isPrimary       Boolean @default(false)
+  department      String?
+  status          String  @default("ACTIVE")
+  notes           String?
+  isArchived      Boolean @default(false)
+
+  // Belongs to Organization (Client) or Lead
+  clientId String? @db.ObjectId
+  client   Client? @relation(fields: [clientId], references: [id], onDelete: SetNull)
+
+  leadId String? @db.ObjectId
+  lead   Lead?   @relation(fields: [leadId], references: [id], onDelete: SetNull)
+
+  // Relations
+  opportunities Opportunity[]
+  deals         Deal[]
+  activities    Activity[]
+  tasks         Task[]
+  notesRel      Note[]
+  followUps     FollowUp[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([clientId])
+  @@index([leadId])
+  @@index([phone])
+  @@index([email])
+}
+
+model FollowUp {
+  id             String    @id @default(auto()) @map("_id") @db.ObjectId
+  followUpNumber String    @unique // e.g. FLW-000001
+  title          String
+  remarks        String?
+  scheduledAt    DateTime
+  completedAt    DateTime?
+  status         String    @default("PENDING") // PENDING, COMPLETED, CANCELLED, RESCHEDULED
+  priority       String    @default("MEDIUM") // LOW, MEDIUM, HIGH, URGENT
+
+  leadId String? @db.ObjectId
+  lead   Lead?   @relation(fields: [leadId], references: [id], onDelete: Cascade)
+
+  contactId String?  @db.ObjectId
+  contact   Contact? @relation(fields: [contactId], references: [id], onDelete: SetNull)
+
+  clientId String? @db.ObjectId
+  client   Client? @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  opportunityId String?      @db.ObjectId
+  opportunity   Opportunity? @relation(fields: [opportunityId], references: [id], onDelete: Cascade)
+
+  dealId String? @db.ObjectId
+  deal   Deal?   @relation(fields: [dealId], references: [id], onDelete: Cascade)
+
+  assignedToId String?   @db.ObjectId
+  assignedTo   Employee? @relation("FollowUpAssignee", fields: [assignedToId], references: [id], onDelete: SetNull)
+
+  createdById String?   @db.ObjectId
+  createdBy   Employee? @relation("FollowUpCreator", fields: [createdById], references: [id], onDelete: SetNull)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([leadId])
+  @@index([contactId])
+  @@index([clientId])
+  @@index([opportunityId])
+  @@index([dealId])
+  @@index([assignedToId])
+  @@index([status])
+  @@index([scheduledAt])
+}
+
+model Opportunity {
+  id                String    @id @default(auto()) @map("_id") @db.ObjectId
+  opportunityNumber String    @unique // e.g. OPP-000001
+  title             String
+  description       String?
+  value             Float     @default(0) // Estimated Value
+  currency          String    @default("INR")
+  stage             String    @default("PROSPECTING") // PROSPECTING, QUALIFICATION, PROPOSAL, NEGOTIATION, CLOSED_WON, CLOSED_LOST
+  probability       Int       @default(20)
+  expectedCloseDate DateTime?
+  productService    String?
+  competitor        String?
+  proposalStatus    String    @default("NOT_REQUIRED")
+  wonReason         String?
+  lossReason        String?
+  createdBy         String?
+  closedAt          DateTime?
+
+  // Nullable Client ID before conversion
+  clientId String? @db.ObjectId
+  client   Client? @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  leadId String? @db.ObjectId
+  lead   Lead?   @relation(fields: [leadId], references: [id], onDelete: SetNull)
+
+  primaryContactId String?  @db.ObjectId
+  primaryContact   Contact? @relation(fields: [primaryContactId], references: [id], onDelete: SetNull)
+
+  assignedToId String?   @db.ObjectId
+  assignedTo   Employee? @relation("OpportunityOwner", fields: [assignedToId], references: [id], onDelete: SetNull)
+
+  deals      Deal[]
+  followUps  FollowUp[]
+  activities Activity[]
+  tasks      Task[]
+  notes      Note[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([clientId])
+  @@index([leadId])
+  @@index([stage])
+  @@index([assignedToId])
+  @@index([createdAt])
+}
+
+model Deal {
+  id                String    @id @default(auto()) @map("_id") @db.ObjectId
+  dealNumber        String    @unique // e.g. DEAL-000001
+  title             String
+  amount            Float     @default(0) // Deal Value
+  probability       Int       @default(50) // 0-100%
+  weightedValue     Float     @default(0) // amount * probability / 100
+  currency          String    @default("INR")
+  stage             String    @default("NEW") // NEW, QUALIFIED, PROPOSAL, NEGOTIATION, WON, LOST
+  status            String    @default("OPEN") // OPEN, WON, LOST, CANCELLED
+  proposalStatus    String    @default("NOT_REQUIRED") // NOT_REQUIRED, DRAFT, PREPARED, SENT, VIEWED, ACCEPTED, REJECTED
+  productService    String?
+  competitor        String?
+  competitorNotes   String?
+  wonReason         String?
+  lostReason        String?
+  closingNotes      String?
+  terms             String?
+  startDate         DateTime?
+  closingDate       DateTime?
+  expectedCloseDate DateTime?
+  closedAt          DateTime?
+
+  // Client Conversion Bridge
+  isConvertedToClient Boolean @default(false)
+  convertedToClientId String? @db.ObjectId
+
+  clientId String? @db.ObjectId
+  client   Client? @relation(fields: [clientId], references: [id], onDelete: SetNull)
+
+  leadId String? @db.ObjectId
+  lead   Lead?   @relation(fields: [leadId], references: [id], onDelete: SetNull)
+
+  primaryContactId String?  @db.ObjectId
+  primaryContact   Contact? @relation(fields: [primaryContactId], references: [id], onDelete: SetNull)
+
+  opportunityId String?      @db.ObjectId
+  opportunity   Opportunity? @relation(fields: [opportunityId], references: [id], onDelete: SetNull)
+
+  assignedToId String?   @db.ObjectId
+  assignedTo   Employee? @relation("DealOwner", fields: [assignedToId], references: [id], onDelete: SetNull)
+
+  createdBy String?
+
+  stageHistory DealStageHistory[]
+  followUps    FollowUp[]
+  activities   Activity[]
+  tasks        Task[]
+  notes        Note[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([clientId])
+  @@index([leadId])
+  @@index([opportunityId])
+  @@index([stage])
+  @@index([status])
+  @@index([assignedToId])
+  @@index([expectedCloseDate])
+  @@index([createdAt])
+}
+
+model DealStageHistory {
+  id              String    @id @default(auto()) @map("_id") @db.ObjectId
+  dealId          String    @db.ObjectId
+  deal            Deal      @relation(fields: [dealId], references: [id], onDelete: Cascade)
+  fromStage       String?
+  toStage         String
+  fromProbability Int?
+  toProbability   Int?
+  changedById     String?   @db.ObjectId
+  changedBy       Employee? @relation("DealStageChanger", fields: [changedById], references: [id], onDelete: SetNull)
+  reason          String?
+  changedAt       DateTime  @default(now())
+
+  @@index([dealId])
+  @@index([changedAt])
+}
+
+model Activity {
+  id              String    @id @default(auto()) @map("_id") @db.ObjectId
+  activityNumber  String    @unique // e.g. ACT-000001
+  type            String // CALL, MEETING, EMAIL, NOTE, TASK, WHATSAPP, SYSTEM
+  subject         String
+  description     String?
+  durationMinutes Int?      @default(0)
+  scheduledAt     DateTime?
+  completedAt     DateTime?
+  status          String    @default("COMPLETED") // SCHEDULED, COMPLETED, CANCELLED
+
+  clientId String? @db.ObjectId
+  client   Client? @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  leadId String? @db.ObjectId
+  lead   Lead?   @relation(fields: [leadId], references: [id], onDelete: Cascade)
+
+  contactId String?  @db.ObjectId
+  contact   Contact? @relation(fields: [contactId], references: [id], onDelete: SetNull)
+
+  opportunityId String?      @db.ObjectId
+  opportunity   Opportunity? @relation(fields: [opportunityId], references: [id], onDelete: SetNull)
+
+  dealId String? @db.ObjectId
+  deal   Deal?   @relation(fields: [dealId], references: [id], onDelete: SetNull)
+
+  performedById String?   @db.ObjectId
+  performedBy   Employee? @relation("ActivityAssignee", fields: [performedById], references: [id], onDelete: SetNull)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([clientId])
+  @@index([leadId])
+  @@index([performedById])
+  @@index([type])
+  @@index([scheduledAt])
+}
+
+model Task {
+  id                  String    @id @default(auto()) @map("_id") @db.ObjectId
+  taskNumber          String    @unique // e.g. TSK-000001
+  title               String
+  description         String?
+  priority            String    @default("MEDIUM") // LOW, MEDIUM, HIGH, URGENT
+  status              String    @default("TODO") // TODO, ACCEPTED, IN_PROGRESS, WAITING_FOR_REVIEW, CHANGES_REQUESTED, COMPLETED, OVERDUE, CANCELLED
+  dueDate             DateTime?
+  reminderTime        DateTime?
+  completedAt         DateTime?
+  expectedDeliverable String?
+  attachments         String[]  @default([])
+
+  // Submission fields
+  submissionSummary String?
+  submissionNotes   String?
+  submissionLinks   String[]  @default([])
+  submissionFiles   String[]  @default([])
+  submittedAt       DateTime?
+
+  // Review fields
+  feedbackNotes String?
+  reviewedAt    DateTime?
+  reviewedById  String?   @db.ObjectId
+  reviewedBy    Employee? @relation("CrmTaskReviewer", fields: [reviewedById], references: [id], onDelete: SetNull)
+
+  clientId String? @db.ObjectId
+  client   Client? @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  leadId String? @db.ObjectId
+  lead   Lead?   @relation(fields: [leadId], references: [id], onDelete: Cascade)
+
+  contactId String?  @db.ObjectId
+  contact   Contact? @relation(fields: [contactId], references: [id], onDelete: SetNull)
+
+  opportunityId String?      @db.ObjectId
+  opportunity   Opportunity? @relation(fields: [opportunityId], references: [id], onDelete: SetNull)
+
+  dealId String? @db.ObjectId
+  deal   Deal?   @relation(fields: [dealId], references: [id], onDelete: SetNull)
+
+  assignedToId String?   @db.ObjectId
+  assignedTo   Employee? @relation("CrmTaskAssignee", fields: [assignedToId], references: [id], onDelete: SetNull)
+
+  createdById String?   @db.ObjectId
+  createdBy   Employee? @relation("CrmTaskCreator", fields: [createdById], references: [id], onDelete: SetNull)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  comments TaskComment[]
+  history  TaskHistory[]
+
+  @@index([clientId])
+  @@index([leadId])
+  @@index([assignedToId])
+  @@index([status])
+  @@index([dueDate])
+}
+
+model Note {
+  id       String  @id @default(auto()) @map("_id") @db.ObjectId
+  content  String
+  isPinned Boolean @default(false)
+
+  clientId String? @db.ObjectId
+  client   Client? @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  leadId String? @db.ObjectId
+  lead   Lead?   @relation(fields: [leadId], references: [id], onDelete: Cascade)
+
+  contactId String?  @db.ObjectId
+  contact   Contact? @relation(fields: [contactId], references: [id], onDelete: SetNull)
+
+  opportunityId String?      @db.ObjectId
+  opportunity   Opportunity? @relation(fields: [opportunityId], references: [id], onDelete: SetNull)
+
+  dealId String? @db.ObjectId
+  deal   Deal?   @relation(fields: [dealId], references: [id], onDelete: SetNull)
+
+  authorId String?   @db.ObjectId
+  author   Employee? @relation("CrmNoteAuthor", fields: [authorId], references: [id], onDelete: SetNull)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([clientId])
+  @@index([leadId])
+  @@index([authorId])
+}
+
+model TaskComment {
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  taskId      String   @db.ObjectId
+  task        Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  authorId    String   @db.ObjectId
+  author      Employee @relation("TaskCommentAuthor", fields: [authorId], references: [id], onDelete: Cascade)
+  content     String
+  attachments String[] @default([])
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([taskId])
+  @@index([authorId])
+}
+
+model TaskHistory {
+  id            String   @id @default(auto()) @map("_id") @db.ObjectId
+  taskId        String   @db.ObjectId
+  task          Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  actorId       String   @db.ObjectId
+  actor         Employee @relation("TaskHistoryActor", fields: [actorId], references: [id], onDelete: Cascade)
+  action        String // e.g. CREATED, STATUS_CHANGE, SUBMITTED, REVIEWED, ASSIGNED
+  previousValue String?
+  newValue      String?
+  remarks       String?
+  timestamp     DateTime @default(now())
+
+  @@index([taskId])
+  @@index([actorId])
 }

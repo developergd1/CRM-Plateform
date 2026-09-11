@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
+import { prisma, getTaskLookup } from '@/lib/prisma';
 import { getSessionUser } from '@/lib/auth';
 
 export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
@@ -20,7 +20,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
     }
 
     const task = await prisma.clientTask.findFirst({
-      where: { OR: [{ id }, { taskId: id }] },
+      where: getTaskLookup(id),
       include: { client: true },
     });
     if (!task) return NextResponse.json({ error: 'Task not found' }, { status: 404 });

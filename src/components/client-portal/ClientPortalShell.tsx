@@ -28,20 +28,109 @@ import {
   LayoutDashboard,
   Activity,
   Clock,
+  ChevronDown,
+  ChevronUp,
+  Ban,
+  FileText,
+  FileBarChart,
+  LayoutGrid,
+  List,
 } from 'lucide-react';
 import { AddEmployeeModal } from '@/components/employees/AddEmployeeModal';
 import { EditEmployeeModal } from '@/components/employees/EditEmployeeModal';
 import { EmployeeDetailDrawer } from '@/components/employees/EmployeeDetailDrawer';
 import { PasswordResetRequestsModal } from '@/components/auth/PasswordResetRequestsModal';
-import { ClientWorkforceView } from './ClientWorkforceView';
-import { ClientAttendanceView } from './ClientAttendanceView';
+import { ClientAttendanceHub } from './ClientAttendanceHub';
+import { ClientRequestsView } from './ClientRequestsView';
 import { EmployeeItem } from '@/types';
+import { NotificationBell } from '@/components/notifications/NotificationBell';
+import { TaskManager } from '../tasks/TaskManager';
 
 import { clientCache } from '@/lib/client-cache';
 
-export const ClientPortalShell: React.FC = () => {
+export interface ClientPortalShellProps {
+  initialTab?: string;
+}
+
+export const normalizeClientTab = (rawTab: string | null | undefined): string => {
+  if (!rawTab) return 'overview';
+  const t = rawTab.toLowerCase().trim();
+  if (t === 'dashboard' || t === 'dash-overview' || t === 'overview') return 'overview';
+  if (t === 'employees' || t === 'dash-employees') return 'employees';
+  if (t === 'workforce' || t === 'dash-workforce' || t === 'live-workforce') return 'attendance';
+  if (t === 'attendance' || t === 'dash-attendance') return 'attendance';
+  if (t === 'timesheets' || t === 'dash-timesheets') return 'attendance';
+  if (t === 'reports' || t === 'dash-reports') return 'attendance';
+  if (t === 'reports' || t === 'dash-reports') return 'attendance';
+  if (t === 'requests' || t === 'dash-requests' || t === 'password-requests') return 'requests';
+  if (t === 'history' || t === 'block-history') return 'history';
+  if (t === 'tasks' || t === 'dash-tasks') return 'tasks';
+  return t;
+};
+
+export const ClientPortalShell: React.FC<ClientPortalShellProps> = ({ initialTab = 'overview' }) => {
   const { user, logout } = useAuth();
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'employees' | 'workforce' | 'attendance' | 'history'>('dashboard');
+
+  const getInitialSubTab = (): string => {
+    if (typeof window !== 'undefined') {
+      const p = new URLSearchParams(window.location.search).get('tab');
+      if (p && ['attendance', 'timesheets', 'reports', 'workforce'].includes(p.toLowerCase())) {
+        return p.toLowerCase();
+      }
+    }
+    if (initialTab && ['attendance', 'timesheets', 'reports', 'workforce'].includes(initialTab.toLowerCase())) {
+      return initialTab.toLowerCase();
+    }
+    return 'attendance';
+  };
+
+  const getInitialTab = (): string => {
+    if (typeof window !== 'undefined') {
+      const param = new URLSearchParams(window.location.search).get('tab');
+      if (param) return normalizeClientTab(param);
+    }
+    return normalizeClientTab(initialTab);
+  };
+
+  const [activeTab, setActiveTab] = useState<string>(getInitialTab);
+  const [attendanceSubTab, setAttendanceSubTab] = useState<string>(getInitialSubTab);
+  const [empViewMode, setEmpViewMode] = useState<'grid' | 'table'>('table');
+
+  // Sync tab with browser back and forward buttons
+  useEffect(() => {
+    const handlePopState = (e: PopStateEvent) => {
+      const urlParams = new URLSearchParams(window.location.search);
+      const tabParam = urlParams.get('tab') || (e.state && e.state.tab) || initialTab || 'overview';
+      const rawLower = tabParam.toLowerCase();
+      if (['attendance', 'timesheets', 'reports', 'workforce'].includes(rawLower)) {
+        setAttendanceSubTab(rawLower);
+      }
+      setActiveTab(normalizeClientTab(tabParam));
+    };
+
+    window.addEventListener('popstate', handlePopState);
+    return () => {
+      window.removeEventListener('popstate', handlePopState);
+    };
+  }, [initialTab]);
+
+  const selectTab = (tabId: string, subTab?: string) => {
+    const rawLower = tabId.toLowerCase();
+    if (['attendance', 'timesheets', 'reports', 'workforce'].includes(rawLower)) {
+      setAttendanceSubTab(subTab || rawLower);
+    }
+    const canonical = normalizeClientTab(tabId);
+    setActiveTab(canonical);
+    if (typeof window !== 'undefined') {
+      const currentUrl = new URL(window.location.href);
+      const urlTab = subTab || (canonical === 'attendance' ? (subTab || attendanceSubTab || 'attendance') : canonical);
+      if (currentUrl.searchParams.get('tab') !== urlTab) {
+        currentUrl.searchParams.set('tab', urlTab);
+        window.history.pushState({ tab: urlTab }, '', currentUrl.toString());
+      }
+    }
+  };
+
   // Search & Filters
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
@@ -74,6 +163,8 @@ export const ClientPortalShell: React.FC = () => {
 
   const [actionLoading, setActionLoading] = useState(false);
   const [alertMsg, setAlertMsg] = useState<string | null>(null);
+  const [sectionRefreshing, setSectionRefreshing] = useState(false);
+  const [attendanceRefreshKey, setAttendanceRefreshKey] = useState(0);
 
   const fetchResetRequestsCount = async () => {
     try {
@@ -87,17 +178,41 @@ export const ClientPortalShell: React.FC = () => {
     }
   };
 
+  const handleRefreshCurrentSection = async () => {
+    setSectionRefreshing(true);
+    try {
+      clientCache.clear('client_portal_');
+      clientCache.clear('client_attendance_');
+      clientCache.clear('client_timesheets_');
+      clientCache.clear('client_reports_');
+      clientCache.clear('client_workforce_');
+      setAttendanceRefreshKey(prev => prev + 1);
+
+      await Promise.all([
+        fetchData(true),
+        fetchResetRequestsCount(),
+      ]);
+      setAlertMsg('✅ Section data refreshed successfully.');
+      setTimeout(() => setAlertMsg(null), 3000);
+    } catch (e) {
+      console.error('Section refresh error:', e);
+    } finally {
+      setSectionRefreshing(false);
+    }
+  };
+
   const fetchData = async (forceRefresh = false) => {
     if (!forceRefresh) {
-      const cached = clientCache.get<any>(cacheKey);
+      const cached = clientCache.get<any>(cacheKey, 2 * 60 * 1000);
       if (cached) {
         setEmployees(cached.employees || []);
         setBlockHistories(cached.histories || []);
         setLoading(false);
-        return;
       }
+    } else {
+      setLoading(true);
     }
-    setLoading(true);
+
     try {
       const [empRes, histRes] = await Promise.all([
         fetch(`/api/employees?search=${encodeURIComponent(search)}&status=${encodeURIComponent(statusFilter)}`),
@@ -225,76 +340,111 @@ export const ClientPortalShell: React.FC = () => {
   const activeStaff = employees.filter((e) => e.status === 'ACTIVE' && !e.isBlocked).length;
   const blockedStaff = employees.filter((e) => e.status === 'BLOCKED' || e.isBlocked).length;
 
-  interface NavItem {
-    id: 'dashboard' | 'employees' | 'workforce' | 'attendance' | 'history';
+  interface ClientNavItem {
+    id: string;
     label: string;
-    icon: React.ComponentType<{ className?: string }>;
+    icon: React.ElementType;
     isLive?: boolean;
+    badge?: number;
   }
 
-  const navItems: NavItem[] = [
-    { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
-    { id: 'employees', label: `My Employees (${totalStaff})`, icon: Users },
-    { id: 'workforce', label: 'Live Workforce', icon: Activity, isLive: true },
-    { id: 'attendance', label: 'Attendance & Shifts', icon: Clock },
-    { id: 'history', label: `Block History (${blockHistories.length})`, icon: History },
+  interface ClientNavSection {
+    title: string;
+    items: ClientNavItem[];
+  }
+
+  // Nav items categorized cleanly: Attendance & Timesheets combined into unified suite
+  const navSections: ClientNavSection[] = [
+    {
+      title: 'WORKSPACE',
+      items: [
+        { id: 'overview', label: 'Overview', icon: LayoutDashboard },
+        { id: 'employees', label: `My Employees (${totalStaff})`, icon: Users },
+      ],
+    },
+    {
+      title: 'TIME & WORKFORCE',
+      items: [
+        { id: 'attendance', label: 'Attendance & Timesheets', icon: Calendar },
+        { id: 'tasks', label: 'Tasks & Follow-ups', icon: Activity },
+      ],
+    },
+    {
+      title: 'SECURITY & GOVERNANCE',
+      items: [
+        { id: 'history', label: `Block History (${blockHistories.length})`, icon: Ban },
+        { id: 'requests', label: 'Password Requests', icon: KeyRound, badge: pendingResetCount },
+      ],
+    },
   ];
 
   return (
     <div className="flex h-screen bg-slate-100/70 overflow-hidden font-sans">
-      {/* LEFT SIDEBAR (Matching Admin Panel) */}
+      {/* LEFT SIDEBAR (Growth India Dark Theme) */}
       <aside className="w-64 bg-slate-900 text-slate-300 flex flex-col shrink-0 border-r border-slate-800 select-none">
         {/* Brand Header */}
         <div className="h-16 flex items-center px-5 border-b border-slate-800 bg-slate-950/50">
           <GrowthIndiaLogo size="sm" />
         </div>
 
-        {/* Client Workspace Badge */}
-        <div className="mx-4 mt-4 p-3 bg-slate-950/70 rounded-2xl border border-growth-teal/30">
+        {/* Client Platform Badge */}
+        <div className="mx-3 mt-3.5 p-2.5 bg-slate-950/70 rounded-xl border border-growth-teal/30 flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <Building2 className="w-4 h-4 text-growth-teal shrink-0" />
-            <span className="text-xs font-black text-white truncate" title={user?.companyName}>
-              {user?.companyName || 'Corporate Client'}
-            </span>
+            <div className="w-2 h-2 rounded-full bg-growth-teal animate-pulse" />
+            <span className="text-[11px] font-bold text-slate-200 uppercase tracking-wider">CLIENT</span>
           </div>
-          <div className="flex items-center gap-1.5 mt-1.5">
-            <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-growth-gold/15 text-growth-gold border border-growth-gold/30">
-              {user?.clientId}
-            </span>
-            <span className="text-[10px] text-slate-400 font-semibold">• Client Portal</span>
-          </div>
+          <span className="text-[9px] font-mono font-extrabold px-1.5 py-0.5 rounded bg-growth-teal/20 text-growth-teal border border-growth-teal/40">
+            {user?.clientId || 'PORTAL'}
+          </span>
         </div>
 
-        {/* Navigation Links */}
+        {/* Navigation Links Area */}
         <div className="flex-1 overflow-y-auto py-4 px-3 space-y-5">
-          <div>
-            <div className="text-[10px] font-extrabold uppercase tracking-wider text-slate-500 px-3 mb-2">
-              CLIENT WORKSPACE
+          {navSections.map((sec) => (
+            <div key={sec.title} className="space-y-1.5">
+              <div className="px-3 text-[10px] font-black uppercase tracking-wider text-slate-500">
+                {sec.title}
+              </div>
+              <div className="space-y-0.5">
+                {sec.items.map((item) => {
+                  const ItemIcon = item.icon;
+                  const isActive = activeTab === item.id;
+
+                  return (
+                    <button
+                      key={item.id}
+                      type="button"
+                      onClick={() => selectTab(item.id)}
+                      className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all ${
+                        isActive
+                          ? 'bg-gradient-to-r from-growth-teal to-growth-tealDark text-white shadow-tealGlow font-bold'
+                          : 'text-slate-400 hover:text-slate-100 hover:bg-slate-800/60'
+                      }`}
+                    >
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        <ItemIcon
+                          className={`w-4 h-4 shrink-0 ${
+                            isActive ? 'text-growth-gold' : 'text-slate-400'
+                          }`}
+                        />
+                        <span className="truncate">{item.label}</span>
+                      </div>
+                      <div className="flex items-center gap-1.5 shrink-0">
+                        {item.isLive && (
+                          <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                        )}
+                        {Boolean(item.badge && item.badge > 0) && (
+                          <span className="px-1.5 py-0.2 rounded-full text-[9px] font-extrabold bg-rose-500 text-white">
+                            {item.badge}
+                          </span>
+                        )}
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
             </div>
-            <div className="space-y-1">
-              {navItems.map((item) => {
-                const Icon = item.icon;
-                const isActive = activeTab === item.id;
-                return (
-                  <button
-                    key={item.id}
-                    onClick={() => setActiveTab(item.id)}
-                    className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all ${
-                      isActive
-                        ? 'bg-gradient-to-r from-growth-teal to-growth-tealDark text-white shadow-tealGlow font-bold'
-                        : 'text-slate-400 hover:text-slate-100 hover:bg-slate-800/60'
-                    }`}
-                  >
-                    <Icon className={`w-4 h-4 shrink-0 ${isActive ? 'text-growth-gold' : 'text-slate-400'}`} />
-                    <span className="truncate flex-1 text-left">{item.label}</span>
-                    {item.isLive && (
-                      <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse shrink-0" />
-                    )}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
+          ))}
         </div>
 
         {/* DOWN-LEFT PROFILE CARD + QUICK SIGN OUT */}
@@ -333,12 +483,13 @@ export const ClientPortalShell: React.FC = () => {
         {/* Top Header */}
         <header className="h-16 bg-white border-b border-slate-200 px-6 flex items-center justify-between shrink-0 shadow-sm sticky top-0 z-30">
           <div className="flex items-center gap-3">
-            <h1 className="text-base font-black text-slate-800">
-              {activeTab === 'dashboard' && 'Corporate Dashboard'}
-              {activeTab === 'employees' && 'Enrolled Staff Management'}
-              {activeTab === 'workforce' && 'Live Workforce Telemetry'}
-              {activeTab === 'attendance' && 'Staff Attendance & Shifts'}
+            <h1 className="title-interactive-hover text-base font-black text-slate-800">
+              {activeTab === 'overview' && 'Client Dashboard Overview'}
+              {activeTab === 'employees' && 'My Employees Directory & Governance'}
+              {activeTab === 'attendance' && 'Attendance, Timesheets & Workforce Suite'}
+              {activeTab === 'tasks' && 'Task & Follow-up Management'}
               {activeTab === 'history' && 'Security Block & Audit History'}
+              {activeTab === 'requests' && 'Employee Password Reset Queue'}
             </h1>
             <span className="hidden sm:inline-flex px-2.5 py-0.5 rounded text-[10px] font-mono font-bold bg-teal-50 text-growth-teal border border-teal-200">
               {user?.companyName}
@@ -347,8 +498,24 @@ export const ClientPortalShell: React.FC = () => {
 
           <div className="flex items-center gap-2.5">
             <button
-              onClick={() => setShowResetRequests(true)}
-              className="relative flex items-center gap-1.5 px-3 py-1.5 bg-amber-50 hover:bg-amber-100 text-amber-700 border border-amber-200 rounded-xl text-xs font-bold transition-all shadow-sm"
+              onClick={handleRefreshCurrentSection}
+              disabled={sectionRefreshing || loading}
+              className="interactive-btn-hover flex items-center gap-1.5 px-3 py-1.5 bg-slate-50 hover:bg-slate-100 text-slate-700 border border-slate-200 rounded-xl text-xs font-bold transition-all shadow-sm cursor-pointer"
+              title="Refresh Current Section"
+            >
+              <RefreshCw className={`w-3.5 h-3.5 ${sectionRefreshing || loading ? 'animate-spin text-growth-teal' : 'text-slate-500'}`} />
+              <span className="hidden sm:inline">Refresh</span>
+            </button>
+
+            <NotificationBell variant="light" />
+
+            <button
+              onClick={() => selectTab('requests')}
+              className={`interactive-btn-hover relative flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all shadow-sm ${
+                activeTab === 'requests'
+                  ? 'bg-amber-600 text-white shadow'
+                  : 'bg-amber-50 hover:bg-amber-100 text-amber-700 border border-amber-200'
+              }`}
               title="View Employee Password Reset Requests"
             >
               <KeyRound className="w-3.5 h-3.5" />
@@ -362,7 +529,7 @@ export const ClientPortalShell: React.FC = () => {
 
             <button
               onClick={() => setShowAddEmployee(true)}
-              className="flex items-center gap-1.5 px-3.5 py-1.5 bg-growth-teal hover:bg-growth-tealDark text-white text-xs font-bold rounded-xl shadow-tealGlow transition-all"
+              className="interactive-btn-hover flex items-center gap-1.5 px-3.5 py-1.5 bg-growth-teal hover:bg-growth-tealDark text-white text-xs font-bold rounded-xl shadow-tealGlow transition-all"
             >
               <UserPlus className="w-3.5 h-3.5" />
               <span>Onboard Staff</span>
@@ -370,7 +537,7 @@ export const ClientPortalShell: React.FC = () => {
 
             <button
               onClick={logout}
-              className="flex items-center gap-1.5 px-3 py-1.5 text-xs text-slate-500 hover:text-rose-600 hover:bg-rose-50 border border-transparent hover:border-rose-200 rounded-xl transition-all"
+              className="interactive-btn-hover flex items-center gap-1.5 px-3 py-1.5 text-xs text-slate-500 hover:text-rose-600 hover:bg-rose-50 border border-transparent hover:border-rose-200 rounded-xl transition-all"
               title="Sign Out"
             >
               <LogOut className="w-4 h-4" />
@@ -389,32 +556,32 @@ export const ClientPortalShell: React.FC = () => {
         {/* Scrollable Main Content */}
         <main className="flex-1 overflow-y-auto p-6 md:p-8 bg-slate-50 text-slate-800 space-y-6">
           <div className="max-w-7xl mx-auto space-y-6">
-            {activeTab === 'dashboard' && (
+            {(activeTab === 'overview' || activeTab === 'dashboard' || activeTab === 'dash-overview') && (
               <div className="space-y-6">
                 {/* Welcome Banner */}
-                <div className="bg-gradient-to-r from-growth-navy via-slate-900 to-growth-navyLight rounded-3xl p-6 text-white shadow-md flex flex-col md:flex-row md:items-center justify-between gap-6 border border-slate-800">
+                <div className="card-premium interactive-box-hover bg-white rounded-3xl p-6 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-6 border border-slate-200">
                   <div>
-                    <div className="inline-flex items-center gap-2 px-3 py-1 bg-white/10 rounded-full text-xs font-semibold text-growth-gold mb-2 border border-white/10">
+                    <div className="inline-flex items-center gap-2 px-3 py-1 bg-amber-50 rounded-full text-xs font-semibold text-amber-700 mb-2 border border-amber-200/50">
                       <Sparkles className="w-3.5 h-3.5" />
                       <span>Corporate Client Workspace</span>
                     </div>
                     <button
                       type="button"
-                      onClick={() => setActiveTab('employees')}
-                      className="text-2xl font-black text-left text-white hover:text-growth-teal transition-all flex items-center gap-2 group/c cursor-pointer"
+                      onClick={() => selectTab('employees')}
+                      className="text-2xl font-black text-left text-slate-900 hover:text-growth-teal transition-all flex items-center gap-2 group/c cursor-pointer"
                       title="Click to view all employees enrolled under your company"
                     >
-                      <span>{user?.companyName}</span>
+                      <span className="title-interactive-hover">{user?.companyName}</span>
                       <ArrowUpRight className="w-5 h-5 text-growth-teal opacity-70 group-hover/c:opacity-100 group-hover/c:translate-x-0.5 group-hover/c:-translate-y-0.5 transition-all" />
                     </button>
-                    <p className="text-xs text-slate-300 mt-1">
-                      Client ID: <span className="font-mono font-bold text-growth-gold">{user?.clientId}</span> • Contact Person: {user?.fullName}
+                    <p className="subtitle-interactive-hover text-xs text-slate-500 mt-1">
+                      Client ID: <span className="font-mono font-bold text-growth-teal">{user?.clientId}</span> • Contact Person: {user?.fullName}
                     </p>
                   </div>
 
                   <button
                     onClick={() => setShowAddEmployee(true)}
-                    className="flex items-center gap-2 px-5 py-3 bg-growth-teal hover:bg-growth-tealDark text-white font-bold text-xs rounded-xl shadow-tealGlow transition-all self-start md:self-auto"
+                    className="interactive-btn-hover flex items-center gap-2 px-5 py-3 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold text-xs rounded-xl shadow-md transition-all self-start md:self-auto"
                   >
                     <UserPlus className="w-4 h-4" />
                     <span>Onboard New Employee</span>
@@ -424,8 +591,8 @@ export const ClientPortalShell: React.FC = () => {
                 {/* KPI Cards */}
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                   <div
-                    onClick={() => setActiveTab('employees')}
-                    className="bg-white border border-slate-200 hover:border-growth-teal/50 rounded-2xl p-5 shadow-sm flex items-center justify-between cursor-pointer group transition-all"
+                    onClick={() => selectTab('employees')}
+                    className="card-premium interactive-box-hover bg-white border border-slate-200 hover:border-growth-teal/50 rounded-2xl p-5 shadow-sm flex items-center justify-between cursor-pointer group transition-all"
                     title="Click to view all employees list"
                   >
                     <div>
@@ -440,40 +607,65 @@ export const ClientPortalShell: React.FC = () => {
                     </div>
                   </div>
 
-                  <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm flex items-center justify-between">
+                  <div
+                    onClick={() => selectTab('workforce')}
+                    className="card-premium interactive-box-hover bg-white border border-slate-200 hover:border-emerald-500/50 rounded-2xl p-5 shadow-sm flex items-center justify-between cursor-pointer group transition-all"
+                    title="Click to view live workforce telemetry"
+                  >
                     <div>
-                      <div className="text-xs text-emerald-600 font-bold">Active Employees</div>
+                      <div className="text-xs text-emerald-600 font-bold group-hover:text-emerald-700 transition-colors flex items-center gap-1">
+                        <span>Active Employees</span>
+                        <ArrowUpRight className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity" />
+                      </div>
                       <div className="text-3xl font-black text-emerald-600 mt-1">{activeStaff}</div>
                     </div>
-                    <div className="w-12 h-12 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center">
+                    <div className="w-12 h-12 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center group-hover:scale-105 transition-transform">
                       <ShieldCheck className="w-6 h-6" />
                     </div>
                   </div>
 
-                  <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm flex items-center justify-between">
+                  <div
+                    onClick={() => selectTab('history')}
+                    className="card-premium interactive-box-hover bg-white border border-slate-200 hover:border-rose-500/50 rounded-2xl p-5 shadow-sm flex items-center justify-between cursor-pointer group transition-all"
+                    title="Click to view block audit history"
+                  >
                     <div>
-                      <div className="text-xs text-rose-600 font-bold">Blocked Staff</div>
+                      <div className="text-xs text-rose-600 font-bold group-hover:text-rose-700 transition-colors flex items-center gap-1">
+                        <span>Blocked Staff</span>
+                        <ArrowUpRight className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity" />
+                      </div>
                       <div className="text-3xl font-black text-rose-600 mt-1">{blockedStaff}</div>
                     </div>
-                    <div className="w-12 h-12 rounded-2xl bg-rose-50 text-rose-600 flex items-center justify-center">
+                    <div className="w-12 h-12 rounded-2xl bg-rose-50 text-rose-600 flex items-center justify-center group-hover:scale-105 transition-transform">
                       <ShieldAlert className="w-6 h-6" />
                     </div>
                   </div>
                 </div>
 
                 {/* Quick Staff Table */}
-                <div className="bg-white border border-slate-200 rounded-3xl p-6 shadow-sm space-y-4">
+                <div className="panel-premium bg-white border border-slate-200 rounded-3xl p-6 shadow-sm space-y-4">
                   <div className="flex items-center justify-between">
                     <div>
-                      <h3 className="text-sm font-black text-slate-900">Company Staff Roster</h3>
-                      <p className="text-xs text-slate-500 mt-0.5">Recently assigned active personnel</p>
+                      <h3 className="title-interactive-hover text-sm font-black text-slate-900">Company Staff Roster</h3>
+                      <p className="subtitle-interactive-hover text-xs text-slate-500 mt-0.5">Recently assigned active personnel</p>
                     </div>
-                    <button
-                      onClick={() => setActiveTab('employees')}
-                      className="text-xs font-bold text-growth-teal hover:underline"
-                    >
-                      View All Employees →
-                    </button>
+                    <div className="flex items-center gap-3">
+                      <button
+                        onClick={() => fetchData(true)}
+                        disabled={loading}
+                        className="interactive-btn-hover flex items-center gap-1.5 px-3 py-1.5 bg-slate-50 hover:bg-slate-100 text-slate-700 border border-slate-200 rounded-xl text-xs font-bold transition-all shadow-sm cursor-pointer"
+                        title="Refresh Staff Roster"
+                      >
+                        <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin text-growth-teal' : 'text-slate-500'}`} />
+                        <span>Refresh</span>
+                      </button>
+                      <button
+                        onClick={() => selectTab('employees')}
+                        className="interactive-btn-hover text-xs font-bold text-growth-teal hover:underline cursor-pointer"
+                      >
+                        View All Employees →
+                      </button>
+                    </div>
                   </div>
 
                   <div className="overflow-x-auto rounded-2xl border border-slate-200">
@@ -491,9 +683,11 @@ export const ClientPortalShell: React.FC = () => {
                       </thead>
                       <tbody className="divide-y divide-slate-100 text-slate-700">
                         {employees.slice(0, 5).map((emp) => (
-                          <tr key={emp.id} className="hover:bg-slate-50/80 transition-all">
+                          <tr key={emp.id} className="interactive-row-hover hover:bg-teal-50/20 transition-all cursor-pointer">
                             <td className="py-3 px-4 font-mono font-bold text-growth-teal">{emp.employeeId}</td>
-                            <td className="py-3 px-4 font-bold text-slate-900">{emp.fullName}</td>
+                            <td className="py-3 px-4">
+                              <span className="title-interactive-hover font-bold text-slate-900 inline-block">{emp.fullName}</span>
+                            </td>
                             <td className="py-3 px-4 text-slate-600">{emp.designation}</td>
                             <td className="py-3 px-4 text-slate-500">{emp.departmentName}</td>
                             <td className="py-3 px-4 text-slate-600">{emp.phone}</td>
@@ -511,7 +705,7 @@ export const ClientPortalShell: React.FC = () => {
                             <td className="py-3 px-4 text-right">
                               <button
                                 onClick={() => setSelectedEmpId(emp.employeeId)}
-                                className="p-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg border border-slate-200 transition"
+                                className="interactive-btn-hover p-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg border border-slate-200 transition"
                                 title="View Profile"
                               >
                                 <Eye className="w-3.5 h-3.5" />
@@ -533,9 +727,9 @@ export const ClientPortalShell: React.FC = () => {
               </div>
             )}
 
-            {activeTab === 'employees' && (
+            {(activeTab === 'employees' || activeTab === 'dash-employees') && (
               <div className="space-y-4">
-                <div className="flex flex-col sm:flex-row items-center justify-between gap-3 bg-white border border-slate-200 p-4 rounded-2xl shadow-sm">
+                <div className="panel-premium flex flex-col sm:flex-row items-center justify-between gap-3 bg-white border border-slate-200 p-4 rounded-2xl shadow-sm">
                   <div className="relative w-full sm:w-80">
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                     <input
@@ -548,6 +742,34 @@ export const ClientPortalShell: React.FC = () => {
                   </div>
 
                   <div className="flex items-center gap-2 w-full sm:w-auto">
+                    {/* View Mode Toggle */}
+                    <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-xl border border-slate-200">
+                      <button
+                        type="button"
+                        onClick={() => setEmpViewMode('grid')}
+                        className={`interactive-btn-hover flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                          empViewMode === 'grid'
+                            ? 'bg-white text-growth-teal shadow-sm'
+                            : 'text-slate-500 hover:text-slate-800'
+                        }`}
+                      >
+                        <LayoutGrid className="w-3.5 h-3.5" />
+                        <span>Grid</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setEmpViewMode('table')}
+                        className={`interactive-btn-hover flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                          empViewMode === 'table'
+                            ? 'bg-white text-growth-teal shadow-sm'
+                            : 'text-slate-500 hover:text-slate-800'
+                        }`}
+                      >
+                        <List className="w-3.5 h-3.5" />
+                        <span>Table</span>
+                      </button>
+                    </div>
+
                     <select
                       value={statusFilter}
                       onChange={(e) => setStatusFilter(e.target.value)}
@@ -560,8 +782,18 @@ export const ClientPortalShell: React.FC = () => {
                     </select>
 
                     <button
+                      onClick={() => fetchData(true)}
+                      disabled={loading}
+                      className="interactive-btn-hover flex items-center gap-1.5 px-3.5 py-2 bg-slate-50 hover:bg-slate-100 text-slate-700 border border-slate-200 text-xs font-bold rounded-xl transition-all shadow-sm shrink-0 cursor-pointer"
+                      title="Refresh Employees List"
+                    >
+                      <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin text-growth-teal' : 'text-slate-500'}`} />
+                      <span>Refresh</span>
+                    </button>
+
+                    <button
                       onClick={() => setShowAddEmployee(true)}
-                      className="flex items-center gap-1.5 px-4 py-2 bg-growth-teal hover:bg-growth-tealDark text-white text-xs font-bold rounded-xl shadow-tealGlow transition-all shrink-0"
+                      className="interactive-btn-hover flex items-center gap-1.5 px-4 py-2 bg-growth-teal hover:bg-growth-tealDark text-white text-xs font-bold rounded-xl shadow-tealGlow transition-all shrink-0 cursor-pointer"
                     >
                       <UserPlus className="w-3.5 h-3.5" />
                       <span>Onboard Staff</span>
@@ -569,122 +801,253 @@ export const ClientPortalShell: React.FC = () => {
                   </div>
                 </div>
 
-                {/* Complete Employee Table */}
-                <div className="bg-white border border-slate-200 rounded-3xl shadow-sm overflow-hidden">
-                  <div className="overflow-x-auto">
-                    <table className="w-full text-left text-xs">
-                      <thead className="bg-slate-50 text-slate-600 uppercase text-[10px] font-black tracking-wider border-b border-slate-200">
-                        <tr>
-                          <th className="py-3.5 px-4">Employee ID</th>
-                          <th className="py-3.5 px-4">Full Name</th>
-                          <th className="py-3.5 px-4">Mobile</th>
-                          <th className="py-3.5 px-4">Department</th>
-                          <th className="py-3.5 px-4">Designation</th>
-                          <th className="py-3.5 px-4">Joining Date</th>
-                          <th className="py-3.5 px-4">Status</th>
-                          <th className="py-3.5 px-4 text-right">Actions</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-slate-100 text-slate-700">
-                        {employees.map((emp) => {
-                          const isBlocked = emp.status === 'BLOCKED' || emp.isBlocked;
-                          return (
-                            <tr key={emp.id} className="hover:bg-slate-50/80 transition-all">
-                              <td className="py-3.5 px-4">
-                                <button
-                                  onClick={() => setSelectedEmpId(emp.employeeId)}
-                                  className="font-mono font-bold text-growth-teal hover:underline text-left"
-                                >
-                                  {emp.employeeId}
-                                </button>
-                              </td>
-                              <td className="py-3.5 px-4 font-bold text-slate-900">{emp.fullName}</td>
-                              <td className="py-3.5 px-4 text-slate-600">{emp.phone}</td>
-                              <td className="py-3.5 px-4 text-slate-500">{emp.departmentName}</td>
-                              <td className="py-3.5 px-4 text-slate-600">{emp.designation}</td>
-                              <td className="py-3.5 px-4 text-slate-500">
-                                {new Date(emp.joiningDate).toLocaleDateString()}
-                              </td>
-                              <td className="py-3.5 px-4">
-                                <span
-                                  className={`px-2.5 py-0.5 rounded text-[10px] font-black uppercase tracking-wider ${
-                                    isBlocked
-                                      ? 'bg-rose-50 text-rose-600 border border-rose-200'
-                                      : 'bg-emerald-50 text-emerald-600 border border-emerald-200'
-                                  }`}
-                                >
-                                  {emp.status}
+                {/* Card Grid View */}
+                {empViewMode === 'grid' && (
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {employees.map((emp) => {
+                      const isBlocked = emp.status === 'BLOCKED' || emp.isBlocked;
+                      return (
+                        <div
+                          key={emp.id}
+                          className="card-premium interactive-box-hover bg-white border border-slate-200 rounded-3xl p-5 shadow-sm space-y-4 hover:border-growth-teal/50 transition-all flex flex-col justify-between"
+                        >
+                          <div className="space-y-3">
+                            <div className="flex items-start justify-between gap-3">
+                              <div className="flex items-center gap-3">
+                                <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-growth-teal to-teal-800 text-white font-black text-sm flex items-center justify-center shadow-md shrink-0">
+                                  {emp.fullName?.charAt(0) || 'E'}
+                                </div>
+                                <div className="min-w-0">
+                                  <span className="font-mono text-[10px] font-extrabold text-growth-teal bg-teal-50 px-2 py-0.5 rounded border border-teal-200">
+                                    {emp.employeeId}
+                                  </span>
+                                  <h4 className="title-interactive-hover text-sm font-black text-slate-900 mt-1 truncate">
+                                    {emp.fullName}
+                                  </h4>
+                                </div>
+                              </div>
+                              <span
+                                className={`px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider shrink-0 ${
+                                  isBlocked
+                                    ? 'bg-rose-50 text-rose-600 border border-rose-200'
+                                    : 'bg-emerald-50 text-emerald-600 border border-emerald-200'
+                                }`}
+                              >
+                                {emp.status}
+                              </span>
+                            </div>
+
+                            <div className="space-y-1.5 text-xs text-slate-600 pt-2 border-t border-slate-100">
+                              <div className="flex items-center justify-between">
+                                <span className="text-slate-400 font-medium">Designation:</span>
+                                <span className="font-bold text-slate-800 truncate ml-2">{emp.designation || '—'}</span>
+                              </div>
+                              <div className="flex items-center justify-between">
+                                <span className="text-slate-400 font-medium">Department:</span>
+                                <span className="font-semibold text-slate-700 truncate ml-2">{emp.departmentName || 'General'}</span>
+                              </div>
+                              <div className="flex items-center justify-between">
+                                <span className="text-slate-400 font-medium">Mobile:</span>
+                                <a href={`tel:${emp.phone}`} className="font-mono text-growth-teal hover:underline font-bold">
+                                  {emp.phone || '—'}
+                                </a>
+                              </div>
+                              <div className="flex items-center justify-between">
+                                <span className="text-slate-400 font-medium">Joined:</span>
+                                <span className="font-medium text-slate-500">
+                                  {emp.joiningDate ? new Date(emp.joiningDate).toLocaleDateString() : '—'}
                                 </span>
-                              </td>
-                              <td className="py-3.5 px-4 text-right">
-                                <div className="flex items-center justify-end gap-1.5">
+                              </div>
+                            </div>
+                          </div>
+
+                          <div className="pt-3 border-t border-slate-100 flex items-center justify-between gap-1.5">
+                            <div className="flex items-center gap-1.5">
+                              <button
+                                onClick={() => setSelectedEmpId(emp.employeeId)}
+                                className="interactive-btn-hover p-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl border border-slate-200 transition cursor-pointer"
+                                title="View Profile Details"
+                              >
+                                <Eye className="w-3.5 h-3.5" />
+                              </button>
+                              <button
+                                onClick={() => setEditingEmployee(emp)}
+                                className="interactive-btn-hover p-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded-xl border border-indigo-200 transition cursor-pointer"
+                                title="Edit Profile"
+                              >
+                                <Edit className="w-3.5 h-3.5" />
+                              </button>
+                              <button
+                                onClick={() => {
+                                  setQuickResetEmp(emp);
+                                  setQuickPassword(`Emp#${Math.floor(1000 + Math.random() * 9000)}`);
+                                  setQuickResetResult(null);
+                                }}
+                                className="interactive-btn-hover p-2 bg-amber-50 hover:bg-amber-100 text-amber-700 border border-amber-200 rounded-xl transition cursor-pointer"
+                                title="Reset Password"
+                              >
+                                <KeyRound className="w-3.5 h-3.5" />
+                              </button>
+                            </div>
+
+                            {isBlocked ? (
+                              <button
+                                onClick={() => setUnblockTarget(emp)}
+                                className="interactive-btn-hover px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-[11px] font-bold rounded-xl transition shadow-sm cursor-pointer"
+                              >
+                                Unblock
+                              </button>
+                            ) : (
+                              <button
+                                onClick={() => setBlockTarget(emp)}
+                                className="interactive-btn-hover px-3 py-1.5 bg-rose-600 hover:bg-rose-700 text-white text-[11px] font-bold rounded-xl transition shadow-sm cursor-pointer"
+                              >
+                                Block Staff
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                    {employees.length === 0 && (
+                      <div className="col-span-full py-12 text-center text-slate-400">
+                        No employees found matching criteria.
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Table View */}
+                {empViewMode === 'table' && (
+                  <div className="panel-premium bg-white border border-slate-200 rounded-3xl shadow-card overflow-hidden">
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-left text-xs">
+                        <thead className="bg-slate-50 text-slate-600 uppercase text-[10px] font-black tracking-wider border-b border-slate-200">
+                          <tr>
+                            <th className="py-3.5 px-4">Employee ID</th>
+                            <th className="py-3.5 px-4">Full Name</th>
+                            <th className="py-3.5 px-4">Mobile</th>
+                            <th className="py-3.5 px-4">Department</th>
+                            <th className="py-3.5 px-4">Designation</th>
+                            <th className="py-3.5 px-4">Joining Date</th>
+                            <th className="py-3.5 px-4">Status</th>
+                            <th className="py-3.5 px-4 text-right">Actions</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-100 text-slate-700">
+                          {employees.map((emp) => {
+                            const isBlocked = emp.status === 'BLOCKED' || emp.isBlocked;
+                            return (
+                              <tr key={emp.id} className="interactive-row-hover hover:bg-teal-50/20 transition-all cursor-pointer">
+                                <td className="py-3.5 px-4">
                                   <button
                                     onClick={() => setSelectedEmpId(emp.employeeId)}
-                                    className="p-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg border border-slate-200"
-                                    title="View Profile & History"
+                                    className="font-mono font-bold text-growth-teal hover:underline text-left cursor-pointer"
                                   >
-                                    <Eye className="w-3.5 h-3.5" />
+                                    {emp.employeeId}
                                   </button>
-
-                                  <button
-                                    onClick={() => setEditingEmployee(emp)}
-                                    className="p-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded-lg border border-indigo-200 transition-all"
-                                    title="Edit Employee Details & Password"
+                                </td>
+                                <td className="py-3.5 px-4">
+                                  <span className="title-interactive-hover font-bold text-slate-900 inline-block">{emp.fullName}</span>
+                                </td>
+                                <td className="py-3.5 px-4 text-slate-600">{emp.phone}</td>
+                                <td className="py-3.5 px-4 text-slate-500">{emp.departmentName}</td>
+                                <td className="py-3.5 px-4 text-slate-600">{emp.designation}</td>
+                                <td className="py-3.5 px-4 text-slate-500">
+                                  {new Date(emp.joiningDate).toLocaleDateString()}
+                                </td>
+                                <td className="py-3.5 px-4">
+                                  <span
+                                    className={`px-2.5 py-0.5 rounded text-[10px] font-black uppercase tracking-wider ${
+                                      isBlocked
+                                        ? 'bg-rose-50 text-rose-600 border border-rose-200'
+                                        : 'bg-emerald-50 text-emerald-600 border border-emerald-200'
+                                    }`}
                                   >
-                                    <Edit className="w-3.5 h-3.5" />
-                                  </button>
-
-                                  <button
-                                    onClick={() => {
-                                      setQuickResetEmp(emp);
-                                      setQuickPassword(`Emp#${Math.floor(1000 + Math.random() * 9000)}`);
-                                      setQuickResetResult(null);
-                                    }}
-                                    className="p-1.5 bg-amber-50 hover:bg-amber-100 text-amber-700 border border-amber-200 rounded-lg transition-all"
-                                    title="Quick Reset Password"
-                                  >
-                                    <KeyRound className="w-3.5 h-3.5" />
-                                  </button>
-
-                                  {isBlocked ? (
+                                    {emp.status}
+                                  </span>
+                                </td>
+                                <td className="py-3.5 px-4 text-right">
+                                  <div className="flex items-center justify-end gap-1.5">
                                     <button
-                                      onClick={() => setUnblockTarget(emp)}
-                                      className="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-700 text-white text-[10px] font-bold rounded-lg transition-all shadow-sm"
+                                      onClick={() => setSelectedEmpId(emp.employeeId)}
+                                      className="interactive-btn-hover p-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg border border-slate-200 cursor-pointer"
+                                      title="View Profile & History"
                                     >
-                                      Unblock
+                                      <Eye className="w-3.5 h-3.5" />
                                     </button>
-                                  ) : (
+
                                     <button
-                                      onClick={() => setBlockTarget(emp)}
-                                      className="px-2.5 py-1 bg-rose-600 hover:bg-rose-700 text-white text-[10px] font-bold rounded-lg transition-all shadow-sm"
+                                      onClick={() => setEditingEmployee(emp)}
+                                      className="interactive-btn-hover p-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded-lg border border-indigo-200 transition-all cursor-pointer"
+                                      title="Edit Employee Details & Password"
                                     >
-                                      Block
+                                      <Edit className="w-3.5 h-3.5" />
                                     </button>
-                                  )}
-                                </div>
+
+                                    <button
+                                      onClick={() => {
+                                        setQuickResetEmp(emp);
+                                        setQuickPassword(`Emp#${Math.floor(1000 + Math.random() * 9000)}`);
+                                        setQuickResetResult(null);
+                                      }}
+                                      className="interactive-btn-hover p-1.5 bg-amber-50 hover:bg-amber-100 text-amber-700 border border-amber-200 rounded-lg transition-all cursor-pointer"
+                                      title="Quick Reset Password"
+                                    >
+                                      <KeyRound className="w-3.5 h-3.5" />
+                                    </button>
+
+                                    {isBlocked ? (
+                                      <button
+                                        onClick={() => setUnblockTarget(emp)}
+                                        className="interactive-btn-hover px-2.5 py-1 bg-emerald-600 hover:bg-emerald-700 text-white text-[10px] font-bold rounded-lg transition-all shadow-sm cursor-pointer"
+                                      >
+                                        Unblock
+                                      </button>
+                                    ) : (
+                                      <button
+                                        onClick={() => setBlockTarget(emp)}
+                                        className="interactive-btn-hover px-2.5 py-1 bg-rose-600 hover:bg-rose-700 text-white text-[10px] font-bold rounded-lg transition-all shadow-sm cursor-pointer"
+                                      >
+                                        Block
+                                      </button>
+                                    )}
+                                  </div>
+                                </td>
+                              </tr>
+                            );
+                          })}
+                          {employees.length === 0 && (
+                            <tr>
+                              <td colSpan={8} className="py-12 text-center text-slate-400">
+                                No employees found matching criteria.
                               </td>
                             </tr>
-                          );
-                        })}
-                        {employees.length === 0 && (
-                          <tr>
-                            <td colSpan={8} className="py-12 text-center text-slate-400">
-                              No employees found matching criteria.
-                            </td>
-                          </tr>
-                        )}
-                      </tbody>
-                    </table>
+                          )}
+                        </tbody>
+                      </table>
+                    </div>
                   </div>
-                </div>
+                )}
               </div>
             )}
 
             {activeTab === 'history' && (
-              <div className="bg-white border border-slate-200 rounded-3xl p-6 shadow-sm space-y-4">
-                <div>
-                  <h3 className="text-sm font-black text-slate-900">Employee Block / Unblock Audit Log</h3>
-                  <p className="text-xs text-slate-500 mt-0.5">Historical governance and security action records</p>
+              <div className="panel-premium bg-white border border-slate-200 rounded-3xl p-6 shadow-card space-y-4">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                  <div>
+                    <h3 className="title-interactive-hover text-sm font-black text-slate-900">Employee Block / Unblock Audit Log</h3>
+                    <p className="subtitle-interactive-hover text-xs text-slate-500 mt-0.5">Historical governance and security action records</p>
+                  </div>
+                  <button
+                    onClick={() => fetchData(true)}
+                    disabled={loading}
+                    className="interactive-btn-hover flex items-center gap-1.5 px-3.5 py-2 bg-slate-50 hover:bg-slate-100 text-slate-700 border border-slate-200 text-xs font-bold rounded-xl transition-all shadow-sm self-start sm:self-auto cursor-pointer"
+                    title="Refresh History Logs"
+                  >
+                    <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin text-growth-teal' : 'text-slate-500'}`} />
+                    <span>Refresh History</span>
+                  </button>
                 </div>
 
                 <div className="overflow-x-auto rounded-2xl border border-slate-200">
@@ -702,12 +1065,14 @@ export const ClientPortalShell: React.FC = () => {
                     </thead>
                     <tbody className="divide-y divide-slate-100 text-slate-700">
                       {blockHistories.map((h) => (
-                        <tr key={h.id} className="hover:bg-slate-50/80 transition">
+                        <tr key={h.id} className="interactive-row-hover hover:bg-teal-50/20 transition cursor-pointer">
                           <td className="py-3.5 px-4 text-slate-500">{new Date(h.actionDate).toLocaleString()}</td>
                           <td className="py-3.5 px-4 font-mono font-bold text-growth-teal">
                             {h.employee?.employeeId || h.employeeId}
                           </td>
-                          <td className="py-3.5 px-4 font-bold text-slate-900">{h.employee?.fullName || '—'}</td>
+                          <td className="py-3.5 px-4">
+                            <span className="title-interactive-hover font-bold text-slate-900 inline-block">{h.employee?.fullName || '—'}</span>
+                          </td>
                           <td className="py-3.5 px-4">
                             <span
                               className={`px-2 py-0.5 rounded text-[10px] font-black uppercase ${
@@ -737,9 +1102,22 @@ export const ClientPortalShell: React.FC = () => {
               </div>
             )}
 
-            {activeTab === 'workforce' && <ClientWorkforceView />}
-
-            {activeTab === 'attendance' && <ClientAttendanceView />}
+            {activeTab === 'attendance' && (
+              <ClientAttendanceHub
+                key={`hub-${attendanceRefreshKey}`}
+                initialSubTab={attendanceSubTab}
+                onSubTabChange={(sub) => {
+                  setAttendanceSubTab(sub);
+                  if (typeof window !== 'undefined') {
+                    const currentUrl = new URL(window.location.href);
+                    currentUrl.searchParams.set('tab', sub);
+                    window.history.pushState({ tab: sub }, '', currentUrl.toString());
+                  }
+                }}
+              />
+            )}
+            {activeTab === 'tasks' && <TaskManager />}
+            {activeTab === 'requests' && <ClientRequestsView key="client-requests" />}
           </div>
         </main>
       </div>

@@ -28,24 +28,32 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const refreshAuth = async (): Promise<boolean> => {
     try {
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 4000);
-      const res = await fetch('/api/auth/me', { signal: controller.signal });
-      clearTimeout(timeoutId);
+      const res = await fetch('/api/auth/me');
       if (res.ok) {
         const data = await res.json();
         if (data.authenticated && data.user) {
           setUser(data.user);
           setTodayAttendance(data.todayAttendance);
+          try {
+            localStorage.setItem('gi_auth_user', JSON.stringify(data.user));
+            if (data.todayAttendance) {
+              localStorage.setItem('gi_today_attendance', JSON.stringify(data.todayAttendance));
+            } else {
+              localStorage.removeItem('gi_today_attendance');
+            }
+          } catch {}
           return true;
         }
       }
       setUser(null);
       setTodayAttendance(null);
+      try {
+        localStorage.removeItem('gi_auth_user');
+        localStorage.removeItem('gi_today_attendance');
+      } catch {}
       return false;
     } catch (e) {
       console.error('Auth refresh error:', e);
-      setUser(null);
       return false;
     } finally {
       setLoading(false);
@@ -53,12 +61,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   useEffect(() => {
+    // Restore cached session immediately on client mount (safe from SSR hydration mismatches)
+    try {
+      const cached = localStorage.getItem('gi_auth_user');
+      const cachedAtt = localStorage.getItem('gi_today_attendance');
+      if (cached) {
+        setUser(JSON.parse(cached));
+        if (cachedAtt) setTodayAttendance(JSON.parse(cachedAtt));
+        setLoading(false);
+      }
+    } catch {}
+
     refreshAuth();
-    // Maximum 3.5s fallback to prevent sticking on loading screen
-    const fallbackTimer = setTimeout(() => {
-      setLoading(false);
-    }, 3500);
-    return () => clearTimeout(fallbackTimer);
   }, []);
 
   // Active interaction heartbeat every 30 seconds (only for regular employees)
@@ -142,6 +156,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const logout = async () => {
+    try {
+      localStorage.removeItem('gi_auth_user');
+      localStorage.removeItem('gi_today_attendance');
+    } catch {}
     await fetch('/api/auth/logout', { method: 'POST' });
     setUser(null);
     setTodayAttendance(null);

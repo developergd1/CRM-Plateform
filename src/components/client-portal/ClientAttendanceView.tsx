@@ -35,14 +35,14 @@ export const ClientAttendanceView: React.FC = () => {
   // Fetch Attendance History
   const fetchHistory = useCallback(async (forceRefresh = false) => {
     if (!forceRefresh) {
-      const cached = clientCache.get<any>(cacheKey, 10 * 60 * 1000);
+      const cached = clientCache.get<any>(cacheKey, 2 * 60 * 1000);
       if (cached) {
         setHistoryData(cached);
         setLoading(false);
-        return;
       }
+    } else {
+      setLoading(true);
     }
-    setLoading(true);
     try {
       const res = await fetch(`/api/attendance/history?month=${selectedMonth}`);
       if (res.ok) {
@@ -105,11 +105,11 @@ export const ClientAttendanceView: React.FC = () => {
       {/* TOP HEADER */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h2 className="text-xl font-black text-slate-900 flex items-center gap-2">
+          <h2 className="title-interactive-hover text-xl font-black text-slate-900 flex items-center gap-2">
             <Calendar className="w-5 h-5 text-growth-teal" />
             <span>Workforce Attendance & Governance</span>
           </h2>
-          <p className="text-xs text-slate-500 mt-0.5">
+          <p className="subtitle-interactive-hover text-xs text-slate-500 mt-0.5">
             Audit monthly attendance, shift logs, and real-time workforce time tracking
           </p>
         </div>
@@ -117,7 +117,7 @@ export const ClientAttendanceView: React.FC = () => {
         <div className="flex items-center gap-2">
           <button
             onClick={exportCSV}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-teal-50 hover:bg-teal-100 border border-teal-200 text-teal-800 text-xs font-bold transition shadow-sm"
+            className="interactive-btn-hover flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-teal-50 hover:bg-teal-100 border border-teal-200 text-teal-800 text-xs font-bold transition shadow-sm"
           >
             <Download className="w-3.5 h-3.5" />
             <span>Export CSV</span>
@@ -125,7 +125,7 @@ export const ClientAttendanceView: React.FC = () => {
 
           <button
             onClick={() => fetchHistory(true)}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white hover:bg-slate-50 border border-slate-200 text-slate-700 text-xs font-bold transition shadow-sm"
+            className="interactive-btn-hover flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white hover:bg-slate-50 border border-slate-200 text-slate-700 text-xs font-bold transition shadow-sm"
           >
             <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin text-growth-teal' : ''}`} />
             <span>Refresh</span>
@@ -137,19 +137,19 @@ export const ClientAttendanceView: React.FC = () => {
         {/* Monthly KPI Summary */}
         {historyData?.summary && (
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-            <div className="bg-white border border-slate-200 p-4 rounded-2xl shadow-sm">
+            <div className="card-premium interactive-box-hover bg-white border border-slate-200 p-4 rounded-2xl shadow-sm">
               <span className="text-slate-500 text-[10px] uppercase font-bold block">Total Logged</span>
               <span className="text-2xl font-black text-slate-900 font-mono mt-1 block">{historyData.summary.totalRecords}</span>
             </div>
-            <div className="bg-white border border-slate-200 p-4 rounded-2xl shadow-sm">
+            <div className="card-premium interactive-box-hover bg-white border border-slate-200 p-4 rounded-2xl shadow-sm">
               <span className="text-emerald-600 text-[10px] uppercase font-bold block">Present</span>
               <span className="text-2xl font-black text-emerald-600 font-mono mt-1 block">{historyData.summary.presentCount}</span>
             </div>
-            <div className="bg-white border border-slate-200 p-4 rounded-2xl shadow-sm">
+            <div className="card-premium interactive-box-hover bg-white border border-slate-200 p-4 rounded-2xl shadow-sm">
               <span className="text-amber-600 text-[10px] uppercase font-bold block">Late Check-Ins</span>
               <span className="text-2xl font-black text-amber-600 font-mono mt-1 block">{historyData.summary.lateCount}</span>
             </div>
-            <div className="bg-white border border-slate-200 p-4 rounded-2xl shadow-sm">
+            <div className="card-premium interactive-box-hover bg-white border border-slate-200 p-4 rounded-2xl shadow-sm">
               <span className="text-teal-700 text-[10px] uppercase font-bold block">Total Work Hours</span>
               <span className="text-2xl font-black text-teal-700 font-mono mt-1 block">{historyData.summary.totalWorkHours}h</span>
             </div>
@@ -157,7 +157,7 @@ export const ClientAttendanceView: React.FC = () => {
         )}
 
         {/* Filters Bar */}
-        <div className="flex flex-col sm:flex-row items-center gap-3 bg-white border border-slate-200 p-3 rounded-2xl shadow-sm">
+        <div className="panel-premium flex flex-col sm:flex-row items-center gap-3 bg-white border border-slate-200 p-3 rounded-2xl shadow-sm">
           <input
             type="month"
             value={selectedMonth}
@@ -190,7 +190,7 @@ export const ClientAttendanceView: React.FC = () => {
         </div>
 
         {/* Table */}
-        <div className="bg-white border border-slate-200 rounded-3xl overflow-hidden shadow-sm">
+        <div className="panel-premium bg-white border border-slate-200 rounded-3xl overflow-hidden shadow-card">
           <div className="overflow-x-auto">
             <table className="w-full text-left text-xs">
               <thead className="bg-slate-50 text-slate-600 uppercase text-[10px] tracking-wider border-b border-slate-200 font-mono font-bold">
@@ -217,10 +217,10 @@ export const ClientAttendanceView: React.FC = () => {
                     if (r.status === 'EARLY_EXIT') badgeColor = 'bg-rose-50 text-rose-700 border-rose-200';
 
                     return (
-                      <tr key={r.id} className="hover:bg-slate-50/80 transition">
+                      <tr key={r.id} className="interactive-row-hover hover:bg-teal-50/20 transition cursor-pointer">
                         <td className="py-3.5 px-4 font-mono font-bold text-slate-900">{r.date}</td>
                         <td className="py-3.5 px-4">
-                          <div className="font-bold text-slate-900">{r.employee?.fullName}</div>
+                          <div className="title-interactive-hover font-bold text-slate-900 inline-block">{r.employee?.fullName}</div>
                           <div className="text-[11px] text-slate-500 font-mono">
                             <span className="text-growth-teal font-bold">{r.employee?.employeeId}</span> • {r.employee?.designation}
                           </div>

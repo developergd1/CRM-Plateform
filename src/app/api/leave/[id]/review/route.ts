@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma';
 import { getSessionUser } from '@/lib/auth';
 import { isManagerOrAbove } from '@/lib/rbac';
 import { logAuditEvent } from '@/lib/audit';
+import { notifyLeaveReviewed } from '@/lib/notifications';
 
 export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
   try {
@@ -44,6 +45,14 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
       newData: { status, reviewedBy: user.employeeId, reviewRemarks },
       ipAddress: ip,
       status: 'SUCCESS',
+    });
+
+    // Notify Employee
+    await notifyLeaveReviewed({
+      leaveId: leave.id,
+      status,
+      reviewerName: user.companyName || user.fullName || 'Manager',
+      employeeId: leave.employeeId,
     });
 
     return NextResponse.json({ success: true, leave: updated });

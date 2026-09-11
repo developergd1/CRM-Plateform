@@ -26,6 +26,17 @@ export function verifyToken(token: string): TokenPayload | null {
   }
 }
 
+const sessionUserCache = new Map<string, { user: AuthUser; expiresAt: number }>();
+const SESSION_CACHE_TTL_MS = 10_000; // 10 seconds cache for rapid consecutive requests
+
+export function invalidateSessionUserCache(token?: string) {
+  if (token) {
+    sessionUserCache.delete(token);
+  } else {
+    sessionUserCache.clear();
+  }
+}
+
 /**
  * Server-side authentication guard.
  * Validates session and checks immediate revocation / suspension / block in the database.
@@ -48,8 +59,16 @@ export async function getSessionUser(req?: NextRequest): Promise<AuthUser | null
 
     if (!token) return null;
 
+    const cached = sessionUserCache.get(token);
+    if (cached && Date.now() < cached.expiresAt) {
+      return cached.user;
+    }
+
     const decoded = verifyToken(token);
-    if (!decoded || !decoded.userId) return null;
+    if (!decoded || !decoded.userId) {
+      sessionUserCache.delete(token);
+      return null;
+    }
 
     // Fetch user, employee and client status from DB for real-time suspension / block enforcement
     const user = await prisma.user.findUnique({
@@ -82,7 +101,7 @@ export async function getSessionUser(req?: NextRequest): Promise<AuthUser | null
     if (user.role.name === 'CLIENT') {
       const clientProfile = await prisma.client.findFirst({ where: { userId: user.id } });
       if (clientProfile) {
-        return {
+        const clientUser: AuthUser = {
           id: user.id,
           email: user.email,
           role: 'CLIENT',
@@ -96,15 +115,24 @@ export async function getSessionUser(req?: NextRequest): Promise<AuthUser | null
           departmentName: clientProfile.industry || 'Corporate Client Operations',
           isSuspended: user.isSuspended,
         };
+        sessionUserCache.set(token, { user: clientUser, expiresAt: Date.now() + SESSION_CACHE_TTL_MS });
+        return clientUser;
       }
     }
 
-    return {
+    const authUser: AuthUser = {
       id: user.id,
       email: user.email,
       role: user.role.name as any,
       roleDisplayName: user.role.displayName,
       employeeId: user.employeeProfile?.employeeId || (user.role.name === 'SUPER_ADMIN' ? 'GI-EMP-000001' : 'ADMIN'),
+      employeeProfileId: user.employeeProfile?.id,
+      employeeProfile: user.employeeProfile ? {
+        id: user.employeeProfile.id,
+        employeeId: user.employeeProfile.employeeId,
+        fullName: user.employeeProfile.fullName,
+        designation: user.employeeProfile.designation,
+      } : undefined,
       clientId: user.employeeProfile?.clientId || undefined,
       companyName: user.employeeProfile?.client?.companyName || undefined,
       fullName: user.employeeProfile?.fullName || (user.role.name === 'SUPER_ADMIN' ? 'Aarav Sharma' : 'Administrator'),
@@ -115,6 +143,8 @@ export async function getSessionUser(req?: NextRequest): Promise<AuthUser | null
         'Executive Leadership',
       isSuspended: user.isSuspended,
     };
+    sessionUserCache.set(token, { user: authUser, expiresAt: Date.now() + SESSION_CACHE_TTL_MS });
+    return authUser;
   } catch (error) {
     console.error('Session validation error:', error);
     return null;

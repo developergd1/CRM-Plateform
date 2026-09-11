@@ -38,18 +38,18 @@ export const AuditLogsView: React.FC = () => {
   return (
     <div className="space-y-6 pb-12">
       {/* Header */}
-      <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-card">
-        <h1 className="text-xl font-extrabold text-slate-900 tracking-tight flex items-center gap-2">
+      <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-card panel-premium">
+        <h1 className="text-xl font-extrabold text-slate-900 tracking-tight flex items-center gap-2 title-interactive-hover">
           <ShieldAlert className="w-5 h-5 text-growth-navy" />
           <span>Immutable Platform Audit Log Center</span>
         </h1>
-        <p className="text-xs text-slate-500 mt-1">
+        <p className="text-xs text-slate-500 mt-1 subtitle-interactive-hover">
           Cryptographically recorded historical trail of sensitive document views, employee status modifications, client reassignments, and logins
         </p>
       </div>
 
       {/* Filter Toolbar */}
-      <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-card flex flex-wrap items-center gap-3">
+      <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-card flex flex-wrap items-center gap-3 panel-premium">
         <div className="relative flex-1 min-w-[240px]">
           <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
           <input
@@ -77,7 +77,7 @@ export const AuditLogsView: React.FC = () => {
       </div>
 
       {/* Logs Table */}
-      <div className="bg-white rounded-3xl border border-slate-200 shadow-card overflow-hidden">
+      <div className="bg-white rounded-3xl border border-slate-200 shadow-card overflow-hidden panel-premium">
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs">
             <thead>
@@ -93,14 +93,14 @@ export const AuditLogsView: React.FC = () => {
             </thead>
             <tbody className="divide-y divide-slate-100">
               {logs.map((log) => (
-                <tr key={log.id} className="hover:bg-slate-50/80 transition-colors">
+                <tr key={log.id} className="interactive-row-hover cursor-pointer transition-colors">
                   <td className="py-3.5 px-4 font-mono font-medium text-slate-600">
                     {new Date(log.timestamp).toLocaleString()}
                   </td>
                   <td className="py-3.5 px-4 font-mono font-bold text-growth-teal bg-teal-50/30">
                     {log.actorEmployeeId || 'SYSTEM'}
                   </td>
-                  <td className="py-3.5 px-4 font-bold text-slate-900">
+                  <td className="py-3.5 px-4 font-bold text-slate-900 title-interactive-hover">
                     {log.action}
                   </td>
                   <td className="py-3.5 px-4">
@@ -124,7 +124,7 @@ export const AuditLogsView: React.FC = () => {
                   <td className="py-3.5 px-4 text-right">
                     <button
                       onClick={() => setSelectedLog(log)}
-                      className="px-2.5 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg font-bold text-[11px] flex items-center gap-1 ml-auto"
+                      className="px-2.5 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg font-bold text-[11px] flex items-center gap-1 ml-auto interactive-btn-hover cursor-pointer"
                     >
                       <Eye className="w-3.5 h-3.5" />
                       <span>Inspect</span>
@@ -148,21 +148,21 @@ export const AuditLogsView: React.FC = () => {
       {/* Inspect Modal */}
       {selectedLog && (
         <div className="fixed inset-0 bg-slate-950/60 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-in fade-in overflow-y-auto">
-          <div className="bg-white rounded-3xl p-6 max-w-xl w-full shadow-2xl border border-slate-200 space-y-4 text-xs my-auto max-h-[90vh] overflow-y-auto">
+          <div className="bg-white rounded-3xl p-6 max-w-xl w-full shadow-2xl border border-slate-200 space-y-4 text-xs my-auto max-h-[90vh] overflow-y-auto panel-premium">
             <div className="flex items-center justify-between border-b pb-3">
-              <h3 className="font-extrabold text-sm text-slate-900">
+              <h3 className="font-extrabold text-sm text-slate-900 title-interactive-hover">
                 Audit Event Details: {selectedLog.action}
               </h3>
-              <button onClick={() => setSelectedLog(null)}>
+              <button onClick={() => setSelectedLog(null)} className="interactive-btn-hover cursor-pointer">
                 <X className="w-4 h-4 text-slate-400" />
               </button>
             </div>
 
             <div className="space-y-3">
-              <div className="grid grid-cols-2 gap-3 p-3 bg-slate-50 rounded-xl">
+              <div className="grid grid-cols-2 gap-3 p-3 bg-slate-50 rounded-xl interactive-box-hover border border-slate-100">
                 <div>
                   <span className="text-slate-400 text-[10px] uppercase font-bold block">Actor Reference</span>
-                  <span className="font-bold font-mono">{selectedLog.actorEmployeeId}</span>
+                  <span className="font-bold font-mono title-interactive-hover">{selectedLog.actorEmployeeId}</span>
                 </div>
                 <div>
                   <span className="text-slate-400 text-[10px] uppercase font-bold block">Timestamp</span>
@@ -179,15 +179,15 @@ export const AuditLogsView: React.FC = () => {
               </div>
 
               {selectedLog.reason && (
-                <div className="p-3 bg-amber-50 rounded-xl text-amber-900">
-                  <span className="font-bold block">Stated Reason:</span>
+                <div className="p-3 bg-amber-50 rounded-xl text-amber-900 interactive-box-hover">
+                  <span className="font-bold block title-interactive-hover">Stated Reason:</span>
                   <p>{selectedLog.reason}</p>
                 </div>
               )}
 
               {selectedLog.previousData && (
-                <div>
-                  <span className="font-bold text-slate-600 block mb-1">Previous State Data:</span>
+                <div className="interactive-box-hover rounded-xl p-1">
+                  <span className="font-bold text-slate-600 block mb-1 title-interactive-hover">Previous State Data:</span>
                   <pre className="p-3 bg-slate-900 text-emerald-400 rounded-xl text-[11px] font-mono overflow-x-auto">
                     {selectedLog.previousData}
                   </pre>
@@ -195,8 +195,8 @@ export const AuditLogsView: React.FC = () => {
               )}
 
               {selectedLog.newData && (
-                <div>
-                  <span className="font-bold text-slate-600 block mb-1">New State Data:</span>
+                <div className="interactive-box-hover rounded-xl p-1">
+                  <span className="font-bold text-slate-600 block mb-1 title-interactive-hover">New State Data:</span>
                   <pre className="p-3 bg-slate-900 text-growth-gold rounded-xl text-[11px] font-mono overflow-x-auto">
                     {selectedLog.newData}
                   </pre>
@@ -207,7 +207,7 @@ export const AuditLogsView: React.FC = () => {
             <div className="flex justify-end pt-2">
               <button
                 onClick={() => setSelectedLog(null)}
-                className="px-4 py-2 bg-slate-900 text-white font-bold rounded-xl"
+                className="px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white font-bold rounded-xl interactive-btn-hover cursor-pointer"
               >
                 Close Inspector
               </button>

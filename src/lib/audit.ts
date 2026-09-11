@@ -4,7 +4,24 @@ interface LogAuditParams {
   actorUserId?: string | null;
   actorEmployeeId?: string | null;
   action: string;
-  entityType: 'EMPLOYEE' | 'CLIENT' | 'DOCUMENT' | 'ATTENDANCE' | 'SYSTEM' | 'TASK' | 'LEAVE' | 'ASSET' | 'AUTH';
+  entityType:
+    | 'EMPLOYEE'
+    | 'CLIENT'
+    | 'DOCUMENT'
+    | 'ATTENDANCE'
+    | 'SYSTEM'
+    | 'TASK'
+    | 'LEAVE'
+    | 'ASSET'
+    | 'AUTH'
+    | 'LEAD'
+    | 'CONTACT'
+    | 'OPPORTUNITY'
+    | 'DEAL'
+    | 'ACTIVITY'
+    | 'NOTE'
+    | 'FOLLOW_UP'
+    | 'PERMISSION';
   entityId?: string | null;
   previousData?: any;
   newData?: any;

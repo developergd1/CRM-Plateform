@@ -24,7 +24,9 @@ import {
   KeyRound,
   Trash2,
   Shield,
+  Compass,
 } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 import { AddClientModal } from './AddClientModal';
 import { EditClientModal } from './EditClientModal';
 import { AddEmployeeModal } from '../employees/AddEmployeeModal';
@@ -34,12 +36,18 @@ import { isAdminOrHR } from '@/lib/rbac';
 import { ClientItem } from '@/types';
 import { clientCache } from '@/lib/client-cache';
 
-export const ClientsListView: React.FC = () => {
+export interface ClientsListViewProps {
+  onView360?: (clientId: string) => void;
+  initialOpenAddModal?: boolean;
+}
+
+export const ClientsListView: React.FC<ClientsListViewProps> = ({ onView360, initialOpenAddModal }) => {
+  const router = useRouter();
   const { user } = useAuth();
   const cachedClients = clientCache.get<ClientItem[]>('crm_clients_list', 10 * 60 * 1000);
   const [clients, setClients] = useState<ClientItem[]>(() => cachedClients || []);
   const [loading, setLoading] = useState(() => !cachedClients);
-  const [showAddModal, setShowAddModal] = useState(false);
+  const [showAddModal, setShowAddModal] = useState(Boolean(initialOpenAddModal));
   const [editingClient, setEditingClient] = useState<ClientItem | null>(null);
   const [selectedClient, setSelectedClient] = useState<any | null>(null);
   const [onboardClientTarget, setOnboardClientTarget] = useState<string | null>(null);
@@ -47,6 +55,14 @@ export const ClientsListView: React.FC = () => {
   const [deleteClientTarget, setDeleteClientTarget] = useState<ClientItem | null>(null);
   const [actionLoading, setActionLoading] = useState(false);
   const [alertMsg, setAlertMsg] = useState<string | null>(null);
+
+  const handleView360 = (clientId: string) => {
+    if (onView360) {
+      onView360(clientId);
+    } else {
+      router.push(`/growthIndia/clients/${clientId}`);
+    }
+  };
 
   // Company Employees Modal state
   const [viewingCompanyEmployees, setViewingCompanyEmployees] = useState<ClientItem | null>(null);
@@ -197,13 +213,13 @@ export const ClientsListView: React.FC = () => {
       )}
 
       {/* Header Bar */}
-      <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-card flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div className="panel-premium bg-white p-6 rounded-3xl border border-slate-200 shadow-card flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-xl font-extrabold text-slate-900 tracking-tight flex items-center gap-2">
+          <h1 className="title-interactive-hover text-xl font-extrabold text-slate-900 tracking-tight flex items-center gap-2 cursor-pointer">
             <Building2 className="w-5 h-5 text-growth-teal" />
             <span>Client Management Directory</span>
           </h1>
-          <p className="text-xs text-slate-500">
+          <p className="subtitle-interactive-hover text-xs text-slate-500">
             Manage corporate client accounts with unique <strong className="text-growth-goldDark font-mono">CLI-XXXXX</strong> identifiers, login credentials & permissions
           </p>
         </div>
@@ -211,7 +227,7 @@ export const ClientsListView: React.FC = () => {
         <div className="flex items-center gap-2.5">
           <button
             onClick={() => fetchClients(true)}
-            className="flex items-center gap-2 px-3.5 py-2.5 bg-slate-50 hover:bg-slate-100 text-slate-700 font-bold text-xs rounded-xl border border-slate-200 transition-all shadow-sm"
+            className="interactive-btn-hover flex items-center gap-2 px-3.5 py-2.5 bg-slate-50 hover:bg-slate-100 text-slate-700 font-bold text-xs rounded-xl border border-slate-200 transition-all shadow-sm cursor-pointer"
             title="Refresh Client List"
           >
             <RefreshCw className="w-4 h-4 text-slate-500" />
@@ -220,7 +236,7 @@ export const ClientsListView: React.FC = () => {
 
           <button
             onClick={() => exportClientsCSV()}
-            className="flex items-center gap-2 px-3.5 py-2.5 bg-slate-50 hover:bg-slate-100 text-slate-700 font-bold text-xs rounded-xl border border-slate-200 transition-all"
+            className="interactive-btn-hover flex items-center gap-2 px-3.5 py-2.5 bg-slate-50 hover:bg-slate-100 text-slate-700 font-bold text-xs rounded-xl border border-slate-200 transition-all cursor-pointer"
             title="Export CSV"
           >
             <Download className="w-4 h-4 text-slate-500" />
@@ -229,7 +245,7 @@ export const ClientsListView: React.FC = () => {
 
           <button
             onClick={() => setShowAddModal(true)}
-            className="flex items-center gap-2 px-4 py-2.5 bg-growth-teal hover:bg-growth-tealDark text-white font-bold text-xs rounded-xl shadow-tealGlow transition-all"
+            className="interactive-btn-hover flex items-center gap-2 px-4 py-2.5 bg-growth-teal hover:bg-growth-tealDark text-white font-bold text-xs rounded-xl shadow-tealGlow transition-all cursor-pointer"
           >
             <Plus className="w-4 h-4" />
             <span>Add Client / Company</span>
@@ -238,7 +254,7 @@ export const ClientsListView: React.FC = () => {
       </div>
 
       {/* Filter and Search Bar */}
-      <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex flex-col md:flex-row items-center justify-between gap-3">
+      <div className="panel-premium bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex flex-col md:flex-row items-center justify-between gap-3">
         <div className="relative w-full md:w-96">
           <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
           <input
@@ -277,7 +293,7 @@ export const ClientsListView: React.FC = () => {
 
           <button
             onClick={() => fetchClients()}
-            className="p-2 text-slate-500 hover:text-slate-800 hover:bg-slate-100 rounded-xl transition-all"
+            className="interactive-btn-hover p-2 text-slate-500 hover:text-slate-800 hover:bg-slate-100 rounded-xl transition-all cursor-pointer"
             title="Refresh List"
           >
             <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
@@ -286,7 +302,7 @@ export const ClientsListView: React.FC = () => {
       </div>
 
       {/* Clients Table */}
-      <div className="bg-white rounded-3xl border border-slate-200 shadow-card overflow-hidden">
+      <div className="panel-premium bg-white rounded-3xl border border-slate-200 shadow-card overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs">
             <thead className="bg-slate-50 text-slate-500 uppercase text-[10px] font-black tracking-wider border-b border-slate-200">
@@ -321,12 +337,12 @@ export const ClientsListView: React.FC = () => {
               ) : (
                 clients.map((client) => {
                   return (
-                    <tr key={client.id} className="hover:bg-slate-50/80 transition-colors group">
+                    <tr key={client.id} className="interactive-row-hover hover:bg-teal-50/20 transition-colors group">
                       {/* Client ID */}
                       <td className="py-3.5 px-4 font-mono font-black text-growth-teal tracking-tight whitespace-nowrap">
                         <button
                           onClick={() => viewClientDetails(client.id)}
-                          className="hover:underline flex items-center gap-1 text-growth-teal"
+                          className="hover:underline flex items-center gap-1 text-growth-teal cursor-pointer"
                         >
                           <span>{client.clientId}</span>
                         </button>
@@ -337,7 +353,7 @@ export const ClientsListView: React.FC = () => {
                         <button
                           type="button"
                           onClick={() => openCompanyEmployeesModal(client)}
-                          className="flex items-center gap-1.5 text-left font-bold text-slate-900 hover:text-growth-teal group/cname transition-colors"
+                          className="title-interactive-hover flex items-center gap-1.5 text-left font-bold text-slate-900 hover:text-growth-teal group/cname transition-colors cursor-pointer"
                           title={`Click to view all employees under ${client.companyName}`}
                         >
                           <span className="group-hover/cname:underline">{client.companyName}</span>
@@ -398,7 +414,7 @@ export const ClientsListView: React.FC = () => {
                         <div className="inline-flex items-center gap-1.5">
                           <button
                             onClick={() => setOnboardClientTarget(client.id)}
-                            className="px-2.5 py-1 bg-teal-50 hover:bg-teal-100 text-growth-teal border border-teal-200 rounded-lg text-[11px] font-bold transition-all flex items-center gap-1"
+                            className="interactive-btn-hover px-2.5 py-1 bg-teal-50 hover:bg-teal-100 text-growth-teal border border-teal-200 rounded-lg text-[11px] font-bold transition-all flex items-center gap-1 cursor-pointer"
                             title="Onboard Employee under this Client"
                           >
                             <UserPlus className="w-3.5 h-3.5" />
@@ -415,7 +431,7 @@ export const ClientsListView: React.FC = () => {
                                 password: '',
                               });
                             }}
-                            className="p-1.5 hover:bg-amber-50 text-slate-600 hover:text-growth-goldDark rounded-lg transition-colors"
+                            className="interactive-btn-hover p-1.5 hover:bg-amber-50 text-slate-600 hover:text-growth-goldDark rounded-lg transition-colors cursor-pointer"
                             title="Reset / Edit Client Password"
                           >
                             <KeyRound className="w-4 h-4" />
@@ -425,7 +441,7 @@ export const ClientsListView: React.FC = () => {
                             <>
                               <button
                                 onClick={() => setEditingClient(client)}
-                                className="p-1.5 hover:bg-slate-100 text-slate-600 hover:text-indigo-600 rounded-lg transition-colors"
+                                className="interactive-btn-hover p-1.5 hover:bg-slate-100 text-slate-600 hover:text-indigo-600 rounded-lg transition-colors cursor-pointer"
                                 title="Edit Client Information"
                               >
                                 <Edit className="w-4 h-4" />
@@ -433,13 +449,22 @@ export const ClientsListView: React.FC = () => {
 
                               <button
                                 onClick={() => setDeleteClientTarget(client)}
-                                className="p-1.5 hover:bg-rose-50 text-slate-400 hover:text-rose-600 rounded-lg transition-colors"
+                                className="interactive-btn-hover p-1.5 hover:bg-rose-50 text-slate-400 hover:text-rose-600 rounded-lg transition-colors cursor-pointer"
                                 title="Delete Client"
                               >
                                 <Trash2 className="w-4 h-4" />
                               </button>
                             </>
                           )}
+
+                          <button
+                            onClick={() => handleView360(client.id)}
+                            className="interactive-btn-hover px-2.5 py-1 bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-700 hover:to-emerald-700 text-white rounded-lg text-[11px] font-bold transition-all flex items-center gap-1 shadow-sm cursor-pointer"
+                            title="Open 360° Client CRM & Workforce Console"
+                          >
+                            <Compass className="w-3.5 h-3.5" />
+                            <span>360°</span>
+                          </button>
 
                           <button
                             onClick={() => viewClientDetails(client.id)}
@@ -459,14 +484,7 @@ export const ClientsListView: React.FC = () => {
         </div>
       </div>
 
-      {/* Client Credentials Modal */}
-      {viewingCredentialsClient && (
-        <ClientCredentialsModal
-          isOpen={true}
-          onClose={() => setViewingCredentialsClient(null)}
-          credentials={viewingCredentialsClient}
-        />
-      )}
+
 
       {/* Delete Client Confirmation Modal */}
       {deleteClientTarget && (
@@ -720,10 +738,21 @@ export const ClientsListView: React.FC = () => {
             </div>
 
             {/* Footer */}
-            <div className="p-4 bg-slate-50 border-t border-slate-200 flex justify-end">
+            <div className="p-4 bg-slate-50 border-t border-slate-200 flex items-center justify-between">
+              <button
+                onClick={() => {
+                  const cid = selectedClient.id;
+                  setSelectedClient(null);
+                  handleView360(cid);
+                }}
+                className="px-4 py-2 bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-700 hover:to-emerald-700 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-md shadow-teal-500/20"
+              >
+                <Compass className="w-4 h-4" />
+                <span>Open 360° Console</span>
+              </button>
               <button
                 onClick={() => setSelectedClient(null)}
-                className="px-4 py-2 bg-slate-900 text-white rounded-xl text-xs font-bold"
+                className="px-4 py-2 bg-slate-200 hover:bg-slate-300 text-slate-700 rounded-xl text-xs font-bold"
               >
                 Close Drawer
               </button>
