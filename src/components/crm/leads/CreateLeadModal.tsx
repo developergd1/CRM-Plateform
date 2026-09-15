@@ -195,74 +195,95 @@ export const CreateLeadModal: React.FC<CreateLeadModalProps> = ({ isOpen, onClos
     }
   };
 
+  // Close on Escape key
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, onClose]);
+
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4 overflow-y-auto">
-      <div className="relative w-full max-w-4xl bg-slate-900 border border-slate-800 rounded-2xl shadow-2xl my-8 overflow-hidden">
+    <div
+      role="dialog"
+      aria-modal="true"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-3 sm:p-4 md:p-6 animate-in fade-in"
+      onClick={(e) => {
+        if (e.target === e.currentTarget) onClose();
+      }}
+    >
+      <div className="relative w-full max-w-4xl bg-slate-900 border border-slate-800 rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh] my-auto">
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-5 border-b border-slate-800 bg-slate-900/60">
+        <div className="flex items-center justify-between px-6 py-4 sm:py-5 border-b border-slate-800 bg-slate-900/90 shrink-0">
           <div className="flex items-center gap-3">
-            <div className="p-2 rounded-xl bg-teal-500/10 border border-teal-500/20 text-teal-400">
+            <div className="p-2.5 rounded-xl bg-teal-500/10 border border-teal-500/20 text-teal-400 shrink-0">
               <Sparkles className="w-5 h-5" />
             </div>
             <div>
-              <h2 className="text-xl font-bold text-white tracking-tight">Create Corporate Lead</h2>
+              <h2 className="text-lg sm:text-xl font-bold text-white tracking-tight">Create Corporate Lead</h2>
               <p className="text-xs text-slate-400">Capture and qualify a new prospective corporate client</p>
             </div>
           </div>
           <button
+            type="button"
             onClick={onClose}
             className="p-2 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
+            title="Close modal"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
-        {/* Duplicate Warning Banner */}
-        {duplicateMatches.length > 0 && (
-          <div className="mx-6 mt-5 p-4 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-200">
-            <div className="flex items-start gap-3">
-              <AlertTriangle className="w-5 h-5 text-amber-400 shrink-0 mt-0.5" />
-              <div className="space-y-1">
-                <p className="text-sm font-semibold text-amber-300">
-                  ⚠️ Potential Duplicate Lead Detected ({duplicateMatches.length} match{duplicateMatches.length > 1 ? 'es' : ''})
-                </p>
-                <div className="text-xs text-slate-300 space-y-1">
-                  {duplicateMatches.map((d) => (
-                    <div key={d.id} className="flex items-center gap-2">
-                      <span className="font-mono text-amber-400">{d.leadNumber}</span> —
-                      <span className="font-medium text-white">{d.fullName || d.contactPerson}</span>
-                      {d.companyName && <span>({d.companyName})</span>} —
-                      <span>{d.phone}</span> —
-                      <span className="px-1.5 py-0.5 rounded text-[10px] bg-slate-800 text-slate-300">
-                        Status: {d.status}
-                      </span>
+        {/* Form Container */}
+        <form onSubmit={handleSubmit} className="flex flex-col flex-1 min-h-0 overflow-hidden">
+          {/* Scrollable Form Body */}
+          <div className="flex-1 overflow-y-auto p-5 sm:p-6 space-y-6">
+            {/* Duplicate Warning Banner */}
+            {duplicateMatches.length > 0 && (
+              <div className="p-4 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-200">
+                <div className="flex items-start gap-3">
+                  <AlertTriangle className="w-5 h-5 text-amber-400 shrink-0 mt-0.5" />
+                  <div className="space-y-1">
+                    <p className="text-sm font-semibold text-amber-300">
+                      ⚠️ Potential Duplicate Lead Detected ({duplicateMatches.length} match{duplicateMatches.length > 1 ? 'es' : ''})
+                    </p>
+                    <div className="text-xs text-slate-300 space-y-1">
+                      {duplicateMatches.map((d) => (
+                        <div key={d.id} className="flex items-center gap-2">
+                          <span className="font-mono text-amber-400">{d.leadNumber}</span> —
+                          <span className="font-medium text-white">{d.fullName || d.contactPerson}</span>
+                          {d.companyName && <span>({d.companyName})</span>} —
+                          <span>{d.phone}</span> —
+                          <span className="px-1.5 py-0.5 rounded text-[10px] bg-slate-800 text-slate-300">
+                            Status: {d.status}
+                          </span>
+                        </div>
+                      ))}
                     </div>
-                  ))}
+                    <p className="text-xs text-amber-400/80 pt-1">
+                      You may still submit if this is a legitimate distinct inquiry.
+                    </p>
+                  </div>
                 </div>
-                <p className="text-xs text-amber-400/80 pt-1">
-                  You may still submit if this is a legitimate distinct inquiry.
-                </p>
               </div>
-            </div>
-          </div>
-        )}
+            )}
 
-        {/* Error Message */}
-        {errorMsg && (
-          <div className="mx-6 mt-4 p-3.5 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-300 text-sm">
-            {errorMsg}
-          </div>
-        )}
+            {/* Error Message */}
+            {errorMsg && (
+              <div className="p-3.5 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-300 text-sm">
+                {errorMsg}
+              </div>
+            )}
 
-        {/* Form */}
-        <form onSubmit={handleSubmit} className="p-6 space-y-6">
-          {/* Section 1: Contact Details */}
-          <div>
-            <h3 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">
-              Primary Contact Details
-            </h3>
+            {/* Section 1: Contact Details */}
+            <div>
+              <h3 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">
+                Primary Contact Details
+              </h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label className="block text-xs font-medium text-slate-300 mb-1.5">
@@ -551,9 +572,10 @@ export const CreateLeadModal: React.FC<CreateLeadModalProps> = ({ isOpen, onClos
               className="w-full px-3 py-2 bg-slate-800/80 border border-slate-700/80 rounded-xl text-sm text-white placeholder:text-slate-500 focus:outline-none focus:border-teal-500 transition-colors resize-none"
             />
           </div>
+        </div>
 
-          {/* Actions */}
-          <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-800">
+        {/* Actions (Pinned Footer) */}
+        <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-slate-800 bg-slate-900/90 shrink-0">
             <button
               type="button"
               onClick={onClose}
