@@ -113,25 +113,26 @@ export async function GET(
       }
     }
 
-    // Fetch audit logs & activities performed by this member
+    // Fetch audit logs & activities performed by this member specifically during this invitation's lifecycle
     const userIdsToMatch: string[] = [];
     const emailsToMatch: string[] = [invitation.email.toLowerCase()];
-    const employeeIdsToMatch: string[] = [];
 
     if (acceptedUser) {
       userIdsToMatch.push(acceptedUser.id);
       if (acceptedUser.email) emailsToMatch.push(acceptedUser.email.toLowerCase());
-      if (acceptedUser.employeeProfile?.employeeId) {
-        employeeIdsToMatch.push(acceptedUser.employeeProfile.employeeId);
-      }
     }
+
+    // Strict time scoping: only show activities that occurred since this specific invitation was created
+    const invitationStartTime = invitation.createdAt;
 
     const auditLogs = await prisma.auditLog.findMany({
       where: {
+        timestamp: { gte: invitationStartTime },
         OR: [
           ...(userIdsToMatch.length > 0 ? [{ actorUserId: { in: userIdsToMatch } }] : []),
           ...(emailsToMatch.length > 0 ? [{ actorEmployeeId: { in: emailsToMatch } }] : []),
-          ...(employeeIdsToMatch.length > 0 ? [{ actorEmployeeId: { in: employeeIdsToMatch } }] : []),
+          { entityId: invitation.id },
+          { entityId: invitation.token },
         ],
       },
       orderBy: { timestamp: 'desc' },

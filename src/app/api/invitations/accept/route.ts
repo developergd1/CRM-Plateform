@@ -90,7 +90,7 @@ export async function POST(req: NextRequest) {
         include: { role: true, employeeProfile: true },
       });
 
-      // If invited under Admin, create a delegated employee profile for display
+      // Ensure delegated employee profile exists for Admin invitation
       if (invitation.inviterRole === 'ADMIN') {
         const count = await prisma.employee.count();
         const empCode = `GI-DLG-${String(count + 1).padStart(4, '0')}`;
@@ -111,6 +111,21 @@ export async function POST(req: NextRequest) {
       }
     }
 
+    // Determine delegated employee identity to ensure clean separation
+    let delegatedEmpCode = 'SHARED-USER';
+    if (invitation.inviterRole === 'ADMIN') {
+      if (user.employeeProfile && user.employeeProfile.employeeId.startsWith('GI-DLG-')) {
+        delegatedEmpCode = user.employeeProfile.employeeId;
+      } else if (!user.employeeProfile) {
+        const count = await prisma.employee.count();
+        delegatedEmpCode = `GI-DLG-${String(count + 1).padStart(4, '0')}`;
+      } else {
+        delegatedEmpCode = `GI-DLG-${user.id.slice(-4).toUpperCase()}`;
+      }
+    } else {
+      delegatedEmpCode = invitation.clientId || 'CLIENT-DELEGATED';
+    }
+
     // Mark invitation record as accepted
     await prisma.accountInvitation.update({
       where: { id: invitation.id },
@@ -123,12 +138,12 @@ export async function POST(req: NextRequest) {
 
     invalidateSessionUserCache();
 
-    // Generate JWT token
+    // Generate JWT token with isolated delegated employee ID
     const jwtToken = createToken({
       userId: user.id,
       email: user.email,
       role: roleRecord.name,
-      employeeId: user.employeeProfile?.employeeId || 'SHARED-USER',
+      employeeId: delegatedEmpCode,
     });
 
     const ip = req.headers.get('x-forwarded-for') || '127.0.0.1';
