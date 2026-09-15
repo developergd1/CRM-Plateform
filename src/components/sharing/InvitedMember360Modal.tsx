@@ -158,7 +158,7 @@ export const InvitedMember360Modal: React.FC<InvitedMember360ModalProps> = ({
     const a = (action || '').toUpperCase();
     if (a.includes('CREATE') || a.includes('ADD') || a.includes('INVITE')) {
       return (
-        <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-lg text-[11px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+        <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-lg text-[11px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 shrink-0">
           <PlusCircle className="w-3.5 h-3.5 text-emerald-600" />
           {action}
         </span>
@@ -166,7 +166,7 @@ export const InvitedMember360Modal: React.FC<InvitedMember360ModalProps> = ({
     }
     if (a.includes('DELETE') || a.includes('REMOVE') || a.includes('ARCHIVE') || a.includes('REVOKE')) {
       return (
-        <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-lg text-[11px] font-bold bg-rose-50 text-rose-700 border border-rose-200">
+        <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-lg text-[11px] font-bold bg-rose-50 text-rose-700 border border-rose-200 shrink-0">
           <Trash2 className="w-3.5 h-3.5 text-rose-600" />
           {action}
         </span>
@@ -174,14 +174,14 @@ export const InvitedMember360Modal: React.FC<InvitedMember360ModalProps> = ({
     }
     if (a.includes('LOGIN') || a.includes('AUTH') || entityType === 'AUTH') {
       return (
-        <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-lg text-[11px] font-bold bg-amber-50 text-amber-700 border border-amber-200">
+        <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-lg text-[11px] font-bold bg-amber-50 text-amber-700 border border-amber-200 shrink-0">
           <LogIn className="w-3.5 h-3.5 text-amber-600" />
           {action}
         </span>
       );
     }
     return (
-      <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-lg text-[11px] font-bold bg-sky-50 text-sky-700 border border-sky-200">
+      <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-lg text-[11px] font-bold bg-sky-50 text-sky-700 border border-sky-200 shrink-0">
         <Edit3 className="w-3.5 h-3.5 text-sky-600" />
         {action}
       </span>
@@ -218,14 +218,14 @@ export const InvitedMember360Modal: React.FC<InvitedMember360ModalProps> = ({
     <div
       role="dialog"
       aria-modal="true"
-      className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-3 sm:p-4 md:p-6 animate-in fade-in"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-3 sm:p-5 md:p-6 animate-in fade-in"
       onClick={(e) => {
         if (e.target === e.currentTarget) onClose();
       }}
     >
-      <div className="relative w-full max-w-5xl bg-white border border-slate-200 rounded-3xl shadow-2xl flex flex-col max-h-[92vh] my-auto overflow-hidden">
-        {/* Header - Clean White & Polished */}
-        <div className="flex items-center justify-between px-6 py-4 sm:py-5 border-b border-slate-100 bg-white shrink-0 z-10">
+      <div className="relative w-full max-w-5xl bg-white border-2 border-slate-300 rounded-2xl sm:rounded-3xl shadow-2xl flex flex-col h-[88vh] max-h-[88vh] my-auto overflow-hidden ring-1 ring-slate-900/5">
+        {/* Header - Clean Crisp Contrasting Header with Border */}
+        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200 bg-slate-50/90 shrink-0 z-10">
           <div className="flex items-center gap-3.5 min-w-0">
             {/* Avatar with Live Indicator */}
             <div className="relative shrink-0">
@@ -257,17 +257,17 @@ export const InvitedMember360Modal: React.FC<InvitedMember360ModalProps> = ({
                   {invitation.name}
                 </h2>
                 {presence.isOnline ? (
-                  <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-extrabold bg-emerald-50 text-emerald-700 border border-emerald-200 shadow-sm">
+                  <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-extrabold bg-emerald-50 text-emerald-700 border border-emerald-200 shadow-sm shrink-0">
                     <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
                     LIVE ONLINE NOW
                   </span>
                 ) : (
-                  <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-slate-100 text-slate-600 border border-slate-200">
+                  <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-slate-100 text-slate-600 border border-slate-200 shrink-0">
                     <span className="w-2 h-2 rounded-full bg-slate-400" />
                     OFFLINE
                   </span>
                 )}
-                <span className="px-2.5 py-0.5 rounded-lg text-[10px] font-mono font-bold bg-teal-50 text-growth-teal border border-teal-200 uppercase">
+                <span className="px-2.5 py-0.5 rounded-lg text-[10px] font-mono font-bold bg-teal-50 text-growth-teal border border-teal-200 uppercase shrink-0">
                   {invitation.inviterRole === 'ADMIN' ? 'Delegated Admin' : 'Delegated Client'}
                 </span>
               </div>
@@ -282,13 +282,13 @@ export const InvitedMember360Modal: React.FC<InvitedMember360ModalProps> = ({
               onClick={() => fetchMember360(true)}
               disabled={refreshing}
               title="Refresh Member Data & Live Logs"
-              className="interactive-btn-hover p-2.5 rounded-xl text-slate-500 hover:text-slate-900 bg-slate-50 hover:bg-slate-100 border border-slate-200 transition-colors cursor-pointer"
+              className="interactive-btn-hover p-2.5 rounded-xl text-slate-500 hover:text-slate-900 bg-white hover:bg-slate-100 border border-slate-200 transition-colors cursor-pointer shadow-sm"
             >
               <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin text-growth-teal' : ''}`} />
             </button>
             <button
               onClick={onClose}
-              className="interactive-btn-hover p-2.5 rounded-xl text-slate-500 hover:text-slate-900 bg-slate-50 hover:bg-slate-100 border border-slate-200 transition-colors cursor-pointer"
+              className="interactive-btn-hover p-2.5 rounded-xl text-slate-500 hover:text-slate-900 bg-white hover:bg-slate-100 border border-slate-200 transition-colors cursor-pointer shadow-sm"
               title="Close modal (Esc)"
             >
               <X className="w-4 h-4" />
@@ -296,8 +296,8 @@ export const InvitedMember360Modal: React.FC<InvitedMember360ModalProps> = ({
           </div>
         </div>
 
-        {/* Modal Body - Scrollable */}
-        <div className="flex-1 overflow-y-auto p-5 sm:p-6 space-y-6 bg-slate-50/50 text-slate-800">
+        {/* Modal Body - Properly Contained with min-h-0 */}
+        <div className="flex-1 min-h-0 overflow-y-auto p-5 sm:p-6 space-y-6 bg-slate-50/40 text-slate-800">
           {loading ? (
             <div className="py-24 text-center space-y-3">
               <RefreshCw className="w-8 h-8 animate-spin text-growth-teal mx-auto" />
@@ -310,17 +310,17 @@ export const InvitedMember360Modal: React.FC<InvitedMember360ModalProps> = ({
             </div>
           ) : (
             <>
-              {/* TOP CARDS GRID */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                {/* 1. Live Presence & Page Card */}
-                <div className="card-premium interactive-box-hover p-4.5 rounded-2xl bg-white border border-slate-200 shadow-sm flex flex-col justify-between space-y-3">
+              {/* TOP 3 CARDS GRID */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-stretch">
+                {/* 1. Live Presence & Screen Card */}
+                <div className="card-premium interactive-box-hover p-4 rounded-2xl bg-white border border-slate-200 shadow-sm flex flex-col justify-between space-y-3 min-w-0">
                   <div className="flex items-center justify-between border-b border-slate-100 pb-2.5">
-                    <span className="text-[11px] font-bold text-slate-600 uppercase tracking-wider flex items-center gap-1.5">
-                      <Monitor className="w-3.5 h-3.5 text-growth-teal" />
+                    <span className="text-[11px] font-bold text-slate-600 uppercase tracking-wider flex items-center gap-1.5 truncate">
+                      <Monitor className="w-3.5 h-3.5 text-growth-teal shrink-0" />
                       Live Presence & Screen
                     </span>
                     <span
-                      className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                      className={`text-[10px] font-bold px-2 py-0.5 rounded-full shrink-0 ${
                         presence.isOnline
                           ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
                           : 'bg-slate-100 text-slate-600 border border-slate-200'
@@ -330,56 +330,66 @@ export const InvitedMember360Modal: React.FC<InvitedMember360ModalProps> = ({
                     </span>
                   </div>
 
-                  <div className="space-y-2">
-                    <div>
-                      <div className="text-[10px] text-slate-500 font-semibold">Current Screen / Active Page:</div>
-                      <div className="text-xs font-bold text-slate-900 bg-slate-50 px-3 py-2 rounded-xl border border-slate-200/80 mt-1 truncate">
+                  <div className="space-y-2.5 min-w-0">
+                    <div className="min-w-0">
+                      <div className="text-[10px] text-slate-500 font-semibold mb-1">Current Screen / Active Page:</div>
+                      <div className="w-full bg-slate-50 px-3 py-2 rounded-xl border border-slate-200/80 min-w-0 overflow-hidden">
                         {presence.currentPage ? (
-                          <span className="flex items-center gap-1.5">
+                          <div className="flex items-center gap-1.5 min-w-0">
                             <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0 animate-pulse" />
-                            <span className="font-mono text-growth-teal font-black">{presence.currentPage}</span>
-                          </span>
+                            <span
+                              className="font-mono text-growth-teal font-bold text-xs truncate min-w-0 block"
+                              title={presence.currentPage}
+                            >
+                              {presence.currentPage}
+                            </span>
+                          </div>
                         ) : (
-                          <span className="text-slate-400 italic">Not actively browsing</span>
+                          <span className="text-slate-400 italic text-xs">Not actively browsing</span>
                         )}
                       </div>
                     </div>
 
-                    <div className="grid grid-cols-2 gap-2 pt-1 text-[11px]">
-                      <div>
-                        <span className="text-slate-400 block text-[10px] font-medium">Last Active:</span>
-                        <span className="font-bold text-slate-700">
+                    <div className="grid grid-cols-2 gap-2 text-xs bg-slate-50/60 p-2.5 rounded-xl border border-slate-100 min-w-0">
+                      <div className="min-w-0">
+                        <span className="text-slate-400 block text-[10px] font-bold uppercase tracking-wider">Last Active</span>
+                        <span className="font-bold text-slate-800 text-xs block truncate mt-0.5">
                           {presence.lastActiveAt ? getRelativeTime(presence.lastActiveAt) : 'Never'}
                         </span>
                       </div>
-                      <div>
-                        <span className="text-slate-400 block text-[10px] font-medium">Last Login:</span>
-                        <span className="font-bold text-slate-700 truncate block" title={formatTimestamp(presence.lastLoginAt)}>
+                      <div className="min-w-0">
+                        <span className="text-slate-400 block text-[10px] font-bold uppercase tracking-wider">Last Login</span>
+                        <span
+                          className="font-bold text-slate-800 text-xs block truncate mt-0.5"
+                          title={formatTimestamp(presence.lastLoginAt)}
+                        >
                           {presence.lastLoginAt ? getRelativeTime(presence.lastLoginAt) : 'Never'}
                         </span>
                       </div>
                     </div>
                   </div>
 
-                  {presence.ipAddress && (
-                    <div className="text-[10px] text-slate-500 font-mono pt-2 border-t border-slate-100 flex items-center justify-between">
-                      <span>IP: {presence.ipAddress}</span>
-                      <span className="flex items-center gap-1">
-                        <span className={`w-1.5 h-1.5 rounded-full ${presence.isOnline ? 'bg-emerald-500' : 'bg-slate-300'}`} />
-                        <span>{presence.isOnline ? 'Connected' : 'Disconnected'}</span>
+                  <div className="text-[11px] text-slate-500 font-mono pt-2 border-t border-slate-100 flex items-center justify-between min-w-0">
+                    <span className="truncate" title={`IP: ${presence.ipAddress || 'Unknown'}`}>
+                      IP: {presence.ipAddress || 'Unknown'}
+                    </span>
+                    <span className="flex items-center gap-1.5 shrink-0">
+                      <span className={`w-1.5 h-1.5 rounded-full ${presence.isOnline ? 'bg-emerald-500' : 'bg-slate-300'}`} />
+                      <span className="text-[11px] font-sans font-medium text-slate-600">
+                        {presence.isOnline ? 'Connected' : 'Offline'}
                       </span>
-                    </div>
-                  )}
+                    </span>
+                  </div>
                 </div>
 
                 {/* 2. Operations & Activity Counters Card */}
-                <div className="card-premium interactive-box-hover p-4.5 rounded-2xl bg-white border border-slate-200 shadow-sm flex flex-col justify-between space-y-3">
+                <div className="card-premium interactive-box-hover p-4 rounded-2xl bg-white border border-slate-200 shadow-sm flex flex-col justify-between space-y-3 min-w-0">
                   <div className="flex items-center justify-between border-b border-slate-100 pb-2.5">
-                    <span className="text-[11px] font-bold text-slate-600 uppercase tracking-wider flex items-center gap-1.5">
-                      <Activity className="w-3.5 h-3.5 text-growth-gold" />
+                    <span className="text-[11px] font-bold text-slate-600 uppercase tracking-wider flex items-center gap-1.5 truncate">
+                      <Activity className="w-3.5 h-3.5 text-growth-gold shrink-0" />
                       Activity Metrics
                     </span>
-                    <span className="text-[10px] font-mono font-bold px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-700 border border-slate-200">
+                    <span className="text-[10px] font-mono font-bold px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-700 border border-slate-200 shrink-0">
                       Total: {stats.totalActions}
                     </span>
                   </div>
@@ -399,21 +409,21 @@ export const InvitedMember360Modal: React.FC<InvitedMember360ModalProps> = ({
                     </div>
                   </div>
 
-                  <div className="text-[11px] text-slate-600 bg-slate-50 p-2.5 rounded-xl border border-slate-200/80 flex items-center justify-between">
-                    <span className="font-medium">Successful Logins:</span>
-                    <span className="font-mono font-bold text-slate-900">{stats.authCount} times</span>
+                  <div className="text-[11px] text-slate-600 bg-slate-50 p-2.5 rounded-xl border border-slate-200/80 flex items-center justify-between min-w-0">
+                    <span className="font-medium truncate">Successful Logins:</span>
+                    <span className="font-mono font-bold text-slate-900 shrink-0">{stats.authCount} times</span>
                   </div>
                 </div>
 
                 {/* 3. Delegated Security & Access Card */}
-                <div className="card-premium interactive-box-hover p-4.5 rounded-2xl bg-white border border-slate-200 shadow-sm flex flex-col justify-between space-y-3">
+                <div className="card-premium interactive-box-hover p-4 rounded-2xl bg-white border border-slate-200 shadow-sm flex flex-col justify-between space-y-3 min-w-0">
                   <div className="flex items-center justify-between border-b border-slate-100 pb-2.5">
-                    <span className="text-[11px] font-bold text-slate-600 uppercase tracking-wider flex items-center gap-1.5">
-                      <ShieldCheck className="w-3.5 h-3.5 text-growth-teal" />
+                    <span className="text-[11px] font-bold text-slate-600 uppercase tracking-wider flex items-center gap-1.5 truncate">
+                      <ShieldCheck className="w-3.5 h-3.5 text-growth-teal shrink-0" />
                       Granted Permissions
                     </span>
                     <span
-                      className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                      className={`text-[10px] font-bold px-2 py-0.5 rounded-full shrink-0 ${
                         isRevoked
                           ? 'bg-rose-50 text-rose-700 border border-rose-200'
                           : 'bg-emerald-50 text-emerald-700 border border-emerald-200'
@@ -559,18 +569,18 @@ export const InvitedMember360Modal: React.FC<InvitedMember360ModalProps> = ({
                       return (
                         <div
                           key={log.id}
-                          className="card-premium interactive-box-hover bg-white border border-slate-200 rounded-2xl p-4 hover:border-growth-teal transition-all shadow-sm space-y-2.5"
+                          className="card-premium interactive-box-hover bg-white border border-slate-200 rounded-2xl p-4 hover:border-growth-teal transition-all shadow-sm space-y-2.5 min-w-0"
                         >
                           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                            <div className="flex items-center gap-2.5 flex-wrap">
+                            <div className="flex items-center gap-2.5 flex-wrap min-w-0">
                               {getActionBadge(log.action, log.entityType)}
 
-                              <span className="px-2 py-0.5 rounded-lg text-[10px] font-mono font-bold bg-slate-100 text-slate-700 border border-slate-200">
+                              <span className="px-2 py-0.5 rounded-lg text-[10px] font-mono font-bold bg-slate-100 text-slate-700 border border-slate-200 shrink-0">
                                 {log.entityType}
                               </span>
 
                               {log.entityId && (
-                                <span className="text-xs font-mono font-bold text-slate-800 bg-slate-50 px-2 py-0.5 rounded border border-slate-200">
+                                <span className="text-xs font-mono font-bold text-slate-800 bg-slate-50 px-2 py-0.5 rounded border border-slate-200 truncate max-w-xs">
                                   {log.entityId}
                                 </span>
                               )}
@@ -608,7 +618,7 @@ export const InvitedMember360Modal: React.FC<InvitedMember360ModalProps> = ({
                           {hasData && isExpanded && (
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-2 border-t border-slate-100 text-xs">
                               {log.previousData && (
-                                <div className="p-3 rounded-xl bg-rose-50/60 border border-rose-200/80">
+                                <div className="p-3 rounded-xl bg-rose-50/60 border border-rose-200/80 min-w-0">
                                   <span className="text-[10px] font-black text-rose-700 uppercase tracking-wider block mb-1">
                                     Previous State (Before)
                                   </span>
@@ -621,7 +631,7 @@ export const InvitedMember360Modal: React.FC<InvitedMember360ModalProps> = ({
                               )}
 
                               {log.newData && (
-                                <div className="p-3 rounded-xl bg-emerald-50/60 border border-emerald-200/80">
+                                <div className="p-3 rounded-xl bg-emerald-50/60 border border-emerald-200/80 min-w-0">
                                   <span className="text-[10px] font-black text-emerald-700 uppercase tracking-wider block mb-1">
                                     Updated / New State (After)
                                   </span>
@@ -651,8 +661,8 @@ export const InvitedMember360Modal: React.FC<InvitedMember360ModalProps> = ({
           )}
         </div>
 
-        {/* Footer - Clean Fixed White */}
-        <div className="flex items-center justify-between px-6 py-4 border-t border-slate-200 bg-white shrink-0 z-10 text-xs text-slate-600">
+        {/* Footer - Clean Fixed Distinct Footer */}
+        <div className="flex items-center justify-between px-6 py-3.5 border-t border-slate-200 bg-slate-50/90 shrink-0 z-10 text-xs text-slate-600">
           <div className="flex items-center gap-2">
             <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
             <span className="font-medium">Live audit tracking active • Auto-refreshes every 15s</span>
