@@ -152,13 +152,17 @@ export const InviteMemberModal: React.FC<InviteMemberModalProps> = ({
       });
 
       const data = await res.json();
-      if (!res.ok) {
-        throw new Error(data.error || 'Failed to create invitation');
-      }
+      const resolveInviteUrl = (url?: string | null, token?: string | null) => {
+        const t = token || (url && url.includes('token=') ? url.split('token=')[1].split('&')[0] : '');
+        const origin = typeof window !== 'undefined' ? window.location.origin : 'https://growth-india-crm.onrender.com';
+        return `${origin}/accept-invite?token=${t}`;
+      };
+
+      const finalUrl = resolveInviteUrl(data.invitation.invitationUrl, data.invitation.token);
 
       setGeneratedInvite({
         token: data.invitation.token,
-        invitationUrl: data.invitation.invitationUrl,
+        invitationUrl: finalUrl,
         name: data.invitation.name,
         email: data.invitation.email,
       });

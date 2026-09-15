@@ -69,20 +69,26 @@ export const SharedAccessManager: React.FC<SharedAccessManagerProps> = ({ role }
     setTimeout(() => setNotification(null), 3500);
   };
 
+  const resolveInviteUrl = (url?: string | null, token?: string | null) => {
+    const t = token || (url && url.includes('token=') ? url.split('token=')[1].split('&')[0] : '');
+    const origin = typeof window !== 'undefined' ? window.location.origin : 'https://growth-india-crm.onrender.com';
+    return `${origin}/accept-invite?token=${t}`;
+  };
+
   const handleCopyLink = (invitation: AccountInvitationItem) => {
-    if (!invitation.invitationUrl) return;
-    navigator.clipboard.writeText(invitation.invitationUrl);
+    const inviteUrl = resolveInviteUrl(invitation.invitationUrl, invitation.token);
+    navigator.clipboard.writeText(inviteUrl);
     setCopiedTokenId(invitation.id);
     setTimeout(() => setCopiedTokenId(null), 2500);
     showToast('Invitation link copied to clipboard!');
   };
 
   const handleWhatsAppShare = (invitation: AccountInvitationItem) => {
-    if (!invitation.invitationUrl) return;
+    const inviteUrl = resolveInviteUrl(invitation.invitationUrl, invitation.token);
     const inviterTitle = user?.fullName || (role === 'ADMIN' ? 'Platform Administrator' : 'Client Management');
     const roleType = role === 'ADMIN' ? 'Admin Team Member' : 'Corporate Client Workspace';
 
-    const message = `*Growth India CRM Invitation*\n\nHello *${invitation.name}*,\n\nYou have been invited by *${inviterTitle}* to access the *Growth India CRM Platform* (${roleType}).\n\n👉 *Click here to set your password and activate your account:*\n${invitation.invitationUrl}\n\n_Note: This secure link remains active until manually revoked._`;
+    const message = `*Growth India CRM Invitation*\n\nHello *${invitation.name}*,\n\nYou have been invited by *${inviterTitle}* to access the *Growth India CRM Platform* (${roleType}).\n\n👉 *Click here to set your password and activate your account:*\n${inviteUrl}\n\n_Note: This secure link remains active until manually revoked._`;
 
     const waUrl = `https://api.whatsapp.com/send?text=${encodeURIComponent(message)}`;
     window.open(waUrl, '_blank');

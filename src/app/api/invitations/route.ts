@@ -4,6 +4,52 @@ import { prisma } from '@/lib/prisma';
 import { getSessionUser } from '@/lib/auth';
 import { logAuditEvent } from '@/lib/audit';
 
+// Resolve true public URL for Render, proxies, and local development
+function getPublicBaseUrl(req: NextRequest): string {
+  if (process.env.NEXT_PUBLIC_APP_URL) {
+    return process.env.NEXT_PUBLIC_APP_URL.replace(/\/+$/, '');
+  }
+  if (process.env.APP_URL) {
+    return process.env.APP_URL.replace(/\/+$/, '');
+  }
+  if (process.env.RENDER_EXTERNAL_URL) {
+    return process.env.RENDER_EXTERNAL_URL.replace(/\/+$/, '');
+  }
+
+  const originHeader = req.headers.get('origin');
+  if (originHeader && !originHeader.includes('localhost:10000') && !originHeader.includes('127.0.0.1:10000')) {
+    return originHeader.replace(/\/+$/, '');
+  }
+
+  const refererHeader = req.headers.get('referer');
+  if (refererHeader) {
+    try {
+      const parsed = new URL(refererHeader);
+      if (!parsed.host.includes('localhost:10000') && !parsed.host.includes('127.0.0.1:10000')) {
+        return parsed.origin;
+      }
+    } catch {}
+  }
+
+  const forwardedHost = req.headers.get('x-forwarded-host');
+  if (forwardedHost && !forwardedHost.includes('localhost:10000') && !forwardedHost.includes('127.0.0.1:10000')) {
+    const proto = req.headers.get('x-forwarded-proto') || 'https';
+    return `${proto}://${forwardedHost}`.replace(/\/+$/, '');
+  }
+
+  const host = req.headers.get('host');
+  if (host && !host.includes('localhost:10000') && !host.includes('127.0.0.1:10000')) {
+    const proto = req.headers.get('x-forwarded-proto') || (req.url.startsWith('https') ? 'https' : 'http');
+    return `${proto}://${host}`.replace(/\/+$/, '');
+  }
+
+  if (process.env.NODE_ENV === 'production' || process.env.RENDER) {
+    return 'https://growth-india-crm.onrender.com';
+  }
+
+  return req.nextUrl.origin || 'http://localhost:3000';
+}
+
 export async function GET(req: NextRequest) {
   try {
     const user = await getSessionUser(req);
@@ -46,7 +92,7 @@ export async function GET(req: NextRequest) {
       orderBy: { createdAt: 'desc' },
     });
 
-    const origin = req.nextUrl.origin || 'http://localhost:3000';
+    const origin = getPublicBaseUrl(req);
 
     // Gather all candidate user IDs & emails to fetch live presence
     const acceptedUserIds = invitations.map((i) => i.acceptedUserId).filter(Boolean) as string[];
@@ -233,7 +279,7 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    const origin = req.nextUrl.origin || 'http://localhost:3000';
+    const origin = getPublicBaseUrl(req);
     const invitationUrl = `${origin}/accept-invite?token=${token}`;
 
     await logAuditEvent({
