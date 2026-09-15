@@ -181,29 +181,29 @@ export const SharedAccessManager: React.FC<SharedAccessManagerProps> = ({ role }
       )}
 
       {/* Top Banner Header */}
-      <div className="panel-premium bg-white p-6 rounded-3xl border border-slate-200 shadow-card flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div className="space-y-1">
-          <div className="flex items-center gap-3">
-            <div className="w-11 h-11 rounded-2xl bg-teal-50 text-growth-teal border border-teal-200 flex items-center justify-center font-bold shadow-sm">
-              <Users className="w-5 h-5" />
-            </div>
-            <div>
-              <h1 className="title-interactive-hover text-xl font-extrabold text-slate-900 tracking-tight flex items-center gap-2 cursor-pointer">
-                <span>Shared Team Access & Delegated RBAC</span>
-                <span className="text-[10px] uppercase font-mono px-2 py-0.5 rounded-full bg-amber-50 text-amber-700 border border-amber-200 font-bold">
-                  Live Security
-                </span>
+      <div className="panel-premium bg-white p-6 rounded-3xl border border-slate-200 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div className="flex items-center gap-3.5">
+          <div className="w-12 h-12 rounded-2xl bg-teal-50 text-growth-teal border border-teal-200 flex items-center justify-center font-bold shadow-sm shrink-0">
+            <Users className="w-6 h-6" />
+          </div>
+          <div>
+            <div className="flex items-center gap-2.5 flex-wrap">
+              <h1 className="title-interactive-hover text-xl font-black text-slate-900 tracking-tight cursor-pointer">
+                Shared Team Access & Delegated RBAC
               </h1>
-              <p className="subtitle-interactive-hover text-xs text-slate-500">
-                {role === 'ADMIN'
-                  ? 'Share access to specific Admin CRM modules with assistants without revealing your master password.'
-                  : 'Invite colleagues and team members to your Client workspace with strictly assigned privileges.'}
-              </p>
+              <span className="text-[10px] uppercase font-mono px-2.5 py-0.5 rounded-full bg-amber-50 text-amber-700 border border-amber-200 font-bold shrink-0">
+                Live Security
+              </span>
             </div>
+            <p className="subtitle-interactive-hover text-xs text-slate-500 font-medium mt-0.5">
+              {role === 'ADMIN'
+                ? 'Share access to specific Admin CRM modules with assistants without revealing your master password.'
+                : 'Invite colleagues and team members to your Client workspace with strictly assigned privileges.'}
+            </p>
           </div>
         </div>
 
-        <div className="flex items-center gap-2.5 w-full md:w-auto">
+        <div className="flex items-center gap-2.5 w-full md:w-auto shrink-0">
           <button
             onClick={fetchInvitations}
             disabled={loading}
@@ -226,43 +226,55 @@ export const SharedAccessManager: React.FC<SharedAccessManagerProps> = ({ role }
 
       {/* Quick KPI Stat Cards */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-        <div className="panel-premium bg-white p-4.5 rounded-2xl border border-slate-200 shadow-sm hover:border-growth-teal/50 hover:shadow-md transition-all cursor-pointer group">
-          <div className="text-[11px] font-bold text-slate-500 uppercase tracking-wider flex items-center gap-1.5">
-            <Users className="w-3.5 h-3.5 text-growth-teal" />
-            <span>Total Invitations</span>
+        <div className="card-premium interactive-box-hover bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex flex-col justify-between">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Total Invitations</span>
+            <div className="w-9 h-9 rounded-xl bg-teal-50 text-growth-teal border border-teal-200 flex items-center justify-center">
+              <Users className="w-4 h-4" />
+            </div>
           </div>
-          <div className="text-2xl font-black text-slate-900 mt-1.5 group-hover:text-growth-teal transition-colors">
-            {invitations.length}
-          </div>
-        </div>
-
-        <div className="panel-premium bg-white p-4.5 rounded-2xl border border-slate-200 shadow-sm hover:border-emerald-500/50 hover:shadow-md transition-all cursor-pointer group">
-          <div className="text-[11px] font-bold text-emerald-700 uppercase tracking-wider flex items-center gap-1.5">
-            <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
-            <span>Active & Authorized</span>
-          </div>
-          <div className="text-2xl font-black text-emerald-600 mt-1.5">
-            {activeCount}
+          <div className="mt-3">
+            <div className="text-3xl font-black text-slate-900 font-mono">{invitations.length}</div>
+            <div className="text-[11px] text-slate-500 font-medium mt-1">Invited team members</div>
           </div>
         </div>
 
-        <div className="panel-premium bg-white p-4.5 rounded-2xl border border-slate-200 shadow-sm hover:border-sky-500/50 hover:shadow-md transition-all cursor-pointer group">
-          <div className="text-[11px] font-bold text-sky-700 uppercase tracking-wider flex items-center gap-1.5">
-            <UserPlus className="w-3.5 h-3.5 text-sky-600" />
-            <span>Accepted Accounts</span>
+        <div className="card-premium interactive-box-hover bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex flex-col justify-between">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-bold text-emerald-700 uppercase tracking-wider">Active & Authorized</span>
+            <div className="w-9 h-9 rounded-xl bg-emerald-50 text-emerald-600 border border-emerald-200 flex items-center justify-center">
+              <ShieldCheck className="w-4 h-4" />
+            </div>
           </div>
-          <div className="text-2xl font-black text-sky-600 mt-1.5">
-            {acceptedCount}
+          <div className="mt-3">
+            <div className="text-3xl font-black text-emerald-600 font-mono">{activeCount}</div>
+            <div className="text-[11px] text-emerald-700 font-medium mt-1">Access enabled</div>
           </div>
         </div>
 
-        <div className="panel-premium bg-white p-4.5 rounded-2xl border border-slate-200 shadow-sm hover:border-rose-500/50 hover:shadow-md transition-all cursor-pointer group">
-          <div className="text-[11px] font-bold text-rose-700 uppercase tracking-wider flex items-center gap-1.5">
-            <Lock className="w-3.5 h-3.5 text-rose-600" />
-            <span>Revoked / Suspended</span>
+        <div className="card-premium interactive-box-hover bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex flex-col justify-between">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-bold text-sky-700 uppercase tracking-wider">Accepted Accounts</span>
+            <div className="w-9 h-9 rounded-xl bg-sky-50 text-sky-600 border border-sky-200 flex items-center justify-center">
+              <UserPlus className="w-4 h-4" />
+            </div>
           </div>
-          <div className="text-2xl font-black text-rose-600 mt-1.5">
-            {revokedCount}
+          <div className="mt-3">
+            <div className="text-3xl font-black text-sky-600 font-mono">{acceptedCount}</div>
+            <div className="text-[11px] text-sky-700 font-medium mt-1">Activated members</div>
+          </div>
+        </div>
+
+        <div className="card-premium interactive-box-hover bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex flex-col justify-between">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-bold text-rose-700 uppercase tracking-wider">Revoked / Suspended</span>
+            <div className="w-9 h-9 rounded-xl bg-rose-50 text-rose-600 border border-rose-200 flex items-center justify-center">
+              <Lock className="w-4 h-4" />
+            </div>
+          </div>
+          <div className="mt-3">
+            <div className="text-3xl font-black text-rose-600 font-mono">{revokedCount}</div>
+            <div className="text-[11px] text-rose-700 font-medium mt-1">Access disabled</div>
           </div>
         </div>
       </div>
