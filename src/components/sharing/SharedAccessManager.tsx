@@ -181,88 +181,112 @@ export const SharedAccessManager: React.FC<SharedAccessManagerProps> = ({ role }
       )}
 
       {/* Top Banner Header */}
-      <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 relative overflow-hidden shadow-xl">
-        <div className="absolute -top-12 -right-12 w-64 h-64 bg-growth-teal/10 rounded-full blur-3xl pointer-events-none" />
-        
-        <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 relative z-10">
-          <div className="space-y-1">
-            <div className="flex items-center gap-2.5">
-              <div className="w-10 h-10 rounded-2xl bg-growth-teal/20 text-growth-teal flex items-center justify-center font-bold">
-                <Users className="w-5 h-5" />
-              </div>
-              <div>
-                <h1 className="text-xl font-black text-white flex items-center gap-2">
-                  <span>Shared Team Access & Delegated RBAC</span>
-                  <span className="text-[10px] uppercase font-mono px-2 py-0.5 rounded-full bg-growth-gold/20 text-growth-gold border border-growth-gold/30">
-                    Live Security
-                  </span>
-                </h1>
-                <p className="text-xs text-slate-400">
-                  {role === 'ADMIN'
-                    ? 'Share access to specific Admin CRM modules with assistants without revealing your master password.'
-                    : 'Invite colleagues and team members to your Client workspace with strictly assigned privileges.'}
-                </p>
-              </div>
+      <div className="panel-premium bg-white p-6 rounded-3xl border border-slate-200 shadow-card flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div className="space-y-1">
+          <div className="flex items-center gap-3">
+            <div className="w-11 h-11 rounded-2xl bg-teal-50 text-growth-teal border border-teal-200 flex items-center justify-center font-bold shadow-sm">
+              <Users className="w-5 h-5" />
             </div>
-          </div>
-
-          <div className="flex items-center gap-2.5 w-full md:w-auto">
-            <button
-              onClick={fetchInvitations}
-              disabled={loading}
-              className="p-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white transition-colors flex items-center justify-center"
-              title="Refresh invitations"
-            >
-              <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin text-growth-teal' : ''}`} />
-            </button>
-
-            <button
-              onClick={() => setIsInviteModalOpen(true)}
-              className="flex-1 md:flex-none py-2.5 px-5 bg-gradient-to-r from-growth-teal to-growth-tealDark hover:opacity-95 text-white font-bold text-xs rounded-xl shadow-tealGlow transition-all flex items-center justify-center gap-2 cursor-pointer"
-            >
-              <UserPlus className="w-4 h-4" />
-              <span>+ Invite Person / Share Account</span>
-            </button>
+            <div>
+              <h1 className="title-interactive-hover text-xl font-extrabold text-slate-900 tracking-tight flex items-center gap-2 cursor-pointer">
+                <span>Shared Team Access & Delegated RBAC</span>
+                <span className="text-[10px] uppercase font-mono px-2 py-0.5 rounded-full bg-amber-50 text-amber-700 border border-amber-200 font-bold">
+                  Live Security
+                </span>
+              </h1>
+              <p className="subtitle-interactive-hover text-xs text-slate-500">
+                {role === 'ADMIN'
+                  ? 'Share access to specific Admin CRM modules with assistants without revealing your master password.'
+                  : 'Invite colleagues and team members to your Client workspace with strictly assigned privileges.'}
+              </p>
+            </div>
           </div>
         </div>
 
-        {/* Quick KPI Stat Cards */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-6 border-t border-slate-800/80 mt-6">
-          <div className="bg-slate-950/60 border border-slate-800/80 rounded-2xl p-3.5">
-            <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Total Invitations</div>
-            <div className="text-xl font-black text-white mt-1">{invitations.length}</div>
+        <div className="flex items-center gap-2.5 w-full md:w-auto">
+          <button
+            onClick={fetchInvitations}
+            disabled={loading}
+            className="interactive-btn-hover flex items-center gap-2 px-3.5 py-2.5 bg-slate-50 hover:bg-slate-100 text-slate-700 font-bold text-xs rounded-xl border border-slate-200 transition-all shadow-sm cursor-pointer"
+            title="Refresh invitations"
+          >
+            <RefreshCw className={`w-4 h-4 text-slate-500 ${loading ? 'animate-spin text-growth-teal' : ''}`} />
+            <span>Refresh</span>
+          </button>
+
+          <button
+            onClick={() => setIsInviteModalOpen(true)}
+            className="interactive-btn-hover flex items-center gap-2 px-4 py-2.5 bg-growth-teal hover:bg-growth-tealDark text-white font-bold text-xs rounded-xl shadow-tealGlow transition-all cursor-pointer"
+          >
+            <UserPlus className="w-4 h-4" />
+            <span>+ Invite Person / Share Account</span>
+          </button>
+        </div>
+      </div>
+
+      {/* Quick KPI Stat Cards */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+        <div className="panel-premium bg-white p-4.5 rounded-2xl border border-slate-200 shadow-sm hover:border-growth-teal/50 hover:shadow-md transition-all cursor-pointer group">
+          <div className="text-[11px] font-bold text-slate-500 uppercase tracking-wider flex items-center gap-1.5">
+            <Users className="w-3.5 h-3.5 text-growth-teal" />
+            <span>Total Invitations</span>
           </div>
-          <div className="bg-slate-950/60 border border-slate-800/80 rounded-2xl p-3.5">
-            <div className="text-[11px] font-bold text-emerald-400 uppercase tracking-wider">Active & Authorized</div>
-            <div className="text-xl font-black text-emerald-400 mt-1">{activeCount}</div>
+          <div className="text-2xl font-black text-slate-900 mt-1.5 group-hover:text-growth-teal transition-colors">
+            {invitations.length}
           </div>
-          <div className="bg-slate-950/60 border border-slate-800/80 rounded-2xl p-3.5">
-            <div className="text-[11px] font-bold text-blue-400 uppercase tracking-wider">Accepted Accounts</div>
-            <div className="text-xl font-black text-blue-400 mt-1">{acceptedCount}</div>
+        </div>
+
+        <div className="panel-premium bg-white p-4.5 rounded-2xl border border-slate-200 shadow-sm hover:border-emerald-500/50 hover:shadow-md transition-all cursor-pointer group">
+          <div className="text-[11px] font-bold text-emerald-700 uppercase tracking-wider flex items-center gap-1.5">
+            <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
+            <span>Active & Authorized</span>
           </div>
-          <div className="bg-slate-950/60 border border-slate-800/80 rounded-2xl p-3.5">
-            <div className="text-[11px] font-bold text-rose-400 uppercase tracking-wider">Revoked / Suspended</div>
-            <div className="text-xl font-black text-rose-400 mt-1">{revokedCount}</div>
+          <div className="text-2xl font-black text-emerald-600 mt-1.5">
+            {activeCount}
+          </div>
+        </div>
+
+        <div className="panel-premium bg-white p-4.5 rounded-2xl border border-slate-200 shadow-sm hover:border-sky-500/50 hover:shadow-md transition-all cursor-pointer group">
+          <div className="text-[11px] font-bold text-sky-700 uppercase tracking-wider flex items-center gap-1.5">
+            <UserPlus className="w-3.5 h-3.5 text-sky-600" />
+            <span>Accepted Accounts</span>
+          </div>
+          <div className="text-2xl font-black text-sky-600 mt-1.5">
+            {acceptedCount}
+          </div>
+        </div>
+
+        <div className="panel-premium bg-white p-4.5 rounded-2xl border border-slate-200 shadow-sm hover:border-rose-500/50 hover:shadow-md transition-all cursor-pointer group">
+          <div className="text-[11px] font-bold text-rose-700 uppercase tracking-wider flex items-center gap-1.5">
+            <Lock className="w-3.5 h-3.5 text-rose-600" />
+            <span>Revoked / Suspended</span>
+          </div>
+          <div className="text-2xl font-black text-rose-600 mt-1.5">
+            {revokedCount}
           </div>
         </div>
       </div>
 
       {/* Search & Filter Bar */}
-      <div className="flex items-center justify-between gap-4">
-        <div className="relative flex-1 max-w-md">
-          <Search className="w-4 h-4 text-slate-500 absolute left-3.5 top-1/2 -translate-y-1/2" />
+      <div className="panel-premium bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex flex-col sm:flex-row items-center justify-between gap-3">
+        <div className="relative w-full sm:w-96">
+          <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
           <input
             type="text"
             placeholder="Search by name, email, or designation..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full bg-slate-900 border border-slate-800 focus:border-growth-teal text-xs text-white rounded-2xl pl-10 pr-4 py-2.5 focus:outline-none transition-all placeholder-slate-500"
+            className="w-full pl-10 pr-4 py-2 bg-slate-50 border border-slate-200 focus:border-growth-teal focus:bg-white rounded-xl text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-growth-teal transition-all"
           />
+        </div>
+
+        <div className="text-xs text-slate-500 font-medium whitespace-nowrap">
+          Showing <strong className="text-slate-800">{filtered.length}</strong> of {invitations.length} members
         </div>
       </div>
 
       {/* Invitations & Members Table */}
-      <div className="bg-slate-900 border border-slate-800 rounded-3xl shadow-xl overflow-hidden">
+      <div className="rounded-2xl bg-white border border-slate-200 shadow-sm overflow-hidden panel-premium">
         {loading ? (
           <div className="py-20 text-center space-y-3">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-growth-teal mx-auto" />
@@ -270,12 +294,12 @@ export const SharedAccessManager: React.FC<SharedAccessManagerProps> = ({ role }
           </div>
         ) : filtered.length === 0 ? (
           <div className="py-16 text-center space-y-4 px-4">
-            <div className="w-16 h-16 rounded-full bg-slate-800/80 text-slate-500 mx-auto flex items-center justify-center">
+            <div className="w-16 h-16 rounded-full bg-slate-100 text-slate-400 mx-auto flex items-center justify-center border border-slate-200">
               <Users className="w-8 h-8" />
             </div>
             <div>
-              <h3 className="text-sm font-bold text-white">No Shared Members Yet</h3>
-              <p className="text-xs text-slate-400 mt-1 max-w-sm mx-auto">
+              <h3 className="text-sm font-bold text-slate-800">No Shared Members Yet</h3>
+              <p className="text-xs text-slate-500 mt-1 max-w-sm mx-auto">
                 {searchQuery
                   ? 'No members match your search criteria.'
                   : 'You haven\'t shared your account with anyone yet. Click below to create your first secure invite.'}
@@ -284,7 +308,7 @@ export const SharedAccessManager: React.FC<SharedAccessManagerProps> = ({ role }
             {!searchQuery && (
               <button
                 onClick={() => setIsInviteModalOpen(true)}
-                className="py-2 px-4 bg-growth-teal hover:bg-growth-tealDark text-white font-bold text-xs rounded-xl shadow-tealGlow transition-all inline-flex items-center gap-2 cursor-pointer"
+                className="interactive-btn-hover py-2 px-4 bg-growth-teal hover:bg-growth-tealDark text-white font-bold text-xs rounded-xl shadow-tealGlow transition-all inline-flex items-center gap-2 cursor-pointer"
               >
                 <UserPlus className="w-4 h-4" />
                 <span>Invite First Person</span>
@@ -295,15 +319,15 @@ export const SharedAccessManager: React.FC<SharedAccessManagerProps> = ({ role }
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse">
               <thead>
-                <tr className="border-b border-slate-800 bg-slate-950/60 text-[11px] font-extrabold uppercase tracking-wider text-slate-400">
-                  <th className="py-4 px-5">Invited Person</th>
-                  <th className="py-4 px-4">Status & Validity</th>
-                  <th className="py-4 px-4">Granted Permissions</th>
-                  <th className="py-4 px-4">Date Created</th>
-                  <th className="py-4 px-5 text-right">Sharing & Access Actions</th>
+                <tr className="bg-slate-50/90 text-slate-500 text-[11px] uppercase font-bold tracking-wider border-b border-slate-200">
+                  <th className="py-3.5 px-5">Invited Person</th>
+                  <th className="py-3.5 px-4">Status & Live Presence</th>
+                  <th className="py-3.5 px-4">Granted Permissions</th>
+                  <th className="py-3.5 px-4">Date Created</th>
+                  <th className="py-3.5 px-5 text-right">Sharing & Access Actions</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-800/60 text-xs">
+              <tbody className="divide-y divide-slate-100 font-medium">
                 {filtered.map((inv) => {
                   const isRevoked = inv.status === 'REVOKED';
                   const isAccepted = inv.status === 'ACCEPTED';
@@ -315,8 +339,8 @@ export const SharedAccessManager: React.FC<SharedAccessManagerProps> = ({ role }
                   return (
                     <tr
                       key={inv.id}
-                      className={`hover:bg-slate-800/40 transition-colors ${
-                        isRevoked ? 'opacity-60 bg-rose-950/10' : ''
+                      className={`interactive-row-hover hover:bg-teal-50/20 transition-all border-b border-slate-100 cursor-pointer ${
+                        isRevoked ? 'opacity-70 bg-rose-50/20' : ''
                       }`}
                     >
                       {/* Person Details */}
@@ -324,22 +348,22 @@ export const SharedAccessManager: React.FC<SharedAccessManagerProps> = ({ role }
                         <div className="flex items-center gap-3">
                           <div className="relative shrink-0">
                             <div
-                              className={`w-9 h-9 rounded-xl flex items-center justify-center font-bold text-xs shrink-0 ${
+                              className={`w-10 h-10 rounded-2xl flex items-center justify-center font-bold text-xs shrink-0 shadow-sm ${
                                 isRevoked
-                                  ? 'bg-rose-500/20 text-rose-400 border border-rose-500/30'
+                                  ? 'bg-rose-50 text-rose-700 border border-rose-200'
                                   : isOnline
-                                  ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/40'
+                                  ? 'bg-emerald-50 text-emerald-700 border border-emerald-300'
                                   : isAccepted
-                                  ? 'bg-sky-500/20 text-sky-400 border border-sky-500/30'
-                                  : 'bg-growth-teal/20 text-growth-teal border border-growth-teal/30'
+                                  ? 'bg-teal-50 text-growth-teal border border-teal-200'
+                                  : 'bg-slate-100 text-slate-700 border border-slate-200'
                               }`}
                             >
                               {inv.name.charAt(0).toUpperCase()}
                             </div>
                             {isAccepted && (
                               <span
-                                className={`absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2 border-slate-900 ${
-                                  isOnline ? 'bg-emerald-500' : 'bg-slate-500'
+                                className={`absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2 border-white ${
+                                  isOnline ? 'bg-emerald-500' : 'bg-slate-400'
                                 }`}
                                 title={isOnline ? 'Online Now' : 'Offline'}
                               />
@@ -348,19 +372,19 @@ export const SharedAccessManager: React.FC<SharedAccessManagerProps> = ({ role }
                           <div className="min-w-0">
                             <button
                               onClick={() => setSelected360Member(inv)}
-                              className="font-bold text-slate-100 hover:text-growth-teal transition-colors text-left flex items-center gap-1.5 cursor-pointer"
+                              className="title-interactive-hover font-bold text-slate-900 hover:text-growth-teal transition-colors text-left flex items-center gap-1.5 cursor-pointer"
                               title="Click to open 360° View"
                             >
                               <span>{inv.name}</span>
                               {isAccepted && (
-                                <span className="text-[9px] font-mono px-1.5 py-0.2 rounded bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+                                <span className="text-[9px] font-mono px-1.5 py-0.2 rounded bg-emerald-50 text-emerald-700 border border-emerald-200 font-bold">
                                   In Use
                                 </span>
                               )}
                             </button>
-                            <div className="text-[11px] text-slate-400 truncate">{inv.email}</div>
+                            <div className="text-[11px] text-slate-500 truncate">{inv.email}</div>
                             {inv.designation && (
-                              <div className="text-[10px] text-slate-400 mt-0.5">{inv.designation}</div>
+                              <div className="text-[10px] text-slate-400 font-medium mt-0.5">{inv.designation}</div>
                             )}
                           </div>
                         </div>
@@ -370,25 +394,25 @@ export const SharedAccessManager: React.FC<SharedAccessManagerProps> = ({ role }
                       <td className="py-4 px-4">
                         <div className="space-y-1">
                           {isRevoked ? (
-                            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold bg-rose-500/20 text-rose-400 border border-rose-500/30">
+                            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold bg-rose-50 text-rose-700 border border-rose-200">
                               <Lock className="w-3 h-3" />
                               <span>Revoked / Inactive</span>
                             </span>
                           ) : isOnline ? (
-                            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-extrabold bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 shadow-sm">
-                              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-extrabold bg-emerald-50 text-emerald-700 border border-emerald-200 shadow-sm">
+                              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
                               <span>Online Now</span>
                             </span>
                           ) : (
-                            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold bg-slate-800 text-slate-300 border border-slate-700">
+                            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold bg-slate-100 text-slate-700 border border-slate-200">
                               <Unlock className="w-3 h-3 text-slate-400" />
                               <span>Active (Offline)</span>
                             </span>
                           )}
 
                           {currentPage && isOnline ? (
-                            <div className="text-[10px] text-teal-400 flex items-center gap-1 truncate max-w-[190px]" title={currentPage}>
-                              <Monitor className="w-3 h-3 shrink-0" />
+                            <div className="text-[10px] text-teal-700 font-medium flex items-center gap-1 truncate max-w-[200px]" title={currentPage}>
+                              <Monitor className="w-3 h-3 text-growth-teal shrink-0" />
                               <span className="truncate">{currentPage}</span>
                             </div>
                           ) : (
@@ -406,13 +430,13 @@ export const SharedAccessManager: React.FC<SharedAccessManagerProps> = ({ role }
                           {inv.permissions.slice(0, 3).map((perm) => (
                             <span
                               key={perm}
-                              className="px-2 py-0.5 rounded-lg text-[10px] font-mono bg-slate-800 text-slate-300 border border-slate-700"
+                              className="px-2 py-0.5 rounded-lg text-[10px] font-mono bg-slate-100 text-slate-700 border border-slate-200"
                             >
                               {perm}
                             </span>
                           ))}
                           {inv.permissions.length > 3 && (
-                            <span className="px-1.5 py-0.5 rounded-lg text-[10px] font-bold bg-slate-800 text-growth-teal border border-slate-700">
+                            <span className="px-1.5 py-0.5 rounded-lg text-[10px] font-bold bg-teal-50 text-growth-teal border border-teal-200">
                               +{inv.permissions.length - 3} more
                             </span>
                           )}
@@ -420,7 +444,7 @@ export const SharedAccessManager: React.FC<SharedAccessManagerProps> = ({ role }
                       </td>
 
                       {/* Created Date */}
-                      <td className="py-4 px-4 text-slate-400 text-[11px] whitespace-nowrap">
+                      <td className="py-4 px-4 text-slate-500 text-[11px] whitespace-nowrap font-medium">
                         {new Date(inv.createdAt).toLocaleDateString('en-IN', {
                           day: '2-digit',
                           month: 'short',
@@ -435,7 +459,7 @@ export const SharedAccessManager: React.FC<SharedAccessManagerProps> = ({ role }
                           <button
                             onClick={() => setSelected360Member(inv)}
                             title="Open 360° View, Live Presence & Activity History"
-                            className="px-2.5 py-1.5 rounded-xl bg-growth-teal/15 hover:bg-growth-teal text-growth-teal hover:text-white border border-growth-teal/30 text-[11px] font-bold flex items-center gap-1.5 transition-all cursor-pointer shadow-sm"
+                            className="interactive-btn-hover px-3 py-1.5 rounded-xl bg-teal-50 hover:bg-growth-teal text-growth-teal hover:text-white border border-teal-200 text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer shadow-sm"
                           >
                             <Eye className="w-3.5 h-3.5" />
                             <span>360° View</span>
@@ -445,10 +469,10 @@ export const SharedAccessManager: React.FC<SharedAccessManagerProps> = ({ role }
                           <button
                             onClick={() => handleCopyLink(inv)}
                             title="Copy Invitation Link"
-                            className={`p-2 rounded-xl border transition-all cursor-pointer ${
+                            className={`interactive-btn-hover p-2 rounded-xl border transition-all cursor-pointer ${
                               isCopied
-                                ? 'bg-emerald-500 text-white border-emerald-400'
-                                : 'bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white border-slate-700'
+                                ? 'bg-emerald-600 text-white border-emerald-500'
+                                : 'bg-slate-50 hover:bg-slate-100 text-slate-600 hover:text-slate-900 border-slate-200'
                             }`}
                           >
                             {isCopied ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
@@ -458,7 +482,7 @@ export const SharedAccessManager: React.FC<SharedAccessManagerProps> = ({ role }
                           <button
                             onClick={() => handleWhatsAppShare(inv)}
                             title="Share on WhatsApp"
-                            className="p-2 rounded-xl bg-[#25D366]/20 hover:bg-[#25D366] text-[#25D366] hover:text-slate-950 border border-[#25D366]/40 transition-all cursor-pointer"
+                            className="interactive-btn-hover p-2 rounded-xl bg-[#25D366]/10 hover:bg-[#25D366] text-[#25D366] hover:text-white border border-[#25D366]/30 transition-all cursor-pointer"
                           >
                             <MessageCircle className="w-3.5 h-3.5" />
                           </button>
@@ -468,10 +492,10 @@ export const SharedAccessManager: React.FC<SharedAccessManagerProps> = ({ role }
                             onClick={() => handleToggleStatus(inv)}
                             disabled={isActionLoading}
                             title={isRevoked ? 'Reactivate Access' : 'Revoke & Disable Access'}
-                            className={`px-3 py-1.5 rounded-xl font-bold text-[11px] flex items-center gap-1.5 transition-all cursor-pointer ${
+                            className={`interactive-btn-hover px-3 py-1.5 rounded-xl font-bold text-xs flex items-center gap-1.5 transition-all cursor-pointer border ${
                               isRevoked
-                                ? 'bg-emerald-500/20 hover:bg-emerald-500 text-emerald-300 hover:text-white border border-emerald-500/40'
-                                : 'bg-rose-500/20 hover:bg-rose-500 text-rose-300 hover:text-white border border-rose-500/40'
+                                ? 'bg-emerald-50 hover:bg-emerald-600 text-emerald-700 hover:text-white border-emerald-200'
+                                : 'bg-rose-50 hover:bg-rose-600 text-rose-700 hover:text-white border-rose-200'
                             }`}
                           >
                             {isActionLoading ? (
@@ -494,7 +518,7 @@ export const SharedAccessManager: React.FC<SharedAccessManagerProps> = ({ role }
                             onClick={() => handleDelete(inv)}
                             disabled={isActionLoading}
                             title="Permanently Delete Invitation"
-                            className="p-2 rounded-xl bg-slate-800 hover:bg-rose-500/30 text-slate-400 hover:text-rose-300 border border-slate-700 transition-colors cursor-pointer"
+                            className="interactive-btn-hover p-2 rounded-xl bg-slate-50 hover:bg-rose-50 text-slate-400 hover:text-rose-600 border border-slate-200 hover:border-rose-200 transition-colors cursor-pointer"
                           >
                             <Trash2 className="w-3.5 h-3.5" />
                           </button>
