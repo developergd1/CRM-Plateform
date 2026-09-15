@@ -48,6 +48,12 @@ export interface AccountInvitationItem {
   createdAt: string;
   updatedAt: string;
   invitationUrl?: string;
+  presence?: {
+    isOnline: boolean;
+    currentPage?: string | null;
+    lastActiveAt?: string | null;
+    lastLoginAt?: string | null;
+  };
 }
 
 export interface ClientItem {

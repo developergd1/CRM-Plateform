@@ -48,12 +48,55 @@ export async function GET(req: NextRequest) {
 
     const origin = req.nextUrl.origin || 'http://localhost:3000';
 
+    // Gather all candidate user IDs & emails to fetch live presence
+    const acceptedUserIds = invitations.map((i) => i.acceptedUserId).filter(Boolean) as string[];
+    const emails = invitations.map((i) => i.email.toLowerCase());
+
+    const [users, presenceSessions] = await Promise.all([
+      prisma.user.findMany({
+        where: {
+          OR: [
+            ...(acceptedUserIds.length > 0 ? [{ id: { in: acceptedUserIds } }] : []),
+            { email: { in: emails } },
+          ],
+        },
+        select: { id: true, email: true, lastLoginAt: true },
+      }),
+      prisma.activeUserSession.findMany({
+        where: {
+          sessionToken: {
+            in: acceptedUserIds.map((uid) => `presence_${uid}`),
+          },
+        },
+      }),
+    ]);
+
+    const userByEmail = new Map(users.map((u) => [u.email.toLowerCase(), u]));
+    const userById = new Map(users.map((u) => [u.id, u]));
+    const sessionByUserId = new Map(presenceSessions.map((s) => [s.userId, s]));
+
     const formatted = invitations.map((inv) => {
       let parsedPerms: string[] = [];
       try {
         parsedPerms = JSON.parse(inv.permissions);
       } catch (e) {
         parsedPerms = [];
+      }
+
+      const linkedUser =
+        (inv.acceptedUserId ? userById.get(inv.acceptedUserId) : null) ||
+        userByEmail.get(inv.email.toLowerCase());
+      const session = linkedUser ? sessionByUserId.get(linkedUser.id) : null;
+
+      let isOnline = false;
+      let currentPage: string | null = null;
+      let lastActiveAt: string | null = null;
+
+      if (session) {
+        const diffMs = Date.now() - new Date(session.lastActiveAt).getTime();
+        isOnline = diffMs < 55000 && session.isValid;
+        currentPage = session.deviceType || null;
+        lastActiveAt = session.lastActiveAt.toISOString();
       }
 
       return {
@@ -70,10 +113,16 @@ export async function GET(req: NextRequest) {
         revokedAt: inv.revokedAt?.toISOString() || null,
         revokedBy: inv.revokedBy || null,
         acceptedAt: inv.acceptedAt?.toISOString() || null,
-        acceptedUserId: inv.acceptedUserId || null,
+        acceptedUserId: inv.acceptedUserId || linkedUser?.id || null,
         createdAt: inv.createdAt.toISOString(),
         updatedAt: inv.updatedAt.toISOString(),
         invitationUrl: `${origin}/accept-invite?token=${inv.token}`,
+        presence: {
+          isOnline,
+          currentPage,
+          lastActiveAt,
+          lastLoginAt: linkedUser?.lastLoginAt?.toISOString() || null,
+        },
       };
     });
 

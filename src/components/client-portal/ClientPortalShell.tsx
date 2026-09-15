@@ -47,6 +47,7 @@ import { EmployeeItem } from '@/types';
 import { NotificationBell } from '@/components/notifications/NotificationBell';
 import { TaskManager } from '../tasks/TaskManager';
 import { SharedAccessManager } from '../sharing/SharedAccessManager';
+import { PresenceTracker } from '../presence/PresenceTracker';
 
 import { clientCache } from '@/lib/client-cache';
 
@@ -390,6 +391,8 @@ export const ClientPortalShell: React.FC<ClientPortalShellProps> = ({ initialTab
 
   return (
     <div className="flex h-screen bg-slate-100/70 overflow-hidden font-sans">
+      <PresenceTracker activeTab={activeTab} />
+
       {/* LEFT SIDEBAR (Growth India Dark Theme) */}
       <aside className="w-64 bg-slate-900 text-slate-300 flex flex-col shrink-0 border-r border-slate-800 select-none">
         {/* Brand Header */}

@@ -21,10 +21,14 @@ import {
   Sparkles,
   Key,
   Clock,
+  Eye,
+  Monitor,
+  Activity,
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { AccountInvitationItem } from '@/types';
 import { InviteMemberModal } from './InviteMemberModal';
+import { InvitedMember360Modal } from './InvitedMember360Modal';
 
 interface SharedAccessManagerProps {
   role: 'ADMIN' | 'CLIENT';
@@ -36,6 +40,7 @@ export const SharedAccessManager: React.FC<SharedAccessManagerProps> = ({ role }
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [isInviteModalOpen, setIsInviteModalOpen] = useState(false);
+  const [selected360Member, setSelected360Member] = useState<AccountInvitationItem | null>(null);
   const [actionLoadingId, setActionLoadingId] = useState<string | null>(null);
   const [copiedTokenId, setCopiedTokenId] = useState<string | null>(null);
   const [notification, setNotification] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
@@ -304,6 +309,8 @@ export const SharedAccessManager: React.FC<SharedAccessManagerProps> = ({ role }
                   const isAccepted = inv.status === 'ACCEPTED';
                   const isCopied = copiedTokenId === inv.id;
                   const isActionLoading = actionLoadingId === inv.id;
+                  const isOnline = Boolean(inv.presence?.isOnline);
+                  const currentPage = inv.presence?.currentPage;
 
                   return (
                     <tr
@@ -315,26 +322,42 @@ export const SharedAccessManager: React.FC<SharedAccessManagerProps> = ({ role }
                       {/* Person Details */}
                       <td className="py-4 px-5">
                         <div className="flex items-center gap-3">
-                          <div
-                            className={`w-9 h-9 rounded-xl flex items-center justify-center font-bold text-xs shrink-0 ${
-                              isRevoked
-                                ? 'bg-rose-500/20 text-rose-400 border border-rose-500/30'
-                                : isAccepted
-                                ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
-                                : 'bg-growth-teal/20 text-growth-teal border border-growth-teal/30'
-                            }`}
-                          >
-                            {inv.name.charAt(0).toUpperCase()}
+                          <div className="relative shrink-0">
+                            <div
+                              className={`w-9 h-9 rounded-xl flex items-center justify-center font-bold text-xs shrink-0 ${
+                                isRevoked
+                                  ? 'bg-rose-500/20 text-rose-400 border border-rose-500/30'
+                                  : isOnline
+                                  ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/40'
+                                  : isAccepted
+                                  ? 'bg-sky-500/20 text-sky-400 border border-sky-500/30'
+                                  : 'bg-growth-teal/20 text-growth-teal border border-growth-teal/30'
+                              }`}
+                            >
+                              {inv.name.charAt(0).toUpperCase()}
+                            </div>
+                            {isAccepted && (
+                              <span
+                                className={`absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2 border-slate-900 ${
+                                  isOnline ? 'bg-emerald-500' : 'bg-slate-500'
+                                }`}
+                                title={isOnline ? 'Online Now' : 'Offline'}
+                              />
+                            )}
                           </div>
                           <div className="min-w-0">
-                            <div className="font-bold text-slate-100 truncate flex items-center gap-1.5">
+                            <button
+                              onClick={() => setSelected360Member(inv)}
+                              className="font-bold text-slate-100 hover:text-growth-teal transition-colors text-left flex items-center gap-1.5 cursor-pointer"
+                              title="Click to open 360° View"
+                            >
                               <span>{inv.name}</span>
                               {isAccepted && (
                                 <span className="text-[9px] font-mono px-1.5 py-0.2 rounded bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
                                   In Use
                                 </span>
                               )}
-                            </div>
+                            </button>
                             <div className="text-[11px] text-slate-400 truncate">{inv.email}</div>
                             {inv.designation && (
                               <div className="text-[10px] text-slate-400 mt-0.5">{inv.designation}</div>
@@ -343,7 +366,7 @@ export const SharedAccessManager: React.FC<SharedAccessManagerProps> = ({ role }
                         </div>
                       </td>
 
-                      {/* Status & Expiry */}
+                      {/* Status & Live Presence */}
                       <td className="py-4 px-4">
                         <div className="space-y-1">
                           {isRevoked ? (
@@ -351,16 +374,29 @@ export const SharedAccessManager: React.FC<SharedAccessManagerProps> = ({ role }
                               <Lock className="w-3 h-3" />
                               <span>Revoked / Inactive</span>
                             </span>
+                          ) : isOnline ? (
+                            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-extrabold bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 shadow-sm">
+                              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                              <span>Online Now</span>
+                            </span>
                           ) : (
-                            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
-                              <Unlock className="w-3 h-3" />
-                              <span>Active & Authorized</span>
+                            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold bg-slate-800 text-slate-300 border border-slate-700">
+                              <Unlock className="w-3 h-3 text-slate-400" />
+                              <span>Active (Offline)</span>
                             </span>
                           )}
-                          <div className="text-[10px] text-slate-400 flex items-center gap-1">
-                            <Clock className="w-3 h-3 text-growth-teal" />
-                            <span>Valid until manually revoked</span>
-                          </div>
+
+                          {currentPage && isOnline ? (
+                            <div className="text-[10px] text-teal-400 flex items-center gap-1 truncate max-w-[190px]" title={currentPage}>
+                              <Monitor className="w-3 h-3 shrink-0" />
+                              <span className="truncate">{currentPage}</span>
+                            </div>
+                          ) : (
+                            <div className="text-[10px] text-slate-400 flex items-center gap-1">
+                              <Clock className="w-3 h-3 text-growth-teal" />
+                              <span>Valid until revoked</span>
+                            </div>
+                          )}
                         </div>
                       </td>
 
@@ -395,6 +431,16 @@ export const SharedAccessManager: React.FC<SharedAccessManagerProps> = ({ role }
                       {/* Actions */}
                       <td className="py-4 px-5 text-right whitespace-nowrap">
                         <div className="flex items-center justify-end gap-1.5">
+                          {/* 360° View Button */}
+                          <button
+                            onClick={() => setSelected360Member(inv)}
+                            title="Open 360° View, Live Presence & Activity History"
+                            className="px-2.5 py-1.5 rounded-xl bg-growth-teal/15 hover:bg-growth-teal text-growth-teal hover:text-white border border-growth-teal/30 text-[11px] font-bold flex items-center gap-1.5 transition-all cursor-pointer shadow-sm"
+                          >
+                            <Eye className="w-3.5 h-3.5" />
+                            <span>360° View</span>
+                          </button>
+
                           {/* 1-Click Copy Link */}
                           <button
                             onClick={() => handleCopyLink(inv)}
@@ -448,7 +494,7 @@ export const SharedAccessManager: React.FC<SharedAccessManagerProps> = ({ role }
                             onClick={() => handleDelete(inv)}
                             disabled={isActionLoading}
                             title="Permanently Delete Invitation"
-                            className="p-2 rounded-xl bg-slate-800 hover:bg-rose-500/30 text-slate-400 hover:text-rose-300 border border-slate-700 transition-colors"
+                            className="p-2 rounded-xl bg-slate-800 hover:bg-rose-500/30 text-slate-400 hover:text-rose-300 border border-slate-700 transition-colors cursor-pointer"
                           >
                             <Trash2 className="w-3.5 h-3.5" />
                           </button>
@@ -463,7 +509,17 @@ export const SharedAccessManager: React.FC<SharedAccessManagerProps> = ({ role }
         )}
       </div>
 
-      {/* The Modal */}
+      {/* 360° Member View Modal */}
+      {selected360Member && (
+        <InvitedMember360Modal
+          isOpen={Boolean(selected360Member)}
+          onClose={() => setSelected360Member(null)}
+          invitation={selected360Member}
+          onStatusChange={fetchInvitations}
+        />
+      )}
+
+      {/* The Invite Modal */}
       <InviteMemberModal
         isOpen={isInviteModalOpen}
         onClose={() => setIsInviteModalOpen(false)}

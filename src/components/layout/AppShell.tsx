@@ -35,6 +35,7 @@ import { PasswordRequestsView } from '../auth/PasswordRequestsView';
 import { LeaveView } from '../leave/LeaveView';
 import { TaskManager } from '../tasks/TaskManager';
 import { SharedAccessManager } from '../sharing/SharedAccessManager';
+import { PresenceTracker } from '../presence/PresenceTracker';
 import { ShieldAlert } from 'lucide-react';
 
 export const AppShell: React.FC = () => {
@@ -331,6 +332,8 @@ export const AppShell: React.FC = () => {
 
   return (
     <div className="flex h-screen bg-slate-100/70 overflow-hidden font-sans">
+      <PresenceTracker activeTab={activeTab} />
+
       {/* Sidebar */}
       <Sidebar />
 
