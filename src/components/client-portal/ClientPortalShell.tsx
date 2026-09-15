@@ -35,6 +35,7 @@ import {
   FileBarChart,
   LayoutGrid,
   List,
+  Share2,
 } from 'lucide-react';
 import { AddEmployeeModal } from '@/components/employees/AddEmployeeModal';
 import { EditEmployeeModal } from '@/components/employees/EditEmployeeModal';
@@ -45,6 +46,7 @@ import { ClientRequestsView } from './ClientRequestsView';
 import { EmployeeItem } from '@/types';
 import { NotificationBell } from '@/components/notifications/NotificationBell';
 import { TaskManager } from '../tasks/TaskManager';
+import { SharedAccessManager } from '../sharing/SharedAccessManager';
 
 import { clientCache } from '@/lib/client-cache';
 
@@ -65,6 +67,7 @@ export const normalizeClientTab = (rawTab: string | null | undefined): string =>
   if (t === 'requests' || t === 'dash-requests' || t === 'password-requests') return 'requests';
   if (t === 'history' || t === 'block-history') return 'history';
   if (t === 'tasks' || t === 'dash-tasks') return 'tasks';
+  if (t === 'shared-access' || t === 'team' || t === 'invite' || t === 'shared') return 'shared-access';
   return t;
 };
 
@@ -374,9 +377,16 @@ export const ClientPortalShell: React.FC<ClientPortalShellProps> = ({ initialTab
       items: [
         { id: 'history', label: `Block History (${blockHistories.length})`, icon: Ban },
         { id: 'requests', label: 'Password Requests', icon: KeyRound, badge: pendingResetCount },
+        { id: 'shared-access', label: 'Shared Access / Team', icon: Share2 },
       ],
     },
   ];
+
+  const isAllowed = (tabId: string) => {
+    if (!user?.isDelegated) return true;
+    if (!user?.delegatedPermissions || user.delegatedPermissions.length === 0) return false;
+    return user.delegatedPermissions.includes(tabId);
+  };
 
   return (
     <div className="flex h-screen bg-slate-100/70 overflow-hidden font-sans">
@@ -391,36 +401,42 @@ export const ClientPortalShell: React.FC<ClientPortalShellProps> = ({ initialTab
         <div className="mx-3 mt-3.5 p-2.5 bg-slate-950/70 rounded-xl border border-growth-teal/30 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <div className="w-2 h-2 rounded-full bg-growth-teal animate-pulse" />
-            <span className="text-[11px] font-bold text-slate-200 uppercase tracking-wider">CLIENT</span>
+            <span className="text-[11px] font-bold text-slate-200 uppercase tracking-wider">
+              {user?.isDelegated ? 'DELEGATED TEAM' : 'CLIENT'}
+            </span>
           </div>
           <span className="text-[9px] font-mono font-extrabold px-1.5 py-0.5 rounded bg-growth-teal/20 text-growth-teal border border-growth-teal/40">
-            {user?.clientId || 'PORTAL'}
+            {user?.isDelegated ? 'SHARED' : (user?.clientId || 'PORTAL')}
           </span>
         </div>
 
         {/* Navigation Links Area */}
         <div className="flex-1 overflow-y-auto py-4 px-3 space-y-5">
-          {navSections.map((sec) => (
-            <div key={sec.title} className="space-y-1.5">
-              <div className="px-3 text-[10px] font-black uppercase tracking-wider text-slate-500">
-                {sec.title}
-              </div>
-              <div className="space-y-0.5">
-                {sec.items.map((item) => {
-                  const ItemIcon = item.icon;
-                  const isActive = activeTab === item.id;
+          {navSections.map((sec) => {
+            const visibleItems = sec.items.filter((item) => isAllowed(item.id));
+            if (visibleItems.length === 0) return null;
 
-                  return (
-                    <button
-                      key={item.id}
-                      type="button"
-                      onClick={() => selectTab(item.id)}
-                      className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all ${
-                        isActive
-                          ? 'bg-gradient-to-r from-growth-teal to-growth-tealDark text-white shadow-tealGlow font-bold'
-                          : 'text-slate-400 hover:text-slate-100 hover:bg-slate-800/60'
-                      }`}
-                    >
+            return (
+              <div key={sec.title} className="space-y-1.5">
+                <div className="px-3 text-[10px] font-black uppercase tracking-wider text-slate-500">
+                  {sec.title}
+                </div>
+                <div className="space-y-0.5">
+                  {visibleItems.map((item) => {
+                    const ItemIcon = item.icon;
+                    const isActive = activeTab === item.id;
+
+                    return (
+                      <button
+                        key={item.id}
+                        type="button"
+                        onClick={() => selectTab(item.id)}
+                        className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all ${
+                          isActive
+                            ? 'bg-gradient-to-r from-growth-teal to-growth-tealDark text-white shadow-tealGlow font-bold'
+                            : 'text-slate-400 hover:text-slate-100 hover:bg-slate-800/60'
+                        }`}
+                      >
                       <div className="flex items-center gap-2.5 min-w-0">
                         <ItemIcon
                           className={`w-4 h-4 shrink-0 ${
@@ -444,8 +460,9 @@ export const ClientPortalShell: React.FC<ClientPortalShellProps> = ({ initialTab
                 })}
               </div>
             </div>
-          ))}
-        </div>
+          );
+        })}
+      </div>
 
         {/* DOWN-LEFT PROFILE CARD + QUICK SIGN OUT */}
         <div className="p-3 border-t border-slate-800 bg-slate-950/70">
@@ -490,6 +507,7 @@ export const ClientPortalShell: React.FC<ClientPortalShellProps> = ({ initialTab
               {activeTab === 'tasks' && 'Task & Follow-up Management'}
               {activeTab === 'history' && 'Security Block & Audit History'}
               {activeTab === 'requests' && 'Employee Password Reset Queue'}
+              {activeTab === 'shared-access' && 'Shared Team Access & Delegated RBAC'}
             </h1>
             <span className="hidden sm:inline-flex px-2.5 py-0.5 rounded text-[10px] font-mono font-bold bg-teal-50 text-growth-teal border border-teal-200">
               {user?.companyName}
@@ -1118,6 +1136,7 @@ export const ClientPortalShell: React.FC<ClientPortalShellProps> = ({ initialTab
             )}
             {activeTab === 'tasks' && <TaskManager />}
             {activeTab === 'requests' && <ClientRequestsView key="client-requests" />}
+            {activeTab === 'shared-access' && <SharedAccessManager role="CLIENT" />}
           </div>
         </main>
       </div>

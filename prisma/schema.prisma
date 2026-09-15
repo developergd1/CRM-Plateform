@@ -33,7 +33,16 @@ model User {
   auditLogs       AuditLog[]
   sessions        ActiveUserSession[]
 
+  // Delegated Access & Account Sharing
+  isDelegated          Boolean   @default(false)
+  parentUserId         String?   @db.ObjectId
+  parentClientId       String?   @db.ObjectId
+  delegatedPermissions String?   // JSON string array of permission codes
+  invitationId         String?   @db.ObjectId
+
   @@index([roleId])
+  @@index([parentUserId])
+  @@index([parentClientId])
 }
 
 model ActiveUserSession {
@@ -80,6 +89,34 @@ model RolePermission {
   permission   Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
 
   @@unique([roleId, permissionId])
+}
+
+// ----------------------------------------------------
+// 1B. SHARED ACCOUNT INVITATIONS & DELEGATED RBAC
+// ----------------------------------------------------
+
+model AccountInvitation {
+  id              String    @id @default(auto()) @map("_id") @db.ObjectId
+  token           String    @unique
+  name            String
+  email           String
+  designation     String?
+  inviterUserId   String    @db.ObjectId
+  inviterRole     String    // 'ADMIN' | 'CLIENT'
+  clientId        String?   @db.ObjectId
+  permissions     String    // JSON array string of permission codes e.g. ["crm-leads", "employees"]
+  status          String    @default("ACTIVE") // 'ACTIVE' (valid until revoked) | 'REVOKED' | 'ACCEPTED'
+  revokedAt       DateTime?
+  revokedBy       String?
+  acceptedAt      DateTime?
+  acceptedUserId  String?   @db.ObjectId
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@index([inviterUserId])
+  @@index([email])
+  @@index([status])
+  @@index([clientId])
 }
 
 // ----------------------------------------------------

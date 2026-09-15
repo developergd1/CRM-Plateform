@@ -23,6 +23,31 @@ export interface AuthUser {
   designation: string;
   departmentName?: string;
   isSuspended: boolean;
+  isDelegated?: boolean;
+  parentUserId?: string;
+  parentClientId?: string;
+  delegatedPermissions?: string[];
+  invitationId?: string;
+}
+
+export interface AccountInvitationItem {
+  id: string;
+  token: string;
+  name: string;
+  email: string;
+  designation?: string | null;
+  inviterUserId: string;
+  inviterRole: string;
+  clientId?: string | null;
+  permissions: string[];
+  status: 'ACTIVE' | 'REVOKED' | 'ACCEPTED';
+  revokedAt?: string | null;
+  revokedBy?: string | null;
+  acceptedAt?: string | null;
+  acceptedUserId?: string | null;
+  createdAt: string;
+  updatedAt: string;
+  invitationUrl?: string;
 }
 
 export interface ClientItem {

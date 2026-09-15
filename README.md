@@ -31,19 +31,39 @@ Render ke **Environment** tab me ye variables add karein:
 
 ---
 
-## 🚀 Local Quick Start Guide
+## 🚀 Dusre Laptop Pe Chalane Ka Asaan Tarika (Other Laptop Setup)
 
-### 1. One-Time Setup:
+Dusre laptop par project open karke chalane ke liye sirf ye simple steps follow karein:
+
+### Step 1: Repository Clone Karein
 ```powershell
-# Dependencies install karein
-npm install
-
-# Database generate karein
-npm run prisma:generate
-
-# Clean production administrator seed karein
-npm run prisma:seed
+git clone https://github.com/developergd1/CRM-Plateform.git
+cd CRM-Plateform
 ```
+
+### Step 2: Environment File Banayein
+Project root me `.env.example` file ko copy karke `.env` banayein (isme already live MongoDB Atlas database connection configured hai, jisse saara data aur users automatically load ho jayenge):
+```powershell
+# Windows PowerShell me:
+copy .env.example .env
+
+# Mac / Linux terminal me:
+cp .env.example .env
+```
+
+### Step 3: Dependencies Install Karein
+```powershell
+npm install
+```
+*(Note: `npm install` chalate hi Prisma Client automatically generate ho jayega)*
+
+### Step 4: Server Start Karein
+```powershell
+npm run dev
+```
+Aur browser me open karein:
+* 👥 **Client & Employee Portal:** [`http://localhost:3000`](http://localhost:3000)
+* 👑 **Admin Console Gateway:** [`http://localhost:3000/growthIndia`](http://localhost:3000/growthIndia)
 
 ---
 

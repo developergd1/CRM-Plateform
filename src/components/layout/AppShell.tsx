@@ -34,6 +34,8 @@ import { RegularizationView } from '../attendance/RegularizationView';
 import { PasswordRequestsView } from '../auth/PasswordRequestsView';
 import { LeaveView } from '../leave/LeaveView';
 import { TaskManager } from '../tasks/TaskManager';
+import { SharedAccessManager } from '../sharing/SharedAccessManager';
+import { ShieldAlert } from 'lucide-react';
 
 export const AppShell: React.FC = () => {
   const { user, loading, activeTab, setActiveTab } = useAuth();
@@ -72,6 +74,32 @@ export const AppShell: React.FC = () => {
   }
 
   const renderActiveView = () => {
+    // If delegated user tries to access a restricted tab
+    if (user?.isDelegated && user.delegatedPermissions && user.delegatedPermissions.length > 0) {
+      const allowed =
+        user.delegatedPermissions.includes(activeTab) ||
+        (activeTab === 'dashboard' && user.delegatedPermissions.includes('crm-dashboard')) ||
+        (activeTab === 'crm-dashboard' && user.delegatedPermissions.includes('dashboard')) ||
+        (activeTab === 'crm-lead-detail' && user.delegatedPermissions.includes('crm-leads')) ||
+        (activeTab === 'crm-deal-detail' && user.delegatedPermissions.includes('crm-deals')) ||
+        (activeTab === 'crm-pipeline' && (user.delegatedPermissions.includes('crm-pipeline') || user.delegatedPermissions.includes('crm-deals'))) ||
+        (activeTab === 'client-360' && user.delegatedPermissions.includes('clients'));
+
+      if (!allowed) {
+        return (
+          <div className="p-8 text-center space-y-4 max-w-md mx-auto my-16 bg-slate-900 border border-slate-800 rounded-3xl shadow-2xl animate-fadeIn">
+            <div className="w-14 h-14 rounded-2xl bg-amber-500/20 text-amber-400 mx-auto flex items-center justify-center font-bold">
+              <ShieldAlert className="w-7 h-7" />
+            </div>
+            <h2 className="text-base font-bold text-white">Access Restricted</h2>
+            <p className="text-xs text-slate-400 leading-relaxed">
+              Your delegated account does not have permission to view the <strong className="text-white">{activeTab}</strong> module. Please contact the platform administrator to request access.
+            </p>
+          </div>
+        );
+      }
+    }
+
     switch (activeTab) {
       case 'dashboard':
         return (
@@ -231,6 +259,8 @@ export const AppShell: React.FC = () => {
         return <PasswordRequestsView />;
       case 'audit-logs':
         return <AuditLogsView />;
+      case 'shared-access':
+        return <SharedAccessManager role="ADMIN" />;
 
       // Detail Views
       case 'crm-deal-detail':

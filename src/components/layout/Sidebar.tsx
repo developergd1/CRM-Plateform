@@ -23,6 +23,7 @@ import {
   CheckCircle2,
   ChevronDown,
   ChevronUp,
+  Share2,
 } from 'lucide-react';
 
 interface NavItem {
@@ -39,7 +40,7 @@ interface NavSection {
 }
 
 export const Sidebar: React.FC = () => {
-  const { activeTab, setActiveTab } = useAuth();
+  const { user, activeTab, setActiveTab } = useAuth();
   const [pendingResetCount, setPendingResetCount] = useState<number>(0);
 
   useEffect(() => {
@@ -105,9 +106,19 @@ export const Sidebar: React.FC = () => {
         { id: 'block-history', label: 'Block / Unblock', icon: History },
         { id: 'password-requests', label: 'Password Requests', icon: KeyRound },
         { id: 'audit-logs', label: 'Audit Logs', icon: ShieldCheck },
+        { id: 'shared-access', label: 'Shared Access / Team', icon: Share2 },
       ],
     },
   ];
+
+  const isAllowed = (tabId: string) => {
+    if (!user?.isDelegated) return true;
+    if (!user?.delegatedPermissions || user.delegatedPermissions.length === 0) return false;
+    if (tabId === 'dashboard') {
+      return user.delegatedPermissions.includes('crm-dashboard') || user.delegatedPermissions.includes('dashboard');
+    }
+    return user.delegatedPermissions.includes(tabId);
+  };
 
   const isDashboardActive = activeTab === 'dashboard';
   const isClientsActive =
@@ -127,41 +138,51 @@ export const Sidebar: React.FC = () => {
       <div className="mx-3 mt-3.5 p-2.5 bg-slate-950/70 rounded-xl border border-growth-teal/30 flex items-center justify-between">
         <div className="flex items-center gap-2">
           <div className="w-2 h-2 rounded-full bg-growth-teal animate-pulse" />
-          <span className="text-[11px] font-bold text-slate-200">EXECUTIVE (Admin)</span>
+          <span className="text-[11px] font-bold text-slate-200">
+            {user?.isDelegated ? 'DELEGATED (Admin)' : 'EXECUTIVE (Admin)'}
+          </span>
         </div>
         <span className="text-[9px] font-extrabold uppercase px-1.5 py-0.5 rounded bg-growth-teal/20 text-growth-teal border border-growth-teal/40">
-          PRO
+          {user?.isDelegated ? 'SHARED' : 'PRO'}
         </span>
       </div>
 
       {/* Navigation Links Area */}
       <div className="flex-1 overflow-y-auto py-3 px-3 space-y-4">
         {/* Dashboard Link */}
-        <div>
-          <button
-            onClick={() => setActiveTab('dashboard')}
-            className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all ${
-              isDashboardActive
-                ? 'bg-gradient-to-r from-growth-teal to-growth-tealDark text-white shadow-tealGlow font-bold'
-                : 'text-slate-400 hover:text-slate-100 hover:bg-slate-800/60'
-            }`}
-          >
-            <LayoutDashboard
-              className={`w-4 h-4 shrink-0 ${isDashboardActive ? 'text-growth-gold' : 'text-slate-400'}`}
-            />
-            <span>Dashboard</span>
-          </button>
-        </div>
+        {isAllowed('dashboard') && (
+          <div>
+            <button
+              onClick={() => setActiveTab('dashboard')}
+              className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all ${
+                isDashboardActive
+                  ? 'bg-gradient-to-r from-growth-teal to-growth-tealDark text-white shadow-tealGlow font-bold'
+                  : 'text-slate-400 hover:text-slate-100 hover:bg-slate-800/60'
+              }`}
+            >
+              <LayoutDashboard
+                className={`w-4 h-4 shrink-0 ${isDashboardActive ? 'text-growth-gold' : 'text-slate-400'}`}
+              />
+              <span>Dashboard</span>
+            </button>
+          </div>
+        )}
 
         {/* Collapsible Architecture Sections */}
         {sections.map((section) => {
           const SectionIcon = section.icon;
           const isOpen = Boolean(openSections[section.id]);
+          const visibleItems = section.items.filter((item) => isAllowed(item.id));
+          const hasVisibleClients = section.id === 'workforce' && isAllowed('clients');
+
+          if (visibleItems.length === 0 && !hasVisibleClients) {
+            return null;
+          }
 
           return (
             <React.Fragment key={section.id}>
               {/* Merged Single CLIENTS Navigation Button */}
-              {section.id === 'workforce' && (
+              {section.id === 'workforce' && isAllowed('clients') && (
                 <div>
                   <button
                     type="button"
@@ -203,7 +224,7 @@ export const Sidebar: React.FC = () => {
               {/* Sub-items List with Original Icons & Theme */}
               {isOpen && (
                 <div className="space-y-1 pl-1">
-                  {section.items.map((item) => {
+                  {visibleItems.map((item) => {
                     const ItemIcon = item.icon;
                     const isActive =
                       item.id === 'attendance'

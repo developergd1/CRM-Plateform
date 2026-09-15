@@ -98,22 +98,73 @@ export async function getSessionUser(req?: NextRequest): Promise<AuthUser | null
       return null;
     }
 
+    // Strict security rule for Delegated Accounts:
+    // If account was created via invitation, verify invitation is not revoked
+    if (user.isDelegated) {
+      if (user.invitationId) {
+        const inv = await prisma.accountInvitation.findUnique({
+          where: { id: user.invitationId },
+          select: { status: true },
+        });
+        if (!inv || inv.status === 'REVOKED') {
+          return null;
+        }
+      }
+
+      if (user.parentUserId) {
+        const parentUser = await prisma.user.findUnique({
+          where: { id: user.parentUserId },
+          select: { isActive: true, isSuspended: true },
+        });
+        if (!parentUser || !parentUser.isActive || parentUser.isSuspended) {
+          return null;
+        }
+      }
+    }
+
+    let delegatedPerms: string[] = [];
+    if (user.delegatedPermissions) {
+      try {
+        delegatedPerms = JSON.parse(user.delegatedPermissions);
+      } catch (e) {
+        delegatedPerms = [];
+      }
+    }
+
     if (user.role.name === 'CLIENT') {
-      const clientProfile = await prisma.client.findFirst({ where: { userId: user.id } });
+      const clientProfile = await prisma.client.findFirst({
+        where: {
+          OR: [
+            ...(user.parentClientId ? [{ id: user.parentClientId }] : []),
+            { userId: user.id },
+            ...(user.parentUserId ? [{ userId: user.parentUserId }] : []),
+          ],
+        },
+      });
+
       if (clientProfile) {
         const clientUser: AuthUser = {
           id: user.id,
           email: user.email,
           role: 'CLIENT',
-          roleDisplayName: 'Corporate Client',
+          roleDisplayName: user.isDelegated ? 'Shared Team Member' : 'Corporate Client',
           clientId: clientProfile.clientId,
           companyName: clientProfile.companyName,
-          canBlockEmployees: clientProfile.canBlockEmployees,
-          canDeleteEmployees: clientProfile.canDeleteEmployees,
-          fullName: clientProfile.contactPerson || clientProfile.companyName,
-          designation: 'Client Administrator',
+          canBlockEmployees: user.isDelegated
+            ? delegatedPerms.includes('canBlockEmployees')
+            : clientProfile.canBlockEmployees,
+          canDeleteEmployees: user.isDelegated
+            ? delegatedPerms.includes('canDeleteEmployees')
+            : clientProfile.canDeleteEmployees,
+          fullName: user.employeeProfile?.fullName || clientProfile.contactPerson || clientProfile.companyName,
+          designation: user.employeeProfile?.designation || (user.isDelegated ? 'Delegated Team Member' : 'Client Administrator'),
           departmentName: clientProfile.industry || 'Corporate Client Operations',
           isSuspended: user.isSuspended,
+          isDelegated: user.isDelegated,
+          parentUserId: user.parentUserId || undefined,
+          parentClientId: user.parentClientId || clientProfile.id,
+          delegatedPermissions: delegatedPerms,
+          invitationId: user.invitationId || undefined,
         };
         sessionUserCache.set(token, { user: clientUser, expiresAt: Date.now() + SESSION_CACHE_TTL_MS });
         return clientUser;
@@ -124,7 +175,7 @@ export async function getSessionUser(req?: NextRequest): Promise<AuthUser | null
       id: user.id,
       email: user.email,
       role: user.role.name as any,
-      roleDisplayName: user.role.displayName,
+      roleDisplayName: user.isDelegated ? 'Delegated Administrator' : user.role.displayName,
       employeeId: user.employeeProfile?.employeeId || (user.role.name === 'SUPER_ADMIN' ? 'GI-EMP-000001' : 'ADMIN'),
       employeeProfileId: user.employeeProfile?.id,
       employeeProfile: user.employeeProfile ? {
@@ -136,12 +187,17 @@ export async function getSessionUser(req?: NextRequest): Promise<AuthUser | null
       clientId: user.employeeProfile?.clientId || undefined,
       companyName: user.employeeProfile?.client?.companyName || undefined,
       fullName: user.employeeProfile?.fullName || (user.role.name === 'SUPER_ADMIN' ? 'Aarav Sharma' : 'Administrator'),
-      designation: user.employeeProfile?.designation || (user.role.name === 'SUPER_ADMIN' ? 'Managing Director & Platform Head' : 'Administrator'),
+      designation: user.employeeProfile?.designation || (user.isDelegated ? 'Delegated Admin Associate' : user.role.name === 'SUPER_ADMIN' ? 'Managing Director & Platform Head' : 'Administrator'),
       departmentName:
         user.employeeProfile?.departmentName ||
         user.employeeProfile?.department?.name ||
         'Executive Leadership',
       isSuspended: user.isSuspended,
+      isDelegated: user.isDelegated,
+      parentUserId: user.parentUserId || undefined,
+      parentClientId: user.parentClientId || undefined,
+      delegatedPermissions: delegatedPerms,
+      invitationId: user.invitationId || undefined,
     };
     sessionUserCache.set(token, { user: authUser, expiresAt: Date.now() + SESSION_CACHE_TTL_MS });
     return authUser;
