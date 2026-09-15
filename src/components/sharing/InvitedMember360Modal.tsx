@@ -158,31 +158,31 @@ export const InvitedMember360Modal: React.FC<InvitedMember360ModalProps> = ({
     const a = (action || '').toUpperCase();
     if (a.includes('CREATE') || a.includes('ADD') || a.includes('INVITE')) {
       return (
-        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-bold bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
-          <PlusCircle className="w-3 h-3" />
+        <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-lg text-[11px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+          <PlusCircle className="w-3.5 h-3.5 text-emerald-600" />
           {action}
         </span>
       );
     }
     if (a.includes('DELETE') || a.includes('REMOVE') || a.includes('ARCHIVE') || a.includes('REVOKE')) {
       return (
-        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-bold bg-rose-500/15 text-rose-400 border border-rose-500/30">
-          <Trash2 className="w-3 h-3" />
+        <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-lg text-[11px] font-bold bg-rose-50 text-rose-700 border border-rose-200">
+          <Trash2 className="w-3.5 h-3.5 text-rose-600" />
           {action}
         </span>
       );
     }
     if (a.includes('LOGIN') || a.includes('AUTH') || entityType === 'AUTH') {
       return (
-        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-bold bg-amber-500/15 text-amber-400 border border-amber-500/30">
-          <LogIn className="w-3 h-3" />
+        <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-lg text-[11px] font-bold bg-amber-50 text-amber-700 border border-amber-200">
+          <LogIn className="w-3.5 h-3.5 text-amber-600" />
           {action}
         </span>
       );
     }
     return (
-      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-bold bg-sky-500/15 text-sky-400 border border-sky-500/30">
-        <Edit3 className="w-3 h-3" />
+      <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-lg text-[11px] font-bold bg-sky-50 text-sky-700 border border-sky-200">
+        <Edit3 className="w-3.5 h-3.5 text-sky-600" />
         {action}
       </span>
     );
@@ -218,32 +218,30 @@ export const InvitedMember360Modal: React.FC<InvitedMember360ModalProps> = ({
     <div
       role="dialog"
       aria-modal="true"
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md p-3 sm:p-4 md:p-6 animate-in fade-in"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-3 sm:p-4 md:p-6 animate-in fade-in"
       onClick={(e) => {
         if (e.target === e.currentTarget) onClose();
       }}
     >
-      <div className="relative w-full max-w-5xl bg-slate-900 border border-slate-800 rounded-3xl shadow-2xl flex flex-col max-h-[92vh] my-auto overflow-hidden">
-        {/* Header - Fixed */}
-        <div className="flex items-center justify-between px-6 py-4 sm:py-5 border-b border-slate-800 bg-slate-900/95 shrink-0 z-10">
+      <div className="relative w-full max-w-5xl bg-white border border-slate-200 rounded-3xl shadow-2xl flex flex-col max-h-[92vh] my-auto overflow-hidden">
+        {/* Header - Clean White & Polished */}
+        <div className="flex items-center justify-between px-6 py-4 sm:py-5 border-b border-slate-100 bg-white shrink-0 z-10">
           <div className="flex items-center gap-3.5 min-w-0">
             {/* Avatar with Live Indicator */}
             <div className="relative shrink-0">
               <div
-                className={`w-12 h-12 rounded-2xl flex items-center justify-center font-black text-base shadow-lg ${
+                className={`w-12 h-12 rounded-2xl flex items-center justify-center font-black text-xl shadow-md ${
                   isRevoked
-                    ? 'bg-rose-500/20 text-rose-400 border border-rose-500/30'
-                    : presence.isOnline
-                    ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/40'
-                    : 'bg-growth-teal/20 text-growth-teal border border-growth-teal/30'
+                    ? 'bg-rose-100 text-rose-700 border border-rose-200'
+                    : 'bg-gradient-to-br from-teal-500 to-teal-700 text-white'
                 }`}
               >
                 {invitation.name.charAt(0).toUpperCase()}
               </div>
               {/* Online pulse dot */}
               <span
-                className={`absolute -bottom-1 -right-1 w-4 h-4 rounded-full border-2 border-slate-900 flex items-center justify-center ${
-                  presence.isOnline ? 'bg-emerald-500' : 'bg-slate-500'
+                className={`absolute -bottom-1 -right-1 w-4 h-4 rounded-full border-2 border-white flex items-center justify-center ${
+                  presence.isOnline ? 'bg-emerald-500' : 'bg-slate-400'
                 }`}
                 title={presence.isOnline ? 'Online Now' : 'Offline'}
               >
@@ -255,25 +253,25 @@ export const InvitedMember360Modal: React.FC<InvitedMember360ModalProps> = ({
 
             <div className="min-w-0">
               <div className="flex items-center gap-2 flex-wrap">
-                <h2 className="text-lg sm:text-xl font-bold text-white tracking-tight truncate">
+                <h2 className="title-interactive-hover text-lg sm:text-xl font-black text-slate-900 tracking-tight truncate">
                   {invitation.name}
                 </h2>
                 {presence.isOnline ? (
-                  <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-extrabold bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 shadow-sm">
-                    <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                  <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-extrabold bg-emerald-50 text-emerald-700 border border-emerald-200 shadow-sm">
+                    <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
                     LIVE ONLINE NOW
                   </span>
                 ) : (
-                  <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-slate-800 text-slate-400 border border-slate-700">
-                    <span className="w-2 h-2 rounded-full bg-slate-500" />
+                  <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-slate-100 text-slate-600 border border-slate-200">
+                    <span className="w-2 h-2 rounded-full bg-slate-400" />
                     OFFLINE
                   </span>
                 )}
-                <span className="px-2 py-0.5 rounded-md text-[10px] font-mono font-bold bg-slate-800 text-growth-teal border border-slate-700 uppercase">
+                <span className="px-2.5 py-0.5 rounded-lg text-[10px] font-mono font-bold bg-teal-50 text-growth-teal border border-teal-200 uppercase">
                   {invitation.inviterRole === 'ADMIN' ? 'Delegated Admin' : 'Delegated Client'}
                 </span>
               </div>
-              <p className="text-xs text-slate-400 truncate mt-0.5">
+              <p className="subtitle-interactive-hover text-xs text-slate-500 font-medium truncate mt-0.5">
                 {invitation.email} {invitation.designation ? `• ${invitation.designation}` : ''}
               </p>
             </div>
@@ -284,48 +282,48 @@ export const InvitedMember360Modal: React.FC<InvitedMember360ModalProps> = ({
               onClick={() => fetchMember360(true)}
               disabled={refreshing}
               title="Refresh Member Data & Live Logs"
-              className="p-2 rounded-xl text-slate-400 hover:text-white bg-slate-800/80 hover:bg-slate-800 border border-slate-700 transition-colors"
+              className="interactive-btn-hover p-2.5 rounded-xl text-slate-500 hover:text-slate-900 bg-slate-50 hover:bg-slate-100 border border-slate-200 transition-colors cursor-pointer"
             >
               <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin text-growth-teal' : ''}`} />
             </button>
             <button
               onClick={onClose}
-              className="p-2 rounded-xl text-slate-400 hover:text-white bg-slate-800/80 hover:bg-slate-800 border border-slate-700 transition-colors"
+              className="interactive-btn-hover p-2.5 rounded-xl text-slate-500 hover:text-slate-900 bg-slate-50 hover:bg-slate-100 border border-slate-200 transition-colors cursor-pointer"
               title="Close modal (Esc)"
             >
-              <X className="w-5 h-5" />
+              <X className="w-4 h-4" />
             </button>
           </div>
         </div>
 
         {/* Modal Body - Scrollable */}
-        <div className="flex-1 overflow-y-auto p-5 sm:p-6 space-y-6 text-slate-200">
+        <div className="flex-1 overflow-y-auto p-5 sm:p-6 space-y-6 bg-slate-50/50 text-slate-800">
           {loading ? (
             <div className="py-24 text-center space-y-3">
-              <div className="animate-spin rounded-full h-9 w-9 border-b-2 border-growth-teal mx-auto" />
-              <p className="text-xs text-slate-400 font-medium">Gathering complete 360° audit logs & live presence...</p>
+              <RefreshCw className="w-8 h-8 animate-spin text-growth-teal mx-auto" />
+              <p className="text-xs text-slate-500 font-bold">Gathering complete 360° audit logs & live presence...</p>
             </div>
           ) : error ? (
-            <div className="p-4 rounded-2xl bg-rose-500/10 border border-rose-500/20 text-rose-300 text-sm flex items-center gap-3">
-              <AlertCircle className="w-5 h-5 text-rose-400 shrink-0" />
-              <span>{error}</span>
+            <div className="p-4 rounded-2xl bg-rose-50 border border-rose-200 text-rose-700 text-sm flex items-center gap-3">
+              <AlertCircle className="w-5 h-5 text-rose-500 shrink-0" />
+              <span className="font-semibold">{error}</span>
             </div>
           ) : (
             <>
               {/* TOP CARDS GRID */}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 {/* 1. Live Presence & Page Card */}
-                <div className="p-4 rounded-2xl bg-slate-950/60 border border-slate-800 flex flex-col justify-between space-y-3">
-                  <div className="flex items-center justify-between border-b border-slate-800/80 pb-2.5">
-                    <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
+                <div className="card-premium interactive-box-hover p-4.5 rounded-2xl bg-white border border-slate-200 shadow-sm flex flex-col justify-between space-y-3">
+                  <div className="flex items-center justify-between border-b border-slate-100 pb-2.5">
+                    <span className="text-[11px] font-bold text-slate-600 uppercase tracking-wider flex items-center gap-1.5">
                       <Monitor className="w-3.5 h-3.5 text-growth-teal" />
                       Live Presence & Screen
                     </span>
                     <span
                       className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
                         presence.isOnline
-                          ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
-                          : 'bg-slate-800 text-slate-400 border border-slate-700'
+                          ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                          : 'bg-slate-100 text-slate-600 border border-slate-200'
                       }`}
                     >
                       {presence.isOnline ? 'Online' : 'Offline'}
@@ -334,29 +332,29 @@ export const InvitedMember360Modal: React.FC<InvitedMember360ModalProps> = ({
 
                   <div className="space-y-2">
                     <div>
-                      <div className="text-[10px] text-slate-400 font-medium">Current Screen / Active Page:</div>
-                      <div className="text-xs font-bold text-white bg-slate-800/80 px-2.5 py-1.5 rounded-xl border border-slate-700/80 mt-1 truncate">
+                      <div className="text-[10px] text-slate-500 font-semibold">Current Screen / Active Page:</div>
+                      <div className="text-xs font-bold text-slate-900 bg-slate-50 px-3 py-2 rounded-xl border border-slate-200/80 mt-1 truncate">
                         {presence.currentPage ? (
                           <span className="flex items-center gap-1.5">
-                            <span className="w-1.5 h-1.5 rounded-full bg-teal-400 shrink-0" />
-                            {presence.currentPage}
+                            <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0 animate-pulse" />
+                            <span className="font-mono text-growth-teal font-black">{presence.currentPage}</span>
                           </span>
                         ) : (
-                          <span className="text-slate-400">Not actively browsing</span>
+                          <span className="text-slate-400 italic">Not actively browsing</span>
                         )}
                       </div>
                     </div>
 
                     <div className="grid grid-cols-2 gap-2 pt-1 text-[11px]">
                       <div>
-                        <span className="text-slate-500 block text-[10px]">Last Active:</span>
-                        <span className="font-medium text-slate-300">
+                        <span className="text-slate-400 block text-[10px] font-medium">Last Active:</span>
+                        <span className="font-bold text-slate-700">
                           {presence.lastActiveAt ? getRelativeTime(presence.lastActiveAt) : 'Never'}
                         </span>
                       </div>
                       <div>
-                        <span className="text-slate-500 block text-[10px]">Last Login:</span>
-                        <span className="font-medium text-slate-300 truncate block" title={formatTimestamp(presence.lastLoginAt)}>
+                        <span className="text-slate-400 block text-[10px] font-medium">Last Login:</span>
+                        <span className="font-bold text-slate-700 truncate block" title={formatTimestamp(presence.lastLoginAt)}>
                           {presence.lastLoginAt ? getRelativeTime(presence.lastLoginAt) : 'Never'}
                         </span>
                       </div>
@@ -364,88 +362,91 @@ export const InvitedMember360Modal: React.FC<InvitedMember360ModalProps> = ({
                   </div>
 
                   {presence.ipAddress && (
-                    <div className="text-[10px] text-slate-500 font-mono pt-1 border-t border-slate-800/60 flex items-center justify-between">
+                    <div className="text-[10px] text-slate-500 font-mono pt-2 border-t border-slate-100 flex items-center justify-between">
                       <span>IP: {presence.ipAddress}</span>
-                      <span>{presence.isOnline ? '🟢 Connected' : '⚪ Disconnected'}</span>
+                      <span className="flex items-center gap-1">
+                        <span className={`w-1.5 h-1.5 rounded-full ${presence.isOnline ? 'bg-emerald-500' : 'bg-slate-300'}`} />
+                        <span>{presence.isOnline ? 'Connected' : 'Disconnected'}</span>
+                      </span>
                     </div>
                   )}
                 </div>
 
                 {/* 2. Operations & Activity Counters Card */}
-                <div className="p-4 rounded-2xl bg-slate-950/60 border border-slate-800 flex flex-col justify-between space-y-3">
-                  <div className="flex items-center justify-between border-b border-slate-800/80 pb-2.5">
-                    <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
+                <div className="card-premium interactive-box-hover p-4.5 rounded-2xl bg-white border border-slate-200 shadow-sm flex flex-col justify-between space-y-3">
+                  <div className="flex items-center justify-between border-b border-slate-100 pb-2.5">
+                    <span className="text-[11px] font-bold text-slate-600 uppercase tracking-wider flex items-center gap-1.5">
                       <Activity className="w-3.5 h-3.5 text-growth-gold" />
                       Activity Metrics
                     </span>
-                    <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-slate-800 text-slate-300 border border-slate-700">
+                    <span className="text-[10px] font-mono font-bold px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-700 border border-slate-200">
                       Total: {stats.totalActions}
                     </span>
                   </div>
 
                   <div className="grid grid-cols-3 gap-2">
-                    <div className="p-2.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-center">
-                      <div className="text-xs font-bold text-emerald-400">+{stats.createdCount}</div>
-                      <div className="text-[9px] text-slate-400 font-semibold uppercase mt-0.5">Created</div>
+                    <div className="p-2.5 rounded-xl bg-emerald-50/80 border border-emerald-200/70 text-center hover:bg-emerald-100/60 transition">
+                      <div className="text-sm font-black text-emerald-700">+{stats.createdCount}</div>
+                      <div className="text-[9px] text-emerald-800/80 font-bold uppercase mt-0.5">Created</div>
                     </div>
-                    <div className="p-2.5 rounded-xl bg-sky-500/10 border border-sky-500/20 text-center">
-                      <div className="text-xs font-bold text-sky-400">{stats.updatedCount}</div>
-                      <div className="text-[9px] text-slate-400 font-semibold uppercase mt-0.5">Edited</div>
+                    <div className="p-2.5 rounded-xl bg-sky-50/80 border border-sky-200/70 text-center hover:bg-sky-100/60 transition">
+                      <div className="text-sm font-black text-sky-700">{stats.updatedCount}</div>
+                      <div className="text-[9px] text-sky-800/80 font-bold uppercase mt-0.5">Edited</div>
                     </div>
-                    <div className="p-2.5 rounded-xl bg-rose-500/10 border border-rose-500/20 text-center">
-                      <div className="text-xs font-bold text-rose-400">{stats.deletedCount}</div>
-                      <div className="text-[9px] text-slate-400 font-semibold uppercase mt-0.5">Deleted</div>
+                    <div className="p-2.5 rounded-xl bg-rose-50/80 border border-rose-200/70 text-center hover:bg-rose-100/60 transition">
+                      <div className="text-sm font-black text-rose-700">{stats.deletedCount}</div>
+                      <div className="text-[9px] text-rose-800/80 font-bold uppercase mt-0.5">Deleted</div>
                     </div>
                   </div>
 
-                  <div className="text-[10px] text-slate-400 bg-slate-900/80 p-2 rounded-xl border border-slate-800/80 flex items-center justify-between">
-                    <span>Successful Logins:</span>
-                    <span className="font-bold text-slate-200">{stats.authCount} times</span>
+                  <div className="text-[11px] text-slate-600 bg-slate-50 p-2.5 rounded-xl border border-slate-200/80 flex items-center justify-between">
+                    <span className="font-medium">Successful Logins:</span>
+                    <span className="font-mono font-bold text-slate-900">{stats.authCount} times</span>
                   </div>
                 </div>
 
                 {/* 3. Delegated Security & Access Card */}
-                <div className="p-4 rounded-2xl bg-slate-950/60 border border-slate-800 flex flex-col justify-between space-y-3">
-                  <div className="flex items-center justify-between border-b border-slate-800/80 pb-2.5">
-                    <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
+                <div className="card-premium interactive-box-hover p-4.5 rounded-2xl bg-white border border-slate-200 shadow-sm flex flex-col justify-between space-y-3">
+                  <div className="flex items-center justify-between border-b border-slate-100 pb-2.5">
+                    <span className="text-[11px] font-bold text-slate-600 uppercase tracking-wider flex items-center gap-1.5">
                       <ShieldCheck className="w-3.5 h-3.5 text-growth-teal" />
                       Granted Permissions
                     </span>
                     <span
                       className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
                         isRevoked
-                          ? 'bg-rose-500/20 text-rose-400 border border-rose-500/30'
-                          : 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
+                          ? 'bg-rose-50 text-rose-700 border border-rose-200'
+                          : 'bg-emerald-50 text-emerald-700 border border-emerald-200'
                       }`}
                     >
                       {isRevoked ? 'Revoked' : 'Active'}
                     </span>
                   </div>
 
-                  <div className="flex flex-wrap gap-1 max-h-20 overflow-y-auto pr-1">
+                  <div className="flex flex-wrap gap-1.5 max-h-20 overflow-y-auto pr-1">
                     {(invitation.permissions || []).map((perm) => (
                       <span
                         key={perm}
-                        className="px-2 py-0.5 rounded-lg text-[10px] font-mono bg-slate-800 text-slate-300 border border-slate-700"
+                        className="px-2 py-0.5 rounded-lg text-[10px] font-mono bg-slate-100 text-slate-700 border border-slate-200 hover:border-growth-teal hover:bg-teal-50 hover:text-growth-teal transition"
                       >
                         {perm}
                       </span>
                     ))}
                     {(!invitation.permissions || invitation.permissions.length === 0) && (
-                      <span className="text-slate-500 text-xs italic">No specific permissions assigned</span>
+                      <span className="text-slate-400 text-xs italic">No specific permissions assigned</span>
                     )}
                   </div>
 
-                  <div className="pt-2 border-t border-slate-800/60 flex items-center gap-2">
+                  <div className="pt-2 border-t border-slate-100 flex items-center gap-2">
                     <button
                       onClick={handleCopyLink}
-                      className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 px-3 rounded-xl text-xs font-bold border transition-all cursor-pointer ${
+                      className={`interactive-btn-hover flex-1 flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl text-xs font-bold border transition-all cursor-pointer ${
                         copiedLink
-                          ? 'bg-emerald-600 text-white border-emerald-500'
-                          : 'bg-slate-800 hover:bg-slate-700 text-slate-200 border-slate-700'
+                          ? 'bg-emerald-600 text-white border-emerald-600 shadow-sm'
+                          : 'bg-slate-50 hover:bg-slate-100 text-slate-700 border-slate-200'
                       }`}
                     >
-                      {copiedLink ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
+                      {copiedLink ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5 text-slate-500" />}
                       <span>{copiedLink ? 'Copied' : 'Copy Invite Link'}</span>
                     </button>
                   </div>
@@ -454,78 +455,78 @@ export const InvitedMember360Modal: React.FC<InvitedMember360ModalProps> = ({
 
               {/* AUDIT LOGS & HISTORY TIMELINE SECTION */}
               <div className="space-y-4 pt-2">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-800 pb-3">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-200 pb-3">
                   <div>
-                    <h3 className="text-sm font-bold text-white flex items-center gap-2">
+                    <h3 className="title-interactive-hover text-base font-black text-slate-900 flex items-center gap-2">
                       <Activity className="w-4 h-4 text-growth-teal" />
                       Real-Time Activity Logs & Modification History
                     </h3>
-                    <p className="text-[11px] text-slate-400 mt-0.5">
+                    <p className="subtitle-interactive-hover text-xs text-slate-500 mt-0.5">
                       Complete immutable log of all additions, edits, deletions and logins performed by this invited member
                     </p>
                   </div>
 
                   {/* Search filter */}
                   <div className="relative w-full sm:w-64">
-                    <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                    <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
                     <input
                       type="text"
                       placeholder="Search activity or entity..."
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
-                      className="w-full pl-8 pr-3 py-1.5 bg-slate-950/80 border border-slate-800 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none focus:border-growth-teal transition-colors"
+                      className="w-full pl-9 pr-3 py-2 bg-white border border-slate-200 rounded-xl text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:border-growth-teal focus:ring-1 focus:ring-growth-teal transition-all shadow-sm"
                     />
                   </div>
                 </div>
 
                 {/* Filter Tabs */}
-                <div className="flex items-center gap-1.5 overflow-x-auto pb-1 text-xs">
+                <div className="flex items-center gap-2 overflow-x-auto pb-1 text-xs">
                   <button
                     onClick={() => setActiveFilter('ALL')}
-                    className={`px-3 py-1.5 rounded-xl font-bold transition-all cursor-pointer whitespace-nowrap ${
+                    className={`interactive-btn-hover px-3.5 py-1.5 rounded-xl font-bold transition-all cursor-pointer whitespace-nowrap ${
                       activeFilter === 'ALL'
                         ? 'bg-growth-teal text-white shadow-tealGlow'
-                        : 'bg-slate-800/80 text-slate-400 hover:text-white'
+                        : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-50 hover:border-slate-300'
                     }`}
                   >
                     All History ({stats.totalActions})
                   </button>
                   <button
                     onClick={() => setActiveFilter('CREATE')}
-                    className={`px-3 py-1.5 rounded-xl font-bold transition-all cursor-pointer whitespace-nowrap ${
+                    className={`interactive-btn-hover px-3.5 py-1.5 rounded-xl font-bold transition-all cursor-pointer whitespace-nowrap ${
                       activeFilter === 'CREATE'
                         ? 'bg-emerald-600 text-white shadow'
-                        : 'bg-slate-800/80 text-slate-400 hover:text-emerald-400'
+                        : 'bg-white text-slate-600 border border-slate-200 hover:bg-emerald-50 hover:text-emerald-700 hover:border-emerald-200'
                     }`}
                   >
                     ➕ Created ({stats.createdCount})
                   </button>
                   <button
                     onClick={() => setActiveFilter('UPDATE')}
-                    className={`px-3 py-1.5 rounded-xl font-bold transition-all cursor-pointer whitespace-nowrap ${
+                    className={`interactive-btn-hover px-3.5 py-1.5 rounded-xl font-bold transition-all cursor-pointer whitespace-nowrap ${
                       activeFilter === 'UPDATE'
                         ? 'bg-sky-600 text-white shadow'
-                        : 'bg-slate-800/80 text-slate-400 hover:text-sky-400'
+                        : 'bg-white text-slate-600 border border-slate-200 hover:bg-sky-50 hover:text-sky-700 hover:border-sky-200'
                     }`}
                   >
                     ✏️ Edited ({stats.updatedCount})
                   </button>
                   <button
                     onClick={() => setActiveFilter('DELETE')}
-                    className={`px-3 py-1.5 rounded-xl font-bold transition-all cursor-pointer whitespace-nowrap ${
+                    className={`interactive-btn-hover px-3.5 py-1.5 rounded-xl font-bold transition-all cursor-pointer whitespace-nowrap ${
                       activeFilter === 'DELETE'
                         ? 'bg-rose-600 text-white shadow'
-                        : 'bg-slate-800/80 text-slate-400 hover:text-rose-400'
+                        : 'bg-white text-slate-600 border border-slate-200 hover:bg-rose-50 hover:text-rose-700 hover:border-rose-200'
                     }`}
                   >
                     🗑️ Deleted ({stats.deletedCount})
                   </button>
                   <button
                     onClick={() => setActiveFilter('AUTH')}
-                    className={`px-3 py-1.5 rounded-xl font-bold transition-all cursor-pointer whitespace-nowrap ${
+                    className={`interactive-btn-hover px-3.5 py-1.5 rounded-xl font-bold transition-all cursor-pointer whitespace-nowrap ${
                       activeFilter === 'AUTH'
                         ? 'bg-amber-600 text-white shadow'
-                        : 'bg-slate-800/80 text-slate-400 hover:text-amber-400'
+                        : 'bg-white text-slate-600 border border-slate-200 hover:bg-amber-50 hover:text-amber-700 hover:border-amber-200'
                     }`}
                   >
                     🔐 Logins / Auth ({stats.authCount})
@@ -534,18 +535,18 @@ export const InvitedMember360Modal: React.FC<InvitedMember360ModalProps> = ({
 
                 {/* Audit Logs List */}
                 {filteredLogs.length === 0 ? (
-                  <div className="py-16 text-center space-y-3 bg-slate-950/40 rounded-2xl border border-slate-800/80">
-                    <div className="w-12 h-12 rounded-full bg-slate-800 text-slate-500 mx-auto flex items-center justify-center">
+                  <div className="py-16 text-center space-y-3 bg-white rounded-2xl border border-slate-200 shadow-sm">
+                    <div className="w-12 h-12 rounded-2xl bg-teal-50 text-growth-teal mx-auto flex items-center justify-center border border-teal-100">
                       <Activity className="w-6 h-6" />
                     </div>
-                    <div className="text-xs font-semibold text-slate-300">
+                    <div className="text-sm font-bold text-slate-800">
                       {searchQuery
                         ? 'No activity logs match your search filter'
                         : activeFilter !== 'ALL'
                         ? `No ${activeFilter.toLowerCase()} activities recorded for this member`
                         : 'No activity logs recorded yet'}
                     </div>
-                    <p className="text-[11px] text-slate-500 max-w-sm mx-auto">
+                    <p className="text-xs text-slate-500 max-w-sm mx-auto">
                       Any actions taken by this member (creating leads, modifying contacts, deleting tasks, or logging in) will appear here live with full audit diffs.
                     </p>
                   </div>
@@ -558,39 +559,39 @@ export const InvitedMember360Modal: React.FC<InvitedMember360ModalProps> = ({
                       return (
                         <div
                           key={log.id}
-                          className="bg-slate-950/70 border border-slate-800/80 rounded-2xl p-3.5 hover:border-slate-700 transition-all space-y-2.5"
+                          className="card-premium interactive-box-hover bg-white border border-slate-200 rounded-2xl p-4 hover:border-growth-teal transition-all shadow-sm space-y-2.5"
                         >
                           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                             <div className="flex items-center gap-2.5 flex-wrap">
                               {getActionBadge(log.action, log.entityType)}
 
-                              <span className="px-2 py-0.5 rounded text-[10px] font-mono bg-slate-800 text-slate-300 border border-slate-700">
+                              <span className="px-2 py-0.5 rounded-lg text-[10px] font-mono font-bold bg-slate-100 text-slate-700 border border-slate-200">
                                 {log.entityType}
                               </span>
 
                               {log.entityId && (
-                                <span className="text-xs font-mono font-bold text-slate-200">
+                                <span className="text-xs font-mono font-bold text-slate-800 bg-slate-50 px-2 py-0.5 rounded border border-slate-200">
                                   {log.entityId}
                                 </span>
                               )}
                             </div>
 
-                            <div className="flex items-center gap-3 text-[11px] text-slate-400 shrink-0">
-                              <span title={formatTimestamp(log.timestamp)} className="flex items-center gap-1">
-                                <Clock className="w-3 h-3 text-slate-500" />
+                            <div className="flex items-center gap-3 text-xs text-slate-500 shrink-0">
+                              <span title={formatTimestamp(log.timestamp)} className="flex items-center gap-1.5 font-medium">
+                                <Clock className="w-3.5 h-3.5 text-slate-400" />
                                 <span>{getRelativeTime(log.timestamp)}</span>
                               </span>
 
                               {hasData && (
                                 <button
                                   onClick={() => toggleExpand(log.id)}
-                                  className="flex items-center gap-1 text-[11px] text-growth-teal hover:underline cursor-pointer"
+                                  className="interactive-btn-hover flex items-center gap-1 text-xs font-bold text-growth-teal hover:text-growth-tealDark cursor-pointer"
                                 >
                                   <span>{isExpanded ? 'Hide Details' : 'View Changes'}</span>
                                   {isExpanded ? (
-                                    <ChevronDown className="w-3 h-3" />
+                                    <ChevronDown className="w-3.5 h-3.5" />
                                   ) : (
-                                    <ChevronRight className="w-3 h-3" />
+                                    <ChevronRight className="w-3.5 h-3.5" />
                                   )}
                                 </button>
                               )}
@@ -598,20 +599,20 @@ export const InvitedMember360Modal: React.FC<InvitedMember360ModalProps> = ({
                           </div>
 
                           {log.reason && (
-                            <p className="text-[11px] text-slate-400 italic">
-                              Reason / Note: {log.reason}
+                            <p className="text-xs text-slate-600 bg-slate-50 p-2.5 rounded-xl border border-slate-100">
+                              <span className="font-semibold text-slate-700">Reason / Note:</span> {log.reason}
                             </p>
                           )}
 
                           {/* Expandable Before / After Details */}
                           {hasData && isExpanded && (
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5 pt-2 border-t border-slate-800/80 text-[11px]">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-2 border-t border-slate-100 text-xs">
                               {log.previousData && (
-                                <div className="p-2.5 rounded-xl bg-slate-900 border border-rose-900/30">
-                                  <span className="text-[10px] font-bold text-rose-400 uppercase tracking-wider block mb-1">
+                                <div className="p-3 rounded-xl bg-rose-50/60 border border-rose-200/80">
+                                  <span className="text-[10px] font-black text-rose-700 uppercase tracking-wider block mb-1">
                                     Previous State (Before)
                                   </span>
-                                  <pre className="font-mono text-[10px] text-slate-300 overflow-x-auto whitespace-pre-wrap max-h-36">
+                                  <pre className="font-mono text-[10px] text-rose-950 overflow-x-auto whitespace-pre-wrap max-h-40 bg-white/70 p-2 rounded-lg border border-rose-200/50">
                                     {typeof log.previousData === 'object'
                                       ? JSON.stringify(log.previousData, null, 2)
                                       : log.previousData}
@@ -620,11 +621,11 @@ export const InvitedMember360Modal: React.FC<InvitedMember360ModalProps> = ({
                               )}
 
                               {log.newData && (
-                                <div className="p-2.5 rounded-xl bg-slate-900 border border-emerald-900/30">
-                                  <span className="text-[10px] font-bold text-emerald-400 uppercase tracking-wider block mb-1">
+                                <div className="p-3 rounded-xl bg-emerald-50/60 border border-emerald-200/80">
+                                  <span className="text-[10px] font-black text-emerald-700 uppercase tracking-wider block mb-1">
                                     Updated / New State (After)
                                   </span>
-                                  <pre className="font-mono text-[10px] text-slate-300 overflow-x-auto whitespace-pre-wrap max-h-36">
+                                  <pre className="font-mono text-[10px] text-emerald-950 overflow-x-auto whitespace-pre-wrap max-h-40 bg-white/70 p-2 rounded-lg border border-emerald-200/50">
                                     {typeof log.newData === 'object'
                                       ? JSON.stringify(log.newData, null, 2)
                                       : log.newData}
@@ -635,9 +636,9 @@ export const InvitedMember360Modal: React.FC<InvitedMember360ModalProps> = ({
                           )}
 
                           {log.ipAddress && (
-                            <div className="text-[10px] text-slate-500 font-mono flex items-center justify-between pt-1">
+                            <div className="text-[10px] text-slate-400 font-mono flex items-center justify-between pt-1 border-t border-slate-100">
                               <span>IP: {log.ipAddress}</span>
-                              <span className="text-slate-600">{formatTimestamp(log.timestamp)}</span>
+                              <span>{formatTimestamp(log.timestamp)}</span>
                             </div>
                           )}
                         </div>
@@ -650,17 +651,17 @@ export const InvitedMember360Modal: React.FC<InvitedMember360ModalProps> = ({
           )}
         </div>
 
-        {/* Footer - Fixed */}
-        <div className="flex items-center justify-between px-6 py-4 border-t border-slate-800 bg-slate-900/95 shrink-0 z-10 text-xs text-slate-400">
+        {/* Footer - Clean Fixed White */}
+        <div className="flex items-center justify-between px-6 py-4 border-t border-slate-200 bg-white shrink-0 z-10 text-xs text-slate-600">
           <div className="flex items-center gap-2">
-            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-            <span>Live audit tracking active • Auto-refreshes every 15s</span>
+            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+            <span className="font-medium">Live audit tracking active • Auto-refreshes every 15s</span>
           </div>
 
           <button
             type="button"
             onClick={onClose}
-            className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold transition-colors cursor-pointer"
+            className="interactive-btn-hover px-5 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold transition shadow-sm cursor-pointer"
           >
             Close 360° View
           </button>
