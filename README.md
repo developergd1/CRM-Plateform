@@ -31,6 +31,19 @@ Render ke **Environment** tab me ye variables add karein:
 
 ---
 
+## ⚡ Vercel Deployment Guide (Deploy on Vercel)
+
+1. [Vercel Dashboard](https://vercel.com/dashboard) me jaakar **Add New...** -> **Project** select karein.
+2. `developergd1/CRM-Plateform` repository import karein.
+3. Framework Preset: **Next.js** (automatically detected via `vercel.json`).
+4. **Environment Variables** configure karein:
+   - `DATABASE_URL`: Aapka MongoDB connection string.
+   - `JWT_SECRET`: Secret key (e.g. `growth-india-crm-secure-jwt-secret-key-2026-production`).
+   - `NODE_ENV`: `production`
+5. Click **Deploy**. Vercel will automatically build and deploy the project with zero configuration.
+
+---
+
 ## 🚀 Dusre Laptop Pe Chalane Ka Asaan Tarika (Other Laptop Setup)
 
 Dusre laptop par project open karke chalane ke liye sirf ye simple steps follow karein:
