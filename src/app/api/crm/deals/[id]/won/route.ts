@@ -87,7 +87,7 @@ export async function POST(
           activityNumber,
           type: 'OTHER',
           status: 'COMPLETED',
-          subject: `🎉 Deal Closed WON: ${deal.title}`,
+          subject: `Deal Closed WON: ${deal.title}`,
           description: `Won Reason: ${wonReason}. ${closingNotes ? `Notes: ${closingNotes}` : ''}`,
           completedAt: closedAt,
           dealId: deal.id,

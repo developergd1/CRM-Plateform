@@ -98,6 +98,33 @@ export async function GET(
             author: { select: { fullName: true, employeeId: true } },
           },
         },
+        account: {
+          select: {
+            id: true,
+            accountCode: true,
+            companyName: true,
+            industry: true,
+            phone: true,
+            email: true,
+            status: true,
+            clientId: true,
+            client: { select: { id: true, clientId: true, status: true } },
+          },
+        },
+        pipelineStage: true,
+        lineItems: {
+          include: { product: true },
+        },
+        quotes: {
+          orderBy: { createdAt: 'desc' },
+          include: { items: { include: { product: true } } },
+        },
+        contracts: {
+          orderBy: { createdAt: 'desc' },
+        },
+        handoffs: {
+          orderBy: { createdAt: 'desc' },
+        },
       },
     });
 

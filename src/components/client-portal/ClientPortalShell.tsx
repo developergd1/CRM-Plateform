@@ -36,18 +36,57 @@ import {
   LayoutGrid,
   List,
   Share2,
+  Briefcase,
+  Layers,
+  FolderLock,
+  CreditCard,
+  Target,
+  FileCheck2,
+  PieChart,
+  LifeBuoy,
+  FileSpreadsheet,
 } from 'lucide-react';
 import { AddEmployeeModal } from '@/components/employees/AddEmployeeModal';
+import { EmployeeOnboardingWizard } from '@/components/employees/EmployeeOnboardingWizard';
 import { EditEmployeeModal } from '@/components/employees/EditEmployeeModal';
 import { EmployeeDetailDrawer } from '@/components/employees/EmployeeDetailDrawer';
 import { PasswordResetRequestsModal } from '@/components/auth/PasswordResetRequestsModal';
 import { ClientAttendanceHub } from './ClientAttendanceHub';
 import { ClientRequestsView } from './ClientRequestsView';
+import { LeaveView } from '../leave/LeaveView';
 import { EmployeeItem } from '@/types';
 import { NotificationBell } from '@/components/notifications/NotificationBell';
 import { TaskManager } from '../tasks/TaskManager';
 import { SharedAccessManager } from '../sharing/SharedAccessManager';
 import { PresenceTracker } from '../presence/PresenceTracker';
+import { ClientDocumentsView } from './ClientDocumentsView';
+import { ClientSubscriptionView } from './ClientSubscriptionView';
+
+// CRM Views
+import { CrmDashboardView } from '../crm/dashboard/CrmDashboardView';
+import { LeadsListView } from '../crm/leads/LeadsListView';
+import { LeadDetailView } from '../crm/leads/LeadDetailView';
+import { ContactsListView } from '../crm/contacts/ContactsListView';
+import { OpportunitiesListView } from '../crm/opportunities/OpportunitiesListView';
+import { DealsListView } from '../crm/deals/DealsListView';
+import { DealDetailView } from '../crm/deals/DealDetailView';
+import { PipelineKanbanView } from '../crm/pipeline/PipelineKanbanView';
+import { ActivitiesListView } from '../crm/activities/ActivitiesListView';
+import { ProductsListView } from '../crm/products/ProductsListView';
+import { QuotesListView } from '../crm/quotes/QuotesListView';
+import { ContractsListView } from '../crm/contracts/ContractsListView';
+import { RenewalsManagementView } from '../crm/contracts/RenewalsManagementView';
+import { CrmAnalyticsView } from '../crm/analytics/CrmAnalyticsView';
+import { CrmReportsView } from '../crm/reports/CrmReportsView';
+
+// HRM Views
+import { HrmDashboardView } from '../hrm/dashboard/HrmDashboardView';
+import { HrmPayrollView } from '../hrm/payroll/HrmPayrollView';
+import { HrmRecruitmentView } from '../hrm/recruitment/HrmRecruitmentView';
+import { HrmPerformanceView } from '../hrm/performance/HrmPerformanceView';
+import { HrmOrganizationView } from '../hrm/organization/HrmOrganizationView';
+import { HrmHelpdeskView } from '../hrm/helpdesk/HrmHelpdeskView';
+import { EmployeeLifecycleView } from '../lifecycle/EmployeeLifecycleView';
 
 import { clientCache } from '@/lib/client-cache';
 
@@ -60,20 +99,72 @@ export const normalizeClientTab = (rawTab: string | null | undefined): string =>
   const t = rawTab.toLowerCase().trim();
   if (t === 'dashboard' || t === 'dash-overview' || t === 'overview') return 'overview';
   if (t === 'employees' || t === 'dash-employees') return 'employees';
+  if (t === 'onboarding' || t === 'employee-onboarding' || t === 'onboard-employee') return 'onboarding';
   if (t === 'workforce' || t === 'dash-workforce' || t === 'live-workforce') return 'attendance';
   if (t === 'attendance' || t === 'dash-attendance') return 'attendance';
   if (t === 'timesheets' || t === 'dash-timesheets') return 'attendance';
   if (t === 'reports' || t === 'dash-reports') return 'attendance';
-  if (t === 'reports' || t === 'dash-reports') return 'attendance';
   if (t === 'requests' || t === 'dash-requests' || t === 'password-requests') return 'requests';
   if (t === 'history' || t === 'block-history') return 'history';
+  if (t === 'leave' || t === 'leaves' || t === 'dash-leave') return 'leave';
   if (t === 'tasks' || t === 'dash-tasks') return 'tasks';
   if (t === 'shared-access' || t === 'team' || t === 'invite' || t === 'shared') return 'shared-access';
+  if (t === 'documents' || t === 'vault' || t === 'docs') return 'documents';
+  if (t === 'subscription' || t === 'billing' || t === 'plan') return 'subscription';
+
+  // CRM tabs
+  if (t === 'crm' || t === 'crm-dashboard') return 'crm-dashboard';
+  if (t === 'crm-leads' || t === 'leads') return 'crm-leads';
+  if (t === 'crm-lead-detail') return 'crm-lead-detail';
+  if (t === 'crm-contacts' || t === 'contacts') return 'crm-contacts';
+  if (t === 'crm-opportunities' || t === 'opportunities') return 'crm-opportunities';
+  if (t === 'crm-deals' || t === 'deals') return 'crm-deals';
+  if (t === 'crm-deal-detail') return 'crm-deal-detail';
+  if (t === 'crm-pipeline' || t === 'pipeline') return 'crm-pipeline';
+  if (t === 'crm-activities' || t === 'activities') return 'crm-activities';
+  if (t === 'crm-products' || t === 'products') return 'crm-products';
+  if (t === 'crm-quotes' || t === 'quotes') return 'crm-quotes';
+  if (t === 'crm-contracts' || t === 'contracts') return 'crm-contracts';
+  if (t === 'crm-renewals' || t === 'renewals') return 'crm-renewals';
+  if (t === 'crm-analytics') return 'crm-analytics';
+  if (t === 'crm-reports') return 'crm-reports';
+
+  // HRM tabs
+  if (t === 'hrm' || t === 'hrm-dashboard') return 'hrm-dashboard';
+  if (t === 'hrm-payroll' || t === 'payroll') return 'hrm-payroll';
+  if (t === 'hrm-recruitment' || t === 'recruitment') return 'hrm-recruitment';
+  if (t === 'hrm-performance' || t === 'performance') return 'hrm-performance';
+  if (t === 'hrm-organization' || t === 'organization') return 'hrm-organization';
+  if (t === 'hrm-helpdesk' || t === 'helpdesk') return 'hrm-helpdesk';
+  if (t === 'hrm-lifecycle' || t === 'lifecycle') return 'hrm-lifecycle';
+
   return t;
 };
 
 export const ClientPortalShell: React.FC<ClientPortalShellProps> = ({ initialTab = 'overview' }) => {
-  const { user, logout } = useAuth();
+  const { user, loading: authLoading, logout } = useAuth();
+  const [signingOut, setSigningOut] = useState(false);
+
+  useEffect(() => {
+    if (!authLoading && !user) {
+      if (typeof window !== 'undefined') {
+        window.location.href = '/';
+      }
+    }
+  }, [user, authLoading]);
+
+  const handleSignOut = async () => {
+    setSigningOut(true);
+    try {
+      await logout();
+    } catch (e) {
+      console.error('Logout error:', e);
+    } finally {
+      if (typeof window !== 'undefined') {
+        window.location.href = '/';
+      }
+    }
+  };
 
   const getInitialSubTab = (): string => {
     if (typeof window !== 'undefined') {
@@ -160,10 +251,16 @@ export const ClientPortalShell: React.FC<ClientPortalShellProps> = ({ initialTab
   // Password Reset Requests Modal & Quick Reset state
   const [showResetRequests, setShowResetRequests] = useState(false);
   const [pendingResetCount, setPendingResetCount] = useState(0);
+  const [pendingLeaveCount, setPendingLeaveCount] = useState(0);
   const [quickResetEmp, setQuickResetEmp] = useState<any | null>(null);
   const [quickPassword, setQuickPassword] = useState('');
   const [quickResetLoading, setQuickResetLoading] = useState(false);
   const [quickResetResult, setQuickResetResult] = useState<string | null>(null);
+
+  // CRM specific navigation states for client
+  const [selectedDealId, setSelectedDealId] = useState<string>('');
+  const [selectedLeadId, setSelectedLeadId] = useState<string>('');
+  const [createDealContext, setCreateDealContext] = useState<{ leadId?: string; opportunityId?: string } | null>(null);
 
   const [actionLoading, setActionLoading] = useState(false);
   const [alertMsg, setAlertMsg] = useState<string | null>(null);
@@ -182,6 +279,18 @@ export const ClientPortalShell: React.FC<ClientPortalShellProps> = ({ initialTab
     }
   };
 
+  const fetchPendingLeaveCount = async () => {
+    try {
+      const res = await fetch('/api/leave?status=PENDING');
+      if (res.ok) {
+        const data = await res.json();
+        setPendingLeaveCount((data.requests || []).length);
+      }
+    } catch (e) {
+      console.error('Error fetching pending leave count:', e);
+    }
+  };
+
   const handleRefreshCurrentSection = async () => {
     setSectionRefreshing(true);
     try {
@@ -195,8 +304,9 @@ export const ClientPortalShell: React.FC<ClientPortalShellProps> = ({ initialTab
       await Promise.all([
         fetchData(true),
         fetchResetRequestsCount(),
+        fetchPendingLeaveCount(),
       ]);
-      setAlertMsg('✅ Section data refreshed successfully.');
+      setAlertMsg('Section data refreshed successfully.');
       setTimeout(() => setAlertMsg(null), 3000);
     } catch (e) {
       console.error('Section refresh error:', e);
@@ -247,6 +357,7 @@ export const ClientPortalShell: React.FC<ClientPortalShellProps> = ({ initialTab
 
   useEffect(() => {
     fetchResetRequestsCount();
+    fetchPendingLeaveCount();
   }, []);
 
   const handleBlockSubmit = async (e: React.FormEvent) => {
@@ -265,17 +376,17 @@ export const ClientPortalShell: React.FC<ClientPortalShellProps> = ({ initialTab
       });
       const data = await res.json();
       if (res.ok) {
-        setAlertMsg(`🔒 ${blockTarget.fullName} (${blockTarget.employeeId}) has been BLOCKED.`);
+        setAlertMsg(`${blockTarget.fullName} (${blockTarget.employeeId}) has been BLOCKED.`);
         setBlockTarget(null);
         setBlockRemarks('');
         clientCache.clear('client_portal_');
         await fetchData(true);
         setTimeout(() => setAlertMsg(null), 4500);
       } else {
-        setAlertMsg(`⚠️ Error: ${data.error || 'Failed to block employee'}`);
+        setAlertMsg(`Error: ${data.error || 'Failed to block employee'}`);
       }
     } catch (e) {
-      setAlertMsg('⚠️ Network error while blocking employee');
+      setAlertMsg('Network error while blocking employee');
     } finally {
       setActionLoading(false);
     }
@@ -297,17 +408,17 @@ export const ClientPortalShell: React.FC<ClientPortalShellProps> = ({ initialTab
       });
       const data = await res.json();
       if (res.ok) {
-        setAlertMsg(`✅ ${unblockTarget.fullName} (${unblockTarget.employeeId}) is now UNBLOCKED & ACTIVE.`);
+        setAlertMsg(`${unblockTarget.fullName} (${unblockTarget.employeeId}) is now UNBLOCKED & ACTIVE.`);
         setUnblockTarget(null);
         setUnblockRemarks('');
         clientCache.clear('client_portal_');
         await fetchData(true);
         setTimeout(() => setAlertMsg(null), 4500);
       } else {
-        setAlertMsg(`⚠️ Error: ${data.error || 'Failed to unblock employee'}`);
+        setAlertMsg(`Error: ${data.error || 'Failed to unblock employee'}`);
       }
     } catch (e) {
-      setAlertMsg('⚠️ Network error while unblocking employee');
+      setAlertMsg('Network error while unblocking employee');
     } finally {
       setActionLoading(false);
     }
@@ -329,7 +440,7 @@ export const ClientPortalShell: React.FC<ClientPortalShellProps> = ({ initialTab
       const data = await res.json();
       if (res.ok) {
         setQuickResetResult(generatedPwd);
-        setAlertMsg(`🔑 Password for ${quickResetEmp.fullName} (${quickResetEmp.employeeId}) has been reset.`);
+        setAlertMsg(`Password for ${quickResetEmp.fullName} (${quickResetEmp.employeeId}) has been reset.`);
       } else {
         alert(data.error || 'Failed to reset password');
       }
@@ -357,27 +468,72 @@ export const ClientPortalShell: React.FC<ClientPortalShellProps> = ({ initialTab
     items: ClientNavItem[];
   }
 
-  // Nav items categorized cleanly: Attendance & Timesheets combined into unified suite
+  // Dynamic module navigation based on client entitlements
+  const assigned = ((user as any)?.assignedModules && (user as any).assignedModules.length > 0)
+    ? (user as any).assignedModules.map((m: string) => m.toUpperCase())
+    : ['EMS'];
+
+  const hasEMS = assigned.includes('EMS');
+  const hasCRM = assigned.includes('CRM');
+  const hasHRM = assigned.includes('HRM');
+
   const navSections: ClientNavSection[] = [
     {
       title: 'WORKSPACE',
       items: [
         { id: 'overview', label: 'Overview', icon: LayoutDashboard },
-        { id: 'employees', label: `My Employees (${totalStaff})`, icon: Users },
+        ...(hasEMS ? [
+          { id: 'employees', label: `My Employees (${totalStaff})`, icon: Users },
+          { id: 'onboarding', label: 'Employee Onboarding', icon: UserPlus },
+        ] : []),
       ],
     },
-    {
-      title: 'TIME & WORKFORCE',
+    ...(hasEMS ? [{
+      title: 'TIME & WORKFORCE (EMS)',
       items: [
         { id: 'attendance', label: 'Attendance & Timesheets', icon: Calendar },
+        { id: 'leave', label: 'Leave Management', icon: Briefcase, badge: pendingLeaveCount },
         { id: 'tasks', label: 'Tasks & Follow-ups', icon: Activity },
+        { id: 'documents', label: 'Employee Documents', icon: FolderLock },
       ],
-    },
+    }] : []),
+    ...(hasCRM ? [{
+      title: 'CUSTOMER RELATIONSHIP (CRM)',
+      items: [
+        { id: 'crm-dashboard', label: 'CRM Dashboard', icon: LayoutDashboard },
+        { id: 'crm-leads', label: 'Leads Management', icon: Users },
+        { id: 'crm-contacts', label: 'Contacts', icon: Users },
+        { id: 'crm-pipeline', label: 'Deals & Pipeline', icon: Layers },
+        { id: 'crm-opportunities', label: 'Opportunities', icon: Target },
+        { id: 'crm-activities', label: 'Activities & Calls', icon: Activity },
+        { id: 'crm-products', label: 'Products & Price Book', icon: Briefcase },
+        { id: 'crm-quotes', label: 'Quotes & Proposals', icon: FileSpreadsheet },
+        { id: 'crm-contracts', label: 'Contracts & SLA', icon: FileCheck2 },
+        { id: 'crm-renewals', label: 'Renewals', icon: RefreshCw },
+        { id: 'crm-analytics', label: 'CRM Analytics', icon: PieChart },
+        { id: 'crm-reports', label: 'Sales Reports', icon: FileBarChart },
+      ],
+    }] : []),
+    ...(hasHRM ? [{
+      title: 'HUMAN RESOURCES (HRM)',
+      items: [
+        { id: 'hrm-dashboard', label: 'HRM Dashboard', icon: LayoutDashboard },
+        { id: 'hrm-lifecycle', label: 'Staff Lifecycle', icon: Users },
+        { id: 'hrm-recruitment', label: 'Recruitment & Jobs', icon: Briefcase },
+        { id: 'hrm-payroll', label: 'Payroll & Compensation', icon: CreditCard },
+        { id: 'hrm-performance', label: 'Performance & Goals', icon: Target },
+        { id: 'hrm-helpdesk', label: 'Employee Helpdesk', icon: LifeBuoy },
+        { id: 'hrm-organization', label: 'Organization Units', icon: Building2 },
+      ],
+    }] : []),
     {
       title: 'SECURITY & GOVERNANCE',
       items: [
-        { id: 'history', label: `Block History (${blockHistories.length})`, icon: Ban },
-        { id: 'requests', label: 'Password Requests', icon: KeyRound, badge: pendingResetCount },
+        { id: 'subscription', label: 'Subscription & Quota', icon: CreditCard },
+        ...(hasEMS ? [
+          { id: 'history', label: `Block History (${blockHistories.length})`, icon: Ban },
+          { id: 'requests', label: 'Password Requests', icon: KeyRound, badge: pendingResetCount },
+        ] : []),
         { id: 'shared-access', label: 'Shared Access / Team', icon: Share2 },
       ],
     },
@@ -393,38 +549,50 @@ export const ClientPortalShell: React.FC<ClientPortalShellProps> = ({ initialTab
     <div className="flex h-screen bg-slate-100/70 overflow-hidden font-sans">
       <PresenceTracker activeTab={activeTab} />
 
-      {/* LEFT SIDEBAR (Growth India Dark Theme) */}
-      <aside className="w-64 bg-slate-900 text-slate-300 flex flex-col shrink-0 border-r border-slate-800 select-none">
+      {/* LEFT SIDEBAR (Clean Light Theme Matching Admin Panel) */}
+      <aside className="w-64 bg-white text-slate-800 flex flex-col shrink-0 border-r border-slate-200 select-none">
         {/* Brand Header */}
-        <div className="h-16 flex items-center px-5 border-b border-slate-800 bg-slate-950/50">
+        <div className="h-16 flex items-center px-5 border-b border-slate-200 bg-white">
           <GrowthIndiaLogo size="sm" />
         </div>
 
         {/* Client Platform Badge */}
-        <div className="mx-3 mt-3.5 p-2.5 bg-slate-950/70 rounded-xl border border-growth-teal/30 flex items-center justify-between">
+        <div className="mx-3 mt-3.5 p-2.5 bg-teal-50 border border-teal-200 rounded-xl flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <div className="w-2 h-2 rounded-full bg-growth-teal animate-pulse" />
-            <span className="text-[11px] font-bold text-slate-200 uppercase tracking-wider">
+            <div className="w-2 h-2 rounded-full bg-teal-600 animate-pulse" />
+            <span className="text-[11px] font-bold text-teal-950 uppercase tracking-wider">
               {user?.isDelegated ? 'DELEGATED TEAM' : 'CLIENT'}
             </span>
           </div>
-          <span className="text-[9px] font-mono font-extrabold px-1.5 py-0.5 rounded bg-growth-teal/20 text-growth-teal border border-growth-teal/40">
+          <span className="text-[9px] font-mono font-black uppercase px-1.5 py-0.5 rounded bg-teal-600 text-white shadow-xs">
             {user?.isDelegated ? 'SHARED' : (user?.clientId || 'PORTAL')}
           </span>
         </div>
 
+        {/* Assigned Modules Badge */}
+        <div className="mx-3 mt-2 px-2.5 py-1.5 bg-slate-50/80 rounded-xl border border-slate-200 flex items-center justify-between">
+          <span className="text-[10px] font-bold text-slate-500">Assigned Modules</span>
+          <div className="flex items-center gap-1">
+            {((user as any)?.assignedModules && (user as any).assignedModules.length > 0 ? (user as any).assignedModules : ['EMS']).map((m: string) => (
+              <span key={m} className="px-1.5 py-0.5 rounded text-[9px] font-black bg-teal-50 text-teal-700 border border-teal-200">
+                {m}
+              </span>
+            ))}
+          </div>
+        </div>
+
         {/* Navigation Links Area */}
-        <div className="flex-1 overflow-y-auto py-4 px-3 space-y-5">
+        <div className="flex-1 overflow-y-auto py-4 px-3 space-y-4">
           {navSections.map((sec) => {
             const visibleItems = sec.items.filter((item) => isAllowed(item.id));
             if (visibleItems.length === 0) return null;
 
             return (
-              <div key={sec.title} className="space-y-1.5">
-                <div className="px-3 text-[10px] font-black uppercase tracking-wider text-slate-500">
+              <div key={sec.title} className="space-y-1">
+                <div className="px-3 py-1 text-[10px] font-extrabold uppercase tracking-wider text-slate-400">
                   {sec.title}
                 </div>
-                <div className="space-y-0.5">
+                <div className="space-y-1">
                   {visibleItems.map((item) => {
                     const ItemIcon = item.icon;
                     const isActive = activeTab === item.id;
@@ -434,65 +602,67 @@ export const ClientPortalShell: React.FC<ClientPortalShellProps> = ({ initialTab
                         key={item.id}
                         type="button"
                         onClick={() => selectTab(item.id)}
-                        className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all ${
+                        className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all cursor-pointer group ${
                           isActive
-                            ? 'bg-gradient-to-r from-growth-teal to-growth-tealDark text-white shadow-tealGlow font-bold'
-                            : 'text-slate-400 hover:text-slate-100 hover:bg-slate-800/60'
+                            ? 'bg-teal-600 text-white font-bold shadow-xs'
+                            : 'text-slate-600 hover:text-teal-700 hover:bg-teal-50/70 hover:font-bold'
                         }`}
                       >
-                      <div className="flex items-center gap-2.5 min-w-0">
-                        <ItemIcon
-                          className={`w-4 h-4 shrink-0 ${
-                            isActive ? 'text-growth-gold' : 'text-slate-400'
-                          }`}
-                        />
-                        <span className="truncate">{item.label}</span>
-                      </div>
-                      <div className="flex items-center gap-1.5 shrink-0">
-                        {item.isLive && (
-                          <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-                        )}
-                        {Boolean(item.badge && item.badge > 0) && (
-                          <span className="px-1.5 py-0.2 rounded-full text-[9px] font-extrabold bg-rose-500 text-white">
-                            {item.badge}
-                          </span>
-                        )}
-                      </div>
-                    </button>
-                  );
-                })}
+                        <div className="flex items-center gap-3 min-w-0">
+                          <ItemIcon
+                            className={`w-4 h-4 shrink-0 transition-transform group-hover:scale-110 ${
+                              isActive ? 'text-white' : 'text-slate-400 group-hover:text-teal-600'
+                            }`}
+                          />
+                          <span className="truncate">{item.label}</span>
+                        </div>
+                        <div className="flex items-center gap-1.5 shrink-0">
+                          {item.isLive && (
+                            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                          )}
+                          {Boolean(item.badge && item.badge > 0) && (
+                            <span className={`px-1.5 py-0.2 rounded-full text-[9px] font-black ${
+                              isActive ? 'bg-white text-teal-700' : 'bg-teal-600 text-white animate-pulse'
+                            }`}>
+                              {item.badge}
+                            </span>
+                          )}
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
-            </div>
-          );
-        })}
-      </div>
+            );
+          })}
+        </div>
 
         {/* DOWN-LEFT PROFILE CARD + QUICK SIGN OUT */}
-        <div className="p-3 border-t border-slate-800 bg-slate-950/70">
-          <div className="p-2.5 bg-slate-900 rounded-2xl border border-slate-800/90 flex items-center justify-between gap-2.5">
-            <div className="flex items-center gap-2.5 min-w-0">
-              <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-growth-teal to-teal-800 flex items-center justify-center font-black text-white text-sm shrink-0 shadow">
+        <div className="p-3 border-t border-slate-200 bg-slate-50/70 space-y-2.5">
+          <div className="p-2.5 rounded-xl bg-white border border-slate-200 shadow-xs space-y-2">
+            <div className="flex items-center gap-2.5">
+              <div className="w-8 h-8 rounded-lg bg-teal-600 text-white flex items-center justify-center font-bold text-xs shrink-0 shadow-xs">
                 {user?.fullName?.charAt(0) || 'C'}
               </div>
               <div className="min-w-0 flex-1">
-                <div className="text-xs font-bold text-white truncate" title={user?.fullName}>
+                <p className="text-xs font-bold text-slate-900 truncate leading-tight" title={user?.fullName}>
                   {user?.fullName || 'Client User'}
-                </div>
-                <div className="text-[10px] text-slate-400 truncate" title={user?.companyName}>
-                  {user?.companyName || 'Corporate Client'}
-                </div>
-                <div className="flex items-center gap-1 mt-0.5">
-                  <span className="font-mono text-[9px] text-growth-gold font-bold">{user?.clientId}</span>
-                  <span className="text-[9px] text-slate-500">• Client</span>
-                </div>
+                </p>
+                <p className="text-[10px] font-mono text-slate-400 truncate leading-tight" title={user?.companyName}>
+                  {user?.clientId || 'CLI-0000'} • <span className="font-bold text-teal-700">{user?.companyName || 'Corporate Client'}</span>
+                </p>
               </div>
             </div>
+
             <button
-              onClick={logout}
-              className="p-1.5 text-slate-400 hover:text-rose-400 hover:bg-slate-800 rounded-xl transition shrink-0"
-              title="Sign Out"
+              type="button"
+              onClick={handleSignOut}
+              disabled={signingOut}
+              className="w-full flex items-center justify-center gap-1.5 py-1.5 px-3 rounded-lg text-xs font-semibold text-slate-600 hover:text-rose-600 hover:bg-rose-50 border border-slate-200 hover:border-rose-200 transition-all cursor-pointer disabled:opacity-50"
+              title="Sign Out to Login"
             >
-              <LogOut className="w-4 h-4" />
+              <LogOut className="w-3.5 h-3.5" />
+              <span>{signingOut ? 'Signing Out...' : 'Sign Out'}</span>
             </button>
           </div>
         </div>
@@ -507,10 +677,37 @@ export const ClientPortalShell: React.FC<ClientPortalShellProps> = ({ initialTab
               {activeTab === 'overview' && 'Client Dashboard Overview'}
               {activeTab === 'employees' && 'My Employees Directory & Governance'}
               {activeTab === 'attendance' && 'Attendance, Timesheets & Workforce Suite'}
+              {activeTab === 'leave' && 'Employee Leave & Absence Governance'}
               {activeTab === 'tasks' && 'Task & Follow-up Management'}
+              {activeTab === 'documents' && 'Corporate Employee Document Vault'}
+              {activeTab === 'subscription' && 'Subscription Quotas & Module Entitlements'}
               {activeTab === 'history' && 'Security Block & Audit History'}
               {activeTab === 'requests' && 'Employee Password Reset Queue'}
               {activeTab === 'shared-access' && 'Shared Team Access & Delegated RBAC'}
+              {/* CRM tabs */}
+              {activeTab === 'crm-dashboard' && 'CRM Executive Dashboard'}
+              {activeTab === 'crm-leads' && 'Leads Management & Pipeline Ingestion'}
+              {activeTab === 'crm-lead-detail' && 'Lead 360 & Engagement Detail'}
+              {activeTab === 'crm-contacts' && 'Customer Contacts Directory'}
+              {activeTab === 'crm-pipeline' && 'Deals & Revenue Pipeline Kanban'}
+              {activeTab === 'crm-deals' && 'Deals & Pipeline Management'}
+              {activeTab === 'crm-deal-detail' && 'Deal 360 & Pipeline Detail'}
+              {activeTab === 'crm-opportunities' && 'Opportunity Management'}
+              {activeTab === 'crm-activities' && 'Customer Activities & Engagements'}
+              {activeTab === 'crm-products' && 'Product Catalog & Price Book'}
+              {activeTab === 'crm-quotes' && 'Quotes & Commercial Proposals'}
+              {activeTab === 'crm-contracts' && 'Contracts & Master Service Agreements'}
+              {activeTab === 'crm-renewals' && 'Contract Renewals & SLA Continuity'}
+              {activeTab === 'crm-analytics' && 'CRM Revenue & Conversion Analytics'}
+              {activeTab === 'crm-reports' && 'CRM Intelligence & Sales Reports'}
+              {/* HRM tabs */}
+              {activeTab === 'hrm-dashboard' && 'Human Resources Intelligence Dashboard'}
+              {activeTab === 'hrm-lifecycle' && 'Employee Lifecycle & Governance Board'}
+              {activeTab === 'hrm-recruitment' && 'Talent Acquisition & Job Openings'}
+              {activeTab === 'hrm-payroll' && 'Payroll, Salary Structures & Slips'}
+              {activeTab === 'hrm-performance' && 'Performance & Quarterly OKRs'}
+              {activeTab === 'hrm-helpdesk' && 'Employee Helpdesk & Grievance Tickets'}
+              {activeTab === 'hrm-organization' && 'Departments & Organization Structure'}
             </h1>
             <span className="hidden sm:inline-flex px-2.5 py-0.5 rounded text-[10px] font-mono font-bold bg-teal-50 text-growth-teal border border-teal-200">
               {user?.companyName}
@@ -549,20 +746,11 @@ export const ClientPortalShell: React.FC<ClientPortalShellProps> = ({ initialTab
             </button>
 
             <button
-              onClick={() => setShowAddEmployee(true)}
-              className="interactive-btn-hover flex items-center gap-1.5 px-3.5 py-1.5 bg-growth-teal hover:bg-growth-tealDark text-white text-xs font-bold rounded-xl shadow-tealGlow transition-all"
+              onClick={() => selectTab('onboarding')}
+              className="interactive-btn-hover flex items-center gap-1.5 px-3.5 py-1.5 bg-teal-600 hover:bg-teal-700 text-white text-xs font-bold rounded-xl shadow-xs transition-all cursor-pointer"
             >
               <UserPlus className="w-3.5 h-3.5" />
               <span>Onboard Staff</span>
-            </button>
-
-            <button
-              onClick={logout}
-              className="interactive-btn-hover flex items-center gap-1.5 px-3 py-1.5 text-xs text-slate-500 hover:text-rose-600 hover:bg-rose-50 border border-transparent hover:border-rose-200 rounded-xl transition-all"
-              title="Sign Out"
-            >
-              <LogOut className="w-4 h-4" />
-              <span className="hidden sm:inline">Logout</span>
             </button>
           </div>
         </header>
@@ -589,20 +777,20 @@ export const ClientPortalShell: React.FC<ClientPortalShellProps> = ({ initialTab
                     <button
                       type="button"
                       onClick={() => selectTab('employees')}
-                      className="text-2xl font-black text-left text-slate-900 hover:text-growth-teal transition-all flex items-center gap-2 group/c cursor-pointer"
+                      className="text-2xl font-black text-left text-slate-900 hover:text-teal-700 transition-all flex items-center gap-2 group/c cursor-pointer"
                       title="Click to view all employees enrolled under your company"
                     >
                       <span className="title-interactive-hover">{user?.companyName}</span>
-                      <ArrowUpRight className="w-5 h-5 text-growth-teal opacity-70 group-hover/c:opacity-100 group-hover/c:translate-x-0.5 group-hover/c:-translate-y-0.5 transition-all" />
+                      <ArrowUpRight className="w-5 h-5 text-teal-600 opacity-70 group-hover/c:opacity-100 group-hover/c:translate-x-0.5 group-hover/c:-translate-y-0.5 transition-all" />
                     </button>
                     <p className="subtitle-interactive-hover text-xs text-slate-500 mt-1">
-                      Client ID: <span className="font-mono font-bold text-growth-teal">{user?.clientId}</span> • Contact Person: {user?.fullName}
+                      Client ID: <span className="font-mono font-bold text-teal-700">{user?.clientId}</span> • Contact Person: {user?.fullName}
                     </p>
                   </div>
 
                   <button
-                    onClick={() => setShowAddEmployee(true)}
-                    className="interactive-btn-hover flex items-center gap-2 px-5 py-3 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold text-xs rounded-xl shadow-md transition-all self-start md:self-auto"
+                    onClick={() => selectTab('onboarding')}
+                    className="interactive-btn-hover flex items-center gap-2 px-4 py-2.5 bg-teal-600 hover:bg-teal-700 text-white font-bold text-xs rounded-xl shadow-xs transition-all self-start md:self-auto cursor-pointer"
                   >
                     <UserPlus className="w-4 h-4" />
                     <span>Onboard New Employee</span>
@@ -613,25 +801,23 @@ export const ClientPortalShell: React.FC<ClientPortalShellProps> = ({ initialTab
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                   <div
                     onClick={() => selectTab('employees')}
-                    className="card-premium interactive-box-hover bg-white border border-slate-200 hover:border-growth-teal/50 rounded-2xl p-5 shadow-sm flex items-center justify-between cursor-pointer group transition-all"
-                    title="Click to view all employees list"
+                    className="card-premium interactive-box-hover bg-white border border-slate-200 hover:border-teal-500 rounded-2xl p-5 shadow-sm flex items-center justify-between cursor-pointer group transition-all"
                   >
                     <div>
-                      <div className="text-xs text-slate-500 font-bold group-hover:text-growth-teal transition-colors flex items-center gap-1">
+                      <div className="text-xs text-slate-500 font-bold group-hover:text-teal-700 transition-colors flex items-center gap-1">
                         <span>Total Onboarded Staff</span>
                         <ArrowUpRight className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity" />
                       </div>
                       <div className="text-3xl font-black text-slate-900 mt-1">{totalStaff}</div>
                     </div>
-                    <div className="w-12 h-12 rounded-2xl bg-teal-50 text-growth-teal flex items-center justify-center group-hover:scale-105 transition-transform">
+                    <div className="w-12 h-12 rounded-2xl bg-teal-50 text-teal-700 flex items-center justify-center group-hover:scale-105 transition-transform">
                       <Users className="w-6 h-6" />
                     </div>
                   </div>
 
                   <div
                     onClick={() => selectTab('workforce')}
-                    className="card-premium interactive-box-hover bg-white border border-slate-200 hover:border-emerald-500/50 rounded-2xl p-5 shadow-sm flex items-center justify-between cursor-pointer group transition-all"
-                    title="Click to view live workforce telemetry"
+                    className="card-premium interactive-box-hover bg-white border border-slate-200 hover:border-emerald-500 rounded-2xl p-5 shadow-sm flex items-center justify-between cursor-pointer group transition-all"
                   >
                     <div>
                       <div className="text-xs text-emerald-600 font-bold group-hover:text-emerald-700 transition-colors flex items-center gap-1">
@@ -647,8 +833,7 @@ export const ClientPortalShell: React.FC<ClientPortalShellProps> = ({ initialTab
 
                   <div
                     onClick={() => selectTab('history')}
-                    className="card-premium interactive-box-hover bg-white border border-slate-200 hover:border-rose-500/50 rounded-2xl p-5 shadow-sm flex items-center justify-between cursor-pointer group transition-all"
-                    title="Click to view block audit history"
+                    className="card-premium interactive-box-hover bg-white border border-slate-200 hover:border-rose-400 rounded-2xl p-5 shadow-sm flex items-center justify-between cursor-pointer group transition-all"
                   >
                     <div>
                       <div className="text-xs text-rose-600 font-bold group-hover:text-rose-700 transition-colors flex items-center gap-1">
@@ -660,6 +845,102 @@ export const ClientPortalShell: React.FC<ClientPortalShellProps> = ({ initialTab
                     <div className="w-12 h-12 rounded-2xl bg-rose-50 text-rose-600 flex items-center justify-center group-hover:scale-105 transition-transform">
                       <ShieldAlert className="w-6 h-6" />
                     </div>
+                  </div>
+                </div>
+
+                {/* Assigned Modules Launchpad */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  {/* EMS Card */}
+                  <div
+                    onClick={() => hasEMS && selectTab('attendance')}
+                    className={`card-premium interactive-box-hover rounded-2xl p-5 border transition-all ${
+                      hasEMS
+                        ? 'bg-white border-slate-200 hover:border-teal-500 cursor-pointer shadow-xs'
+                        : 'bg-slate-50 border-slate-200 opacity-60 cursor-not-allowed'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between mb-3">
+                      <div className="flex items-center gap-2">
+                        <div className={`w-8 h-8 rounded-xl flex items-center justify-center ${hasEMS ? 'bg-teal-50 text-teal-700' : 'bg-slate-200 text-slate-400'}`}>
+                          <Calendar className="w-4 h-4" />
+                        </div>
+                        <h4 className="font-bold text-slate-900 text-xs">Workforce & EMS</h4>
+                      </div>
+                      <span className={`text-[10px] font-extrabold px-2 py-0.5 rounded-full ${hasEMS ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-slate-100 text-slate-500'}`}>
+                        {hasEMS ? 'ACTIVE' : 'LOCKED'}
+                      </span>
+                    </div>
+                    <p className="text-[11px] text-slate-500 leading-relaxed mb-3">
+                      Track staff attendance, daily timesheets, leave policies, and security governance.
+                    </p>
+                    {hasEMS && (
+                      <div className="text-[11px] font-bold text-teal-700 flex items-center gap-1 group-hover:underline">
+                        <span>Launch Attendance Suite</span>
+                        <ArrowUpRight className="w-3.5 h-3.5" />
+                      </div>
+                    )}
+                  </div>
+
+                  {/* CRM Card */}
+                  <div
+                    onClick={() => hasCRM && selectTab('crm-dashboard')}
+                    className={`card-premium interactive-box-hover rounded-2xl p-5 border transition-all ${
+                      hasCRM
+                        ? 'bg-white border-slate-200 hover:border-amber-500 cursor-pointer shadow-xs'
+                        : 'bg-slate-50 border-slate-200 opacity-60 cursor-not-allowed'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between mb-3">
+                      <div className="flex items-center gap-2">
+                        <div className={`w-8 h-8 rounded-xl flex items-center justify-center ${hasCRM ? 'bg-amber-50 text-amber-600' : 'bg-slate-200 text-slate-400'}`}>
+                          <Layers className="w-4 h-4" />
+                        </div>
+                        <h4 className="font-bold text-slate-900 text-xs">Sales & CRM</h4>
+                      </div>
+                      <span className={`text-[10px] font-extrabold px-2 py-0.5 rounded-full ${hasCRM ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-slate-100 text-slate-500'}`}>
+                        {hasCRM ? 'ACTIVE' : 'LOCKED'}
+                      </span>
+                    </div>
+                    <p className="text-[11px] text-slate-500 leading-relaxed mb-3">
+                      Manage client leads, deal stages, sales pipeline, product catalog, quotes, and contract renewals.
+                    </p>
+                    {hasCRM && (
+                      <div className="text-[11px] font-bold text-amber-600 flex items-center gap-1 group-hover:underline">
+                        <span>Open CRM Pipeline</span>
+                        <ArrowUpRight className="w-3.5 h-3.5" />
+                      </div>
+                    )}
+                  </div>
+
+                  {/* HRM Card */}
+                  <div
+                    onClick={() => hasHRM && selectTab('hrm-dashboard')}
+                    className={`card-premium interactive-box-hover rounded-2xl p-5 border transition-all ${
+                      hasHRM
+                        ? 'bg-white border-slate-200 hover:border-indigo-500 cursor-pointer shadow-xs'
+                        : 'bg-slate-50 border-slate-200 opacity-60 cursor-not-allowed'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between mb-3">
+                      <div className="flex items-center gap-2">
+                        <div className={`w-8 h-8 rounded-xl flex items-center justify-center ${hasHRM ? 'bg-indigo-50 text-indigo-600' : 'bg-slate-200 text-slate-400'}`}>
+                          <Building2 className="w-4 h-4" />
+                        </div>
+                        <h4 className="font-bold text-slate-900 text-xs">Human Resources (HRM)</h4>
+                      </div>
+                      <span className={`text-[10px] font-extrabold px-2 py-0.5 rounded-full ${hasHRM ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-slate-100 text-slate-500'}`}>
+                        {hasHRM ? 'ACTIVE' : 'LOCKED'}
+                      </span>
+                    </div>
+                    <p className="text-[11px] text-slate-500 leading-relaxed mb-3">
+                      Staff lifecycle, talent recruitment, payroll disbursement, performance OKRs, and employee helpdesk.
+                    </p>
+                    {hasHRM && (
+                      <div className="text-[11px] font-bold text-indigo-600 flex items-center gap-1 group-hover:underline">
+                        <span>Open HR Management</span>
+                        <ArrowUpRight className="w-3.5 h-3.5" />
+                      </div>
+                    )}
                   </div>
                 </div>
 
@@ -813,8 +1094,8 @@ export const ClientPortalShell: React.FC<ClientPortalShellProps> = ({ initialTab
                     </button>
 
                     <button
-                      onClick={() => setShowAddEmployee(true)}
-                      className="interactive-btn-hover flex items-center gap-1.5 px-4 py-2 bg-growth-teal hover:bg-growth-tealDark text-white text-xs font-bold rounded-xl shadow-tealGlow transition-all shrink-0 cursor-pointer"
+                      onClick={() => selectTab('onboarding')}
+                      className="interactive-btn-hover flex items-center gap-1.5 px-4 py-2 bg-teal-600 hover:bg-teal-700 text-white text-xs font-bold rounded-xl shadow-xs transition-all shrink-0 cursor-pointer"
                     >
                       <UserPlus className="w-3.5 h-3.5" />
                       <span>Onboard Staff</span>
@@ -830,16 +1111,16 @@ export const ClientPortalShell: React.FC<ClientPortalShellProps> = ({ initialTab
                       return (
                         <div
                           key={emp.id}
-                          className="card-premium interactive-box-hover bg-white border border-slate-200 rounded-3xl p-5 shadow-sm space-y-4 hover:border-growth-teal/50 transition-all flex flex-col justify-between"
+                          className="card-premium interactive-box-hover bg-white border border-slate-200 rounded-3xl p-5 shadow-sm space-y-4 hover:border-teal-500/50 transition-all flex flex-col justify-between"
                         >
                           <div className="space-y-3">
                             <div className="flex items-start justify-between gap-3">
                               <div className="flex items-center gap-3">
-                                <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-growth-teal to-teal-800 text-white font-black text-sm flex items-center justify-center shadow-md shrink-0">
+                                <div className="w-11 h-11 rounded-2xl bg-teal-600 text-white font-black text-sm flex items-center justify-center shadow-xs shrink-0">
                                   {emp.fullName?.charAt(0) || 'E'}
                                 </div>
                                 <div className="min-w-0">
-                                  <span className="font-mono text-[10px] font-extrabold text-growth-teal bg-teal-50 px-2 py-0.5 rounded border border-teal-200">
+                                  <span className="font-mono text-[10px] font-extrabold text-teal-700 bg-teal-50 px-2 py-0.5 rounded border border-teal-200">
                                     {emp.employeeId}
                                   </span>
                                   <h4 className="title-interactive-hover text-sm font-black text-slate-900 mt-1 truncate">
@@ -869,7 +1150,7 @@ export const ClientPortalShell: React.FC<ClientPortalShellProps> = ({ initialTab
                               </div>
                               <div className="flex items-center justify-between">
                                 <span className="text-slate-400 font-medium">Mobile:</span>
-                                <a href={`tel:${emp.phone}`} className="font-mono text-growth-teal hover:underline font-bold">
+                                <a href={`tel:${emp.phone}`} className="font-mono text-teal-700 hover:underline font-bold">
                                   {emp.phone || '—'}
                                 </a>
                               </div>
@@ -886,14 +1167,14 @@ export const ClientPortalShell: React.FC<ClientPortalShellProps> = ({ initialTab
                             <div className="flex items-center gap-1.5">
                               <button
                                 onClick={() => setSelectedEmpId(emp.employeeId)}
-                                className="interactive-btn-hover p-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl border border-slate-200 transition cursor-pointer"
+                                className="interactive-btn-hover p-2 bg-slate-50 hover:bg-slate-100 text-slate-700 rounded-xl border border-slate-200 transition cursor-pointer"
                                 title="View Profile Details"
                               >
                                 <Eye className="w-3.5 h-3.5" />
                               </button>
                               <button
                                 onClick={() => setEditingEmployee(emp)}
-                                className="interactive-btn-hover p-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded-xl border border-indigo-200 transition cursor-pointer"
+                                className="interactive-btn-hover p-2 bg-teal-50 hover:bg-teal-100 text-teal-700 rounded-xl border border-teal-200 transition cursor-pointer"
                                 title="Edit Profile"
                               >
                                 <Edit className="w-3.5 h-3.5" />
@@ -992,7 +1273,7 @@ export const ClientPortalShell: React.FC<ClientPortalShellProps> = ({ initialTab
                                   <div className="flex items-center justify-end gap-1.5">
                                     <button
                                       onClick={() => setSelectedEmpId(emp.employeeId)}
-                                      className="interactive-btn-hover p-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg border border-slate-200 cursor-pointer"
+                                      className="interactive-btn-hover p-1.5 bg-slate-50 hover:bg-slate-100 text-slate-700 rounded-lg border border-slate-200 cursor-pointer"
                                       title="View Profile & History"
                                     >
                                       <Eye className="w-3.5 h-3.5" />
@@ -1000,7 +1281,7 @@ export const ClientPortalShell: React.FC<ClientPortalShellProps> = ({ initialTab
 
                                     <button
                                       onClick={() => setEditingEmployee(emp)}
-                                      className="interactive-btn-hover p-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded-lg border border-indigo-200 transition-all cursor-pointer"
+                                      className="interactive-btn-hover p-1.5 bg-teal-50 hover:bg-teal-100 text-teal-700 rounded-lg border border-teal-200 transition-all cursor-pointer"
                                       title="Edit Employee Details & Password"
                                     >
                                       <Edit className="w-3.5 h-3.5" />
@@ -1050,6 +1331,36 @@ export const ClientPortalShell: React.FC<ClientPortalShellProps> = ({ initialTab
                     </div>
                   </div>
                 )}
+              </div>
+            )}
+
+            {activeTab === 'onboarding' && (
+              <div className="space-y-4">
+                <div className="p-3.5 bg-teal-50 border border-teal-200 rounded-2xl text-xs text-teal-800 font-bold flex items-center justify-between shadow-xs">
+                  <div className="flex items-center gap-2">
+                    <span className="w-2 h-2 rounded-full bg-teal-600 animate-pulse" />
+                    <span>
+                      Onboarding employee directly to: <strong>{user?.companyName || 'My Organization'}</strong> ({user?.clientId})
+                    </span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => selectTab('employees')}
+                    className="text-xs text-teal-800 hover:text-teal-950 underline font-bold cursor-pointer"
+                  >
+                    Back to Staff List
+                  </button>
+                </div>
+                <EmployeeOnboardingWizard
+                  initialClientId={user?.clientId}
+                  initialClientName={user?.companyName}
+                  onSuccess={() => {
+                    clientCache.clear('client_portal_');
+                    fetchData(true);
+                    selectTab('employees');
+                  }}
+                  onCancel={() => selectTab('employees')}
+                />
               </div>
             )}
 
@@ -1137,9 +1448,135 @@ export const ClientPortalShell: React.FC<ClientPortalShellProps> = ({ initialTab
                 }}
               />
             )}
+            {activeTab === 'leave' && <LeaveView />}
             {activeTab === 'tasks' && <TaskManager />}
             {activeTab === 'requests' && <ClientRequestsView key="client-requests" />}
             {activeTab === 'shared-access' && <SharedAccessManager role="CLIENT" />}
+            {activeTab === 'documents' && (
+              <ClientDocumentsView
+                employees={employees}
+                onRefresh={() => fetchData(true)}
+              />
+            )}
+            {activeTab === 'subscription' && <ClientSubscriptionView />}
+
+            {/* CRM VIEWS */}
+            {activeTab === 'crm-dashboard' && (
+              <CrmDashboardView
+                onNavigate={(tab, id) => {
+                  if (id) {
+                    if (tab === 'crm-deal-detail') setSelectedDealId(id);
+                    if (tab === 'crm-lead-detail') setSelectedLeadId(id);
+                  }
+                  selectTab(tab);
+                }}
+              />
+            )}
+            {activeTab === 'crm-leads' && (
+              <LeadsListView
+                initialClientId={user?.clientId}
+                onSelectLead={(leadId) => {
+                  setSelectedLeadId(leadId);
+                  selectTab('crm-lead-detail');
+                }}
+              />
+            )}
+            {activeTab === 'crm-lead-detail' && (
+              <LeadDetailView
+                leadId={selectedLeadId}
+                onBack={() => selectTab('crm-leads')}
+                onCreateDeal={(lead: any) => {
+                  setCreateDealContext({ leadId: lead?.id || selectedLeadId });
+                  selectTab('crm-pipeline');
+                }}
+              />
+            )}
+            {activeTab === 'crm-contacts' && (
+              <ContactsListView initialClientId={user?.clientId} />
+            )}
+            {activeTab === 'crm-opportunities' && (
+              <OpportunitiesListView initialClientId={user?.clientId} />
+            )}
+            {(activeTab === 'crm-deals' || activeTab === 'crm-pipeline') && (
+              <PipelineKanbanView
+                initialLeadId={createDealContext?.leadId}
+                initialOpportunityId={createDealContext?.opportunityId}
+                initialOpenCreateModal={!!createDealContext}
+                onSelectDeal={(id) => {
+                  setSelectedDealId(id);
+                  selectTab('crm-deal-detail');
+                }}
+              />
+            )}
+            {activeTab === 'crm-deal-detail' && (
+              <DealDetailView
+                dealId={selectedDealId}
+                onBack={() => selectTab('crm-pipeline')}
+                onLeadClick={(leadId) => {
+                  if (leadId) {
+                    setSelectedLeadId(leadId);
+                    selectTab('crm-lead-detail');
+                  } else {
+                    selectTab('crm-leads');
+                  }
+                }}
+              />
+            )}
+            {activeTab === 'crm-activities' && (
+              <ActivitiesListView initialClientId={user?.clientId} />
+            )}
+            {activeTab === 'crm-products' && <ProductsListView />}
+            {activeTab === 'crm-quotes' && <QuotesListView />}
+            {activeTab === 'crm-contracts' && <ContractsListView />}
+            {activeTab === 'crm-renewals' && <RenewalsManagementView />}
+            {activeTab === 'crm-analytics' && <CrmAnalyticsView />}
+            {activeTab === 'crm-reports' && <CrmReportsView />}
+
+            {/* HRM VIEWS */}
+            {activeTab === 'hrm-dashboard' && (
+              <HrmDashboardView
+                onNavigate={(tab) => selectTab(tab)}
+              />
+            )}
+            {activeTab === 'hrm-lifecycle' && (
+              <EmployeeLifecycleView />
+            )}
+            {activeTab === 'hrm-recruitment' && (
+              <HrmRecruitmentView />
+            )}
+            {activeTab === 'hrm-payroll' && (
+              <HrmPayrollView />
+            )}
+            {activeTab === 'hrm-performance' && (
+              <HrmPerformanceView
+                currentTenant={{
+                  id: user?.clientId || 'default',
+                  name: user?.companyName || 'My Organization',
+                  departments: [],
+                  designations: [],
+                } as any}
+              />
+            )}
+            {activeTab === 'hrm-helpdesk' && (
+              <HrmHelpdeskView
+                currentTenant={{
+                  id: user?.clientId || 'default',
+                  name: user?.companyName || 'My Organization',
+                  departments: [],
+                  designations: [],
+                } as any}
+              />
+            )}
+            {activeTab === 'hrm-organization' && (
+              <HrmOrganizationView
+                currentTenant={{
+                  id: user?.clientId || 'default',
+                  name: user?.companyName || 'My Organization',
+                  departments: [],
+                  designations: [],
+                } as any}
+              />
+            )}
           </div>
         </main>
       </div>
@@ -1267,26 +1704,26 @@ export const ClientPortalShell: React.FC<ClientPortalShellProps> = ({ initialTab
         <div className="fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-sm flex items-center justify-center p-4">
           <div className="bg-white border border-slate-200 rounded-3xl max-w-md w-full p-6 text-slate-900 shadow-2xl space-y-4 animate-in fade-in">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-2xl bg-amber-50 text-amber-600 border border-amber-200 flex items-center justify-center font-bold">
+              <div className="w-10 h-10 rounded-2xl bg-teal-50 text-teal-700 border border-teal-200 flex items-center justify-center font-bold">
                 <KeyRound className="w-5 h-5" />
               </div>
               <div>
-                <h3 className="text-base font-black">Reset Employee Password</h3>
-                <p className="text-xs text-slate-500">{quickResetEmp.fullName} ({quickResetEmp.employeeId})</p>
+                <h3 className="text-base font-bold text-slate-900">Reset Employee Password</h3>
+                <p className="text-xs text-slate-500 mt-0.5">{quickResetEmp.fullName} • <span className="font-mono text-teal-700 font-bold">{quickResetEmp.employeeId}</span></p>
               </div>
             </div>
 
             {quickResetResult ? (
               <div className="space-y-4">
                 <div className="p-4 bg-emerald-50 border border-emerald-200 rounded-2xl text-xs space-y-2">
-                  <p className="text-emerald-800 font-bold">✅ Password successfully updated!</p>
+                  <p className="text-emerald-800 font-bold">Password successfully updated!</p>
                   <p className="text-slate-600">Share this new credential with the employee:</p>
-                  <div className="p-2.5 bg-white border border-slate-200 rounded-xl font-mono text-amber-700 font-bold text-sm tracking-wider flex items-center justify-between">
+                  <div className="p-2.5 bg-white border border-teal-200 rounded-xl font-mono text-teal-800 font-bold text-sm tracking-wider flex items-center justify-between shadow-xs">
                     <span>{quickResetResult}</span>
                     <button
                       type="button"
                       onClick={() => navigator.clipboard.writeText(quickResetResult)}
-                      className="text-[11px] text-growth-teal hover:underline font-bold"
+                      className="text-xs text-teal-700 hover:text-teal-900 hover:underline font-bold cursor-pointer"
                     >
                       Copy
                     </button>
@@ -1298,7 +1735,7 @@ export const ClientPortalShell: React.FC<ClientPortalShellProps> = ({ initialTab
                     setQuickResetEmp(null);
                     setQuickResetResult(null);
                   }}
-                  className="w-full py-2.5 bg-growth-teal hover:bg-growth-tealDark text-white font-bold rounded-xl text-xs shadow-sm"
+                  className="w-full py-2.5 bg-teal-600 hover:bg-teal-700 text-white font-bold rounded-xl text-xs shadow-xs transition cursor-pointer"
                 >
                   Done
                 </button>
@@ -1311,9 +1748,10 @@ export const ClientPortalShell: React.FC<ClientPortalShellProps> = ({ initialTab
                     <button
                       type="button"
                       onClick={() => setQuickPassword(`Emp#${Math.floor(1000 + Math.random() * 9000)}`)}
-                      className="text-[10px] text-amber-600 hover:underline font-bold"
+                      className="text-xs text-teal-600 hover:text-teal-700 font-bold hover:underline flex items-center gap-1 cursor-pointer"
                     >
-                      Auto-Generate
+                      <Sparkles className="w-3.5 h-3.5" />
+                      <span>Auto-Generate</span>
                     </button>
                   </div>
                   <input
@@ -1321,10 +1759,10 @@ export const ClientPortalShell: React.FC<ClientPortalShellProps> = ({ initialTab
                     required
                     value={quickPassword}
                     onChange={(e) => setQuickPassword(e.target.value)}
-                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-slate-800 font-mono focus:bg-white focus:ring-1 focus:ring-growth-teal"
+                    className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-800 font-mono text-xs focus:bg-white focus:outline-none focus:ring-1 focus:ring-growth-teal"
                     placeholder="Enter new password (min 4 chars)"
                   />
-                  <p className="text-[10px] text-slate-500 mt-1">
+                  <p className="text-[11px] text-slate-500 mt-1">
                     Employee will use this password alongside their Employee ID or Email to sign in.
                   </p>
                 </div>
@@ -1333,14 +1771,14 @@ export const ClientPortalShell: React.FC<ClientPortalShellProps> = ({ initialTab
                   <button
                     type="submit"
                     disabled={quickResetLoading || !quickPassword.trim()}
-                    className="flex-1 py-2.5 bg-amber-500 hover:bg-amber-600 text-slate-950 font-black rounded-xl shadow-sm disabled:opacity-50"
+                    className="flex-1 py-2.5 bg-teal-600 hover:bg-teal-700 text-white font-bold rounded-xl shadow-xs transition disabled:opacity-50 cursor-pointer"
                   >
                     {quickResetLoading ? 'Updating...' : 'Set & Update Password'}
                   </button>
                   <button
                     type="button"
                     onClick={() => setQuickResetEmp(null)}
-                    className="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl border border-slate-200"
+                    className="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl border border-slate-200 cursor-pointer"
                   >
                     Cancel
                   </button>

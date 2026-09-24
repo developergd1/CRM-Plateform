@@ -85,9 +85,25 @@ export async function createClient(
     });
   }
 
-  // Create or retrieve client User account
+  // Create or retrieve client User account safely
   let clientUser = await prisma.user.findUnique({ where: { email: clientEmail } });
-  if (!clientUser) {
+  if (clientUser) {
+    // Check if this user is already attached to another client
+    const existingClient = await prisma.client.findUnique({ where: { userId: clientUser.id } });
+    if (existingClient) {
+      // User is already linked to another client; create a unique portal account
+      const uniqueSuffix = `${numPart}.${Date.now().toString().slice(-4)}`;
+      const fallbackEmail = `client.${uniqueSuffix}@growthindia.in`;
+      clientUser = await prisma.user.create({
+        data: {
+          email: fallbackEmail,
+          passwordHash: hashedPassword,
+          roleId: clientRole.id,
+          isActive: true,
+        },
+      });
+    }
+  } else {
     clientUser = await prisma.user.create({
       data: {
         email: clientEmail,
@@ -96,6 +112,15 @@ export async function createClient(
         isActive: true,
       },
     });
+  }
+
+  // Final check to guarantee userId uniqueness
+  let safeUserId: string | null = null;
+  if (clientUser) {
+    const isUserIdTaken = await prisma.client.findUnique({ where: { userId: clientUser.id } });
+    if (!isUserIdTaken) {
+      safeUserId = clientUser.id;
+    }
   }
 
   // Pack compliance tags if provided
@@ -126,7 +151,7 @@ export async function createClient(
       status: data.status || 'ACTIVE',
       onboardingDate: new Date(),
       dateAdded: new Date(),
-      userId: clientUser.id,
+      userId: safeUserId,
       canBlockEmployees: false,
       canDeleteEmployees: false,
       estimatedValue: data.estimatedValue || 0,

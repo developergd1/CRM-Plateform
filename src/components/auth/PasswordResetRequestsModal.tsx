@@ -169,18 +169,18 @@ export const PasswordResetRequestsModal: React.FC<PasswordResetRequestsModalProp
 
         {/* Success Modal Notification if resolved */}
         {resolvedResult && (
-          <div className="p-4 m-4 bg-emerald-50 border border-emerald-200 rounded-2xl flex items-start justify-between gap-3 animate-in fade-in">
+          <div className="p-4 m-4 bg-rose-50 border border-rose-200 rounded-2xl flex items-start justify-between gap-3 animate-in fade-in">
             <div className="flex items-start gap-2.5">
-              <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0 mt-0.5" />
+              <CheckCircle2 className="w-5 h-5 text-rose-600 shrink-0 mt-0.5" />
               <div>
-                <span className="text-xs font-black text-emerald-900 block">
+                <span className="text-xs font-black text-rose-950 block">
                   Password Reset Successfully for {resolvedResult.requesterName} ({resolvedResult.requesterId})!
                 </span>
-                <p className="text-[11px] text-emerald-700 mt-0.5">
+                <p className="text-[11px] text-rose-800 mt-0.5">
                   The account has been unlocked. Provide these new login credentials to the user:
                 </p>
                 <div className="mt-2 flex items-center gap-2">
-                  <span className="text-xs font-mono font-bold bg-white px-3 py-1 rounded-lg border border-emerald-300 text-slate-900 select-all">
+                  <span className="text-xs font-mono font-bold bg-white px-3 py-1 rounded-lg border border-rose-300 text-slate-900 select-all">
                     {resolvedResult.newPassword}
                   </span>
                   <button
@@ -189,7 +189,7 @@ export const PasswordResetRequestsModal: React.FC<PasswordResetRequestsModalProp
                       setCopied(true);
                       setTimeout(() => setCopied(false), 2000);
                     }}
-                    className="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-[10px] font-bold flex items-center gap-1 transition-all"
+                    className="px-2.5 py-1 bg-rose-600 hover:bg-rose-700 text-white rounded-lg text-[10px] font-bold flex items-center gap-1 transition-all cursor-pointer"
                   >
                     {copied ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
                     <span>{copied ? 'Copied' : 'Copy Password'}</span>
@@ -199,7 +199,7 @@ export const PasswordResetRequestsModal: React.FC<PasswordResetRequestsModalProp
             </div>
             <button
               onClick={() => setResolvedResult(null)}
-              className="text-emerald-500 hover:text-emerald-700 p-1"
+              className="text-rose-500 hover:text-rose-700 p-1 cursor-pointer"
             >
               <X className="w-4 h-4" />
             </button>

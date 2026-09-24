@@ -37,7 +37,7 @@ export async function POST(req: NextRequest) {
     });
 
     // If no user exists and admin login is attempted, auto-seed clean default admin & roles
-    if (!user && (lookupLower === 'admin@growthindia.co' || lookupLower === 'admin@growthindia.in' || lookupUpper === 'GI-EMP-000001' || portalType === 'ADMIN')) {
+    if (!user && (lookupLower === 'admin@growthindia.co' || lookupLower === 'admin@growthindia.in' || lookupUpper === 'GI-EMP-000001')) {
       await ensureDefaultAdmin();
       user = await prisma.user.findFirst({
         where: {
@@ -65,6 +65,8 @@ export async function POST(req: NextRequest) {
       const emp = await prisma.employee.findFirst({
         where: {
           OR: [
+            { employeeId: lookup },
+            { employeeId: lookupLower },
             { employeeId: lookupUpper },
             { phone: lookup },
             { phone: lookup.replace(/\s+/g, '') },
@@ -92,6 +94,8 @@ export async function POST(req: NextRequest) {
       const client = await prisma.client.findFirst({
         where: {
           OR: [
+            { clientId: lookup },
+            { clientId: lookupLower },
             { clientId: lookupUpper },
             { email: lookupLower },
             { email: lookup },
@@ -128,10 +132,27 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Invalid email/ID or password' }, { status: 401 });
     }
 
-    // Check if account or employee is blocked/suspended
+    // Check if account, employee, or client organization is blocked/suspended/inactive
+    let isClientInactive = false;
+    if (user.role.name === 'CLIENT') {
+      const clientRecord = await prisma.client.findFirst({
+        where: {
+          OR: [
+            { userId: user.id },
+            ...(user.parentClientId ? [{ id: user.parentClientId }] : []),
+          ],
+        },
+        select: { status: true, companyName: true },
+      });
+      if (clientRecord && clientRecord.status === 'INACTIVE') {
+        isClientInactive = true;
+      }
+    }
+
     const isBlocked =
       user.isSuspended ||
       !user.isActive ||
+      isClientInactive ||
       user.employeeProfile?.status === 'BLOCKED' ||
       user.employeeProfile?.isBlocked ||
       user.employeeProfile?.status === 'SUSPENDED';
@@ -142,14 +163,18 @@ export async function POST(req: NextRequest) {
         actorEmployeeId: user.employeeProfile?.employeeId || 'BLOCKED_USER',
         action: 'BLOCKED_LOGIN_SUSPENDED_ACCOUNT',
         entityType: 'AUTH',
-        reason: 'Attempted login to blocked / suspended account without admin approval',
+        reason: isClientInactive
+          ? 'Attempted login to inactive client organization'
+          : 'Attempted login to blocked / suspended account without admin approval',
         ipAddress: ip,
         userAgent,
         status: 'DENIED',
       });
       return NextResponse.json(
         {
-          error: '🔒 Account Blocked: This account has been blocked by the Administrator. Access is strictly forbidden without authorized Admin approval.',
+          error: isClientInactive
+            ? 'Account Inactive: Your client organization has been deactivated. Please contact the Growth India Administration.'
+            : 'Account Blocked: This account has been blocked by the Administrator. Access is strictly forbidden without authorized Admin approval.',
           isBlocked: true,
         },
         { status: 403 }
@@ -191,7 +216,7 @@ export async function POST(req: NextRequest) {
       });
       return NextResponse.json(
         {
-          error: '🔒 Security Policy: Administrator accounts cannot log in through the public portal. Access denied.',
+          error: 'Security Policy: Administrator accounts cannot log in through the public portal. Access denied.',
         },
         { status: 403 }
       );
@@ -211,7 +236,7 @@ export async function POST(req: NextRequest) {
       });
       return NextResponse.json(
         {
-          error: '⛔ Access Denied: This console is strictly restricted to Platform Administrators. Clients and Employees must log in at the main portal.',
+          error: 'Access Denied: This console is strictly restricted to Platform Administrators. Clients and Employees must log in at the main portal.',
           isNonAdmin: true,
         },
         { status: 403 }
@@ -281,6 +306,7 @@ export async function POST(req: NextRequest) {
         fullName: clientRecord.contactPerson || clientRecord.companyName,
         designation: 'Client Administrator',
         department: clientRecord.industry || 'Corporate Client',
+        assignedModules: (clientRecord as any).assignedModules || ['EMS'],
       };
     } else if (user.employeeProfile) {
       returnUser = {

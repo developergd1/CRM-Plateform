@@ -45,6 +45,7 @@ const ADMIN_PERMISSIONS: PermissionOption[] = [
   // Workforce Modules
   { key: 'clients', label: 'Clients Directory', description: 'View corporate client profiles and accounts', category: 'Workforce & Clients' },
   { key: 'employees', label: 'Employees Directory', description: 'Access staff records, documents, and profiles', category: 'Workforce & Clients' },
+  { key: 'onboarding', label: 'Enterprise Employee Onboarding', description: 'Multi-step employee provisioning and activation wizard', category: 'Workforce & Clients' },
   { key: 'attendance', label: 'Attendance & Workforce', description: 'View attendance logs, check-ins, and timesheets', category: 'Workforce & Clients' },
   { key: 'leave', label: 'Leave Management', description: 'Review leave applications and approvals', category: 'Workforce & Clients' },
 
@@ -57,6 +58,7 @@ const ADMIN_PERMISSIONS: PermissionOption[] = [
 const CLIENT_PERMISSIONS: PermissionOption[] = [
   { key: 'overview', label: 'Dashboard Overview', description: 'View company KPI summary and team count', category: 'Client Operations' },
   { key: 'employees', label: 'My Employees Directory', description: 'Access staff assigned to your company', category: 'Client Operations' },
+  { key: 'onboarding', label: 'Employee Onboarding Wizard', description: '8-step enterprise employee provisioning and activation', category: 'Client Operations' },
   { key: 'attendance', label: 'Attendance & Timesheets', description: 'View staff check-ins and monthly timesheets', category: 'Client Operations' },
   { key: 'tasks', label: 'Tasks & Follow-ups', description: 'Assign tasks and track execution status', category: 'Client Operations' },
   { key: 'requests', label: 'Password Reset Requests', description: 'View and approve employee credentials resets', category: 'Client Operations' },
@@ -187,7 +189,7 @@ export const InviteMemberModal: React.FC<InviteMemberModalProps> = ({
     const inviterTitle = user?.fullName || (inviterRole === 'ADMIN' ? 'Platform Administrator' : 'Client Management');
     const roleType = inviterRole === 'ADMIN' ? 'Admin Team Member' : 'Corporate Client Workspace';
 
-    const message = `*Growth India CRM Invitation*\n\nHello *${generatedInvite.name}*,\n\nYou have been invited by *${inviterTitle}* to access the *Growth India CRM Platform* as an authorized member (${roleType}).\n\n👉 *Click here to set your password and activate your account:*\n${generatedInvite.invitationUrl}\n\n_Note: This secure link will remain active until manually revoked._`;
+    const message = `*Growth India CRM Invitation*\n\nHello *${generatedInvite.name}*,\n\nYou have been invited by *${inviterTitle}* to access the *Growth India CRM Platform* as an authorized member (${roleType}).\n\n*Click here to set your password and activate your account:*\n${generatedInvite.invitationUrl}\n\n_Note: This secure link will remain active until manually revoked._`;
 
     const waUrl = `https://api.whatsapp.com/send?text=${encodeURIComponent(message)}`;
     window.open(waUrl, '_blank');
@@ -210,29 +212,29 @@ export const InviteMemberModal: React.FC<InviteMemberModalProps> = ({
   const categories = Array.from(new Set(permissionsList.map((p) => p.category)));
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fadeIn">
-      <div className="bg-slate-900 border border-slate-700/80 w-full max-w-2xl rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[92vh]">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-900/50 backdrop-blur-sm animate-fadeIn">
+      <div className="bg-white border border-slate-200 w-full max-w-2xl rounded-2xl sm:rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[92vh]">
         {/* Header */}
-        <div className="px-6 py-5 border-b border-slate-800 bg-slate-950/70 flex items-center justify-between">
+        <div className="px-6 py-4 border-b border-slate-200 bg-slate-50/80 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-growth-teal/20 text-growth-teal flex items-center justify-center font-bold">
+            <div className="w-10 h-10 rounded-xl bg-teal-50 text-growth-teal border border-teal-200 flex items-center justify-center font-bold">
               <UserPlus className="w-5 h-5" />
             </div>
             <div>
-              <h2 className="text-base font-bold text-white flex items-center gap-2">
+              <h2 className="text-base font-bold text-slate-900 flex items-center gap-2">
                 <span>{inviterRole === 'ADMIN' ? 'Admin Account Sharing & Invite' : 'Client Team Member Invite'}</span>
-                <span className="text-[10px] uppercase font-mono px-2 py-0.5 rounded-full bg-growth-teal/20 text-growth-teal border border-growth-teal/30">
+                <span className="text-[10px] uppercase font-semibold px-2 py-0.5 rounded-full bg-teal-50 text-growth-teal border border-teal-200">
                   Granular RBAC
                 </span>
               </h2>
-              <p className="text-xs text-slate-400">
+              <p className="text-xs text-slate-500">
                 Invite team members with custom permissions without sharing your password.
               </p>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="w-8 h-8 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white flex items-center justify-center transition-colors"
+            className="w-8 h-8 rounded-lg bg-white hover:bg-slate-100 text-slate-400 hover:text-slate-700 border border-slate-200 flex items-center justify-center transition-colors cursor-pointer"
           >
             <X className="w-4 h-4" />
           </button>
@@ -243,28 +245,28 @@ export const InviteMemberModal: React.FC<InviteMemberModalProps> = ({
           {generatedInvite ? (
             /* SUCCESS STATE WITH WHATSAPP AND COPY LINK */
             <div className="space-y-6 text-center py-2 animate-fadeIn">
-              <div className="w-16 h-16 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 mx-auto flex items-center justify-center shadow-lg shadow-emerald-500/10">
-                <Sparkles className="w-8 h-8 animate-pulse" />
+              <div className="w-14 h-14 rounded-full bg-emerald-50 text-emerald-600 border border-emerald-200 mx-auto flex items-center justify-center shadow-sm">
+                <Sparkles className="w-7 h-7" />
               </div>
 
               <div>
-                <h3 className="text-lg font-black text-white">Invitation Link Generated!</h3>
-                <p className="text-xs text-slate-300 mt-1 max-w-md mx-auto">
-                  Access link for <strong className="text-white">{generatedInvite.name}</strong> ({generatedInvite.email}) is ready. They will set their own password upon opening.
+                <h3 className="text-lg font-bold text-slate-900">Invitation Link Generated!</h3>
+                <p className="text-xs text-slate-600 mt-1 max-w-md mx-auto">
+                  Access link for <strong className="text-slate-800">{generatedInvite.name}</strong> ({generatedInvite.email}) is ready. They will set their own password upon opening.
                 </p>
               </div>
 
               {/* Infinite Expiry Notice */}
-              <div className="p-3 bg-blue-500/10 border border-blue-500/30 rounded-2xl text-left flex items-start gap-3">
-                <Lock className="w-4 h-4 text-blue-400 shrink-0 mt-0.5" />
-                <div className="text-xs text-blue-200 leading-relaxed">
+              <div className="p-3 bg-blue-50 border border-blue-200 rounded-xl text-left flex items-start gap-3">
+                <Lock className="w-4 h-4 text-blue-600 shrink-0 mt-0.5" />
+                <div className="text-xs text-blue-800 leading-relaxed">
                   <strong>Infinite Validity:</strong> This invitation link has no expiration time limit. It will remain active until you explicitly click <strong>"Revoke / Deactivate Access"</strong> in your team management table.
                 </div>
               </div>
 
               {/* Link Box */}
-              <div className="bg-slate-950 border border-slate-800 rounded-2xl p-4 text-left space-y-2">
-                <label className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
+              <div className="bg-slate-50 border border-slate-200 rounded-xl p-3.5 text-left space-y-2">
+                <label className="text-[11px] font-bold uppercase tracking-wider text-slate-600">
                   Direct Invitation Link
                 </label>
                 <div className="flex items-center gap-2">
@@ -272,13 +274,13 @@ export const InviteMemberModal: React.FC<InviteMemberModalProps> = ({
                     type="text"
                     readOnly
                     value={generatedInvite.invitationUrl}
-                    className="w-full bg-slate-900 border border-slate-700 text-xs text-slate-200 px-3 py-2.5 rounded-xl font-mono focus:outline-none select-all"
+                    className="w-full bg-white border border-slate-300 text-xs text-slate-900 px-3 py-2.5 rounded-xl font-mono focus:outline-none select-all focus:border-growth-teal"
                   />
                   <button
                     onClick={handleCopyLink}
                     className={`px-4 py-2.5 rounded-xl font-bold text-xs flex items-center gap-1.5 shrink-0 transition-all ${
                       copied
-                        ? 'bg-emerald-500 text-white shadow-emeraldGlow'
+                        ? 'bg-emerald-600 text-white shadow-sm'
                         : 'bg-growth-teal hover:bg-growth-tealDark text-white shadow-tealGlow'
                     }`}
                   >
@@ -293,9 +295,9 @@ export const InviteMemberModal: React.FC<InviteMemberModalProps> = ({
                 <button
                   type="button"
                   onClick={handleWhatsAppShare}
-                  className="py-3 px-4 bg-[#25D366] hover:bg-[#20ba5a] text-slate-950 font-black text-xs rounded-xl shadow-lg flex items-center justify-center gap-2 transition-all cursor-pointer transform hover:-translate-y-0.5 active:translate-y-0"
+                  className="py-2.5 px-4 bg-[#25D366] hover:bg-[#20ba5a] text-white font-bold text-xs rounded-xl shadow-sm flex items-center justify-center gap-2 transition-all cursor-pointer"
                 >
-                  <MessageCircle className="w-4 h-4 fill-slate-950" />
+                  <MessageCircle className="w-4 h-4 fill-white" />
                   <span>Share via WhatsApp (1-Click)</span>
                 </button>
 
@@ -303,7 +305,7 @@ export const InviteMemberModal: React.FC<InviteMemberModalProps> = ({
                   href={generatedInvite.invitationUrl}
                   target="_blank"
                   rel="noreferrer"
-                  className="py-3 px-4 bg-slate-800 hover:bg-slate-700 text-slate-200 hover:text-white font-bold text-xs rounded-xl flex items-center justify-center gap-2 transition-all border border-slate-700"
+                  className="py-2.5 px-4 bg-white hover:bg-slate-50 text-slate-700 font-bold text-xs rounded-xl flex items-center justify-center gap-2 transition-all border border-slate-300 shadow-sm"
                 >
                   <ExternalLink className="w-4 h-4 text-growth-teal" />
                   <span>Test Link in New Tab</span>
@@ -311,18 +313,18 @@ export const InviteMemberModal: React.FC<InviteMemberModalProps> = ({
               </div>
 
               {/* Footer Actions */}
-              <div className="pt-4 border-t border-slate-800 flex items-center justify-between">
+              <div className="pt-4 border-t border-slate-200 flex items-center justify-between">
                 <button
                   type="button"
                   onClick={handleResetModal}
-                  className="text-xs font-bold text-growth-teal hover:underline"
+                  className="text-xs font-bold text-growth-teal hover:underline cursor-pointer"
                 >
                   + Invite Another Person
                 </button>
                 <button
                   type="button"
                   onClick={onClose}
-                  className="py-2.5 px-6 bg-slate-800 hover:bg-slate-700 text-white font-bold text-xs rounded-xl transition-colors"
+                  className="py-2 px-5 bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs rounded-xl transition-colors cursor-pointer"
                 >
                   Done
                 </button>
@@ -332,7 +334,7 @@ export const InviteMemberModal: React.FC<InviteMemberModalProps> = ({
             /* INVITATION FORM */
             <form onSubmit={handleSubmit} className="space-y-6">
               {errorMessage && (
-                <div className="p-3 bg-rose-500/10 border border-rose-500/30 rounded-xl text-xs text-rose-300 font-medium">
+                <div className="p-3 bg-rose-50 border border-rose-200 rounded-xl text-xs text-rose-700 font-medium">
                   {errorMessage}
                 </div>
               )}
@@ -340,8 +342,8 @@ export const InviteMemberModal: React.FC<InviteMemberModalProps> = ({
               {/* Member Details */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-1.5">
-                  <label className="text-xs font-bold text-slate-300">
-                    Full Name <span className="text-rose-400">*</span>
+                  <label className="text-xs font-bold text-slate-700">
+                    Full Name <span className="text-rose-500">*</span>
                   </label>
                   <input
                     type="text"
@@ -349,13 +351,13 @@ export const InviteMemberModal: React.FC<InviteMemberModalProps> = ({
                     placeholder="e.g. Rahul Sharma"
                     value={fullName}
                     onChange={(e) => setFullName(e.target.value)}
-                    className="w-full bg-slate-950 border border-slate-700 focus:border-growth-teal rounded-xl px-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none"
+                    className="w-full bg-white border border-slate-300 focus:border-growth-teal focus:ring-2 focus:ring-teal-500/20 rounded-xl px-3.5 py-2 text-xs text-slate-900 placeholder-slate-400 focus:outline-none transition-all shadow-sm"
                   />
                 </div>
 
                 <div className="space-y-1.5">
-                  <label className="text-xs font-bold text-slate-300">
-                    Email Address <span className="text-rose-400">*</span>
+                  <label className="text-xs font-bold text-slate-700">
+                    Email Address <span className="text-rose-500">*</span>
                   </label>
                   <input
                     type="email"
@@ -363,12 +365,12 @@ export const InviteMemberModal: React.FC<InviteMemberModalProps> = ({
                     placeholder="e.g. rahul@company.com"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    className="w-full bg-slate-950 border border-slate-700 focus:border-growth-teal rounded-xl px-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none"
+                    className="w-full bg-white border border-slate-300 focus:border-growth-teal focus:ring-2 focus:ring-teal-500/20 rounded-xl px-3.5 py-2 text-xs text-slate-900 placeholder-slate-400 focus:outline-none transition-all shadow-sm"
                   />
                 </div>
 
                 <div className="sm:col-span-2 space-y-1.5">
-                  <label className="text-xs font-bold text-slate-300">
+                  <label className="text-xs font-bold text-slate-700">
                     Designation / Title (Optional)
                   </label>
                   <input
@@ -376,20 +378,20 @@ export const InviteMemberModal: React.FC<InviteMemberModalProps> = ({
                     placeholder={inviterRole === 'ADMIN' ? 'e.g. Assistant Operations Manager' : 'e.g. Project Lead / Operations'}
                     value={designation}
                     onChange={(e) => setDesignation(e.target.value)}
-                    className="w-full bg-slate-950 border border-slate-700 focus:border-growth-teal rounded-xl px-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none"
+                    className="w-full bg-white border border-slate-300 focus:border-growth-teal focus:ring-2 focus:ring-teal-500/20 rounded-xl px-3.5 py-2 text-xs text-slate-900 placeholder-slate-400 focus:outline-none transition-all shadow-sm"
                   />
                 </div>
               </div>
 
               {/* Permissions Header & Presets */}
-              <div className="space-y-3 pt-2 border-t border-slate-800">
+              <div className="space-y-3 pt-3 border-t border-slate-200">
                 <div className="flex items-center justify-between flex-wrap gap-2">
                   <div>
-                    <label className="text-xs font-extrabold uppercase tracking-wider text-white flex items-center gap-1.5">
+                    <label className="text-xs font-bold uppercase tracking-wider text-slate-900 flex items-center gap-1.5">
                       <Shield className="w-3.5 h-3.5 text-growth-teal" />
                       <span>Delegated Permissions Matrix</span>
                     </label>
-                    <p className="text-[11px] text-slate-400">
+                    <p className="text-[11px] text-slate-500">
                       The invited person can ONLY view and interact with checked features.
                     </p>
                   </div>
@@ -398,21 +400,21 @@ export const InviteMemberModal: React.FC<InviteMemberModalProps> = ({
                     <button
                       type="button"
                       onClick={handleSelectAll}
-                      className="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white rounded-lg transition-colors font-medium"
+                      className="px-2.5 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg transition-colors font-semibold border border-slate-200 cursor-pointer"
                     >
                       Select All
                     </button>
                     <button
                       type="button"
                       onClick={handlePresetReadOnly}
-                      className="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white rounded-lg transition-colors font-medium"
+                      className="px-2.5 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg transition-colors font-semibold border border-slate-200 cursor-pointer"
                     >
                       View Only
                     </button>
                     <button
                       type="button"
                       onClick={handleSelectNone}
-                      className="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white rounded-lg transition-colors font-medium"
+                      className="px-2.5 py-1 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-lg transition-colors font-semibold border border-slate-200 cursor-pointer"
                     >
                       Clear
                     </button>
@@ -422,8 +424,8 @@ export const InviteMemberModal: React.FC<InviteMemberModalProps> = ({
                 {/* Categories & Checkboxes */}
                 <div className="space-y-4">
                   {categories.map((category) => (
-                    <div key={category} className="bg-slate-950/60 border border-slate-800 rounded-2xl p-3.5 space-y-2.5">
-                      <h4 className="text-[11px] font-extrabold text-growth-teal uppercase tracking-wider">
+                    <div key={category} className="bg-slate-50/70 border border-slate-200 rounded-xl p-3.5 space-y-2.5">
+                      <h4 className="text-[11px] font-bold text-growth-teal uppercase tracking-wider">
                         {category}
                       </h4>
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
@@ -437,24 +439,24 @@ export const InviteMemberModal: React.FC<InviteMemberModalProps> = ({
                                 onClick={() => togglePermission(perm.key)}
                                 className={`p-2.5 rounded-xl border cursor-pointer transition-all flex items-start gap-2.5 select-none ${
                                   isChecked
-                                    ? 'bg-growth-teal/10 border-growth-teal/40 text-white shadow-sm'
-                                    : 'bg-slate-900/50 border-slate-800 text-slate-400 hover:border-slate-700'
+                                    ? 'bg-teal-50/80 border-teal-300 text-slate-900 shadow-sm'
+                                    : 'bg-white border-slate-200 text-slate-600 hover:border-slate-300 hover:bg-slate-50/60'
                                 }`}
                               >
                                 <div className="mt-0.5 text-growth-teal">
                                   {isChecked ? (
-                                    <CheckSquare className="w-4 h-4 fill-growth-teal text-slate-900" />
+                                    <CheckSquare className="w-4 h-4 text-growth-teal fill-teal-100" />
                                   ) : (
-                                    <Square className="w-4 h-4 text-slate-600" />
+                                    <Square className="w-4 h-4 text-slate-400" />
                                   )}
                                 </div>
                                 <div className="min-w-0">
-                                  <div className="text-xs font-bold leading-tight flex items-center gap-1">
-                                    <span className={isChecked ? 'text-slate-100' : 'text-slate-300'}>
+                                  <div className="text-xs font-semibold leading-tight flex items-center gap-1">
+                                    <span className={isChecked ? 'text-teal-950 font-bold' : 'text-slate-800'}>
                                       {perm.label}
                                     </span>
                                   </div>
-                                  <p className="text-[10px] text-slate-400 leading-normal mt-0.5">
+                                  <p className={`text-[10px] leading-normal mt-0.5 ${isChecked ? 'text-teal-700' : 'text-slate-500'}`}>
                                     {perm.description}
                                   </p>
                                 </div>
@@ -468,15 +470,15 @@ export const InviteMemberModal: React.FC<InviteMemberModalProps> = ({
               </div>
 
               {/* Submit Buttons */}
-              <div className="pt-4 border-t border-slate-800 flex items-center justify-between">
-                <div className="text-xs text-slate-400">
-                  Selected: <span className="font-bold text-white">{selectedPermissions.length}</span> permissions
+              <div className="pt-4 border-t border-slate-200 flex items-center justify-between">
+                <div className="text-xs text-slate-500">
+                  Selected: <span className="font-bold text-slate-800">{selectedPermissions.length}</span> permissions
                 </div>
                 <div className="flex items-center gap-2">
                   <button
                     type="button"
                     onClick={onClose}
-                    className="py-2.5 px-4 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white font-bold text-xs rounded-xl transition-colors"
+                    className="py-2.5 px-4 bg-white hover:bg-slate-100 text-slate-700 border border-slate-300 font-bold text-xs rounded-xl transition-colors cursor-pointer"
                   >
                     Cancel
                   </button>

@@ -86,20 +86,21 @@ textarea::placeholder {
 }
 
 /* Pulse Glows */
-.pulse-gold {
-  box-shadow: 0 0 0 0 rgba(245, 166, 35, 0.7);
-  animation: pulseGold 2s infinite;
+.pulse-gold,
+.pulse-orange {
+  box-shadow: 0 0 0 0 rgba(249, 115, 22, 0.7);
+  animation: pulseOrange 2s infinite;
 }
 
-@keyframes pulseGold {
+@keyframes pulseOrange {
   0% {
-    box-shadow: 0 0 0 0 rgba(245, 166, 35, 0.7);
+    box-shadow: 0 0 0 0 rgba(249, 115, 22, 0.7);
   }
   70% {
-    box-shadow: 0 0 0 10px rgba(245, 166, 35, 0);
+    box-shadow: 0 0 0 10px rgba(249, 115, 22, 0);
   }
   100% {
-    box-shadow: 0 0 0 0 rgba(245, 166, 35, 0);
+    box-shadow: 0 0 0 0 rgba(249, 115, 22, 0);
   }
 }
 
@@ -116,10 +117,10 @@ textarea::placeholder {
 
 .card-premium:hover,
 .interactive-box-hover:hover {
-  transform: translateY(-3.5px);
+  transform: translateY(-3px);
   border-color: #0e8388 !important;
-  box-shadow: 0 16px 32px -8px rgba(14, 131, 136, 0.22), 0 0 0 1.5px rgba(14, 131, 136, 0.35), 0 4px 12px -2px rgba(15, 23, 42, 0.05) !important;
-  background: linear-gradient(135deg, #ffffff 0%, rgba(240, 253, 250, 0.8) 100%) !important;
+  box-shadow: 0 12px 24px -6px rgba(14, 131, 136, 0.18), 0 0 0 1px rgba(14, 131, 136, 0.3) !important;
+  background: #ffffff !important;
 }
 
 /* Luminous top accent bar on box hover */
@@ -131,7 +132,7 @@ textarea::placeholder {
   left: 0;
   right: 0;
   height: 3px;
-  background: linear-gradient(90deg, #0e8388, #2dd4bf, #f5a623);
+  background: linear-gradient(90deg, #0e8388, #f97316);
   opacity: 0;
   transition: opacity 0.22s ease;
   pointer-events: none;
@@ -342,5 +343,27 @@ tr.interactive-row-hover:hover > td:first-child {
   box-shadow: 0 4px 12px -3px rgba(14, 131, 136, 0.2);
 }
 
+/* Interactive text hover & cursor rules */
+.hover-highlight-text {
+  cursor: pointer;
+  transition: all 0.15s ease-in-out;
+}
 
+.hover-highlight-text:hover {
+  color: #0e8388 !important;
+  font-weight: 600;
+}
 
+.table-row-hover {
+  cursor: pointer;
+  transition: background-color 0.15s ease-in-out;
+}
+
+.table-row-hover:hover {
+  background-color: #f0fdfa !important;
+}
+
+/* Ensure all interactive buttons have pointer and smooth highlight */
+button, a, [role="button"] {
+  cursor: pointer;
+}

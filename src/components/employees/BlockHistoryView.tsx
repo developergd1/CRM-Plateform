@@ -14,7 +14,11 @@ import {
   Download,
 } from 'lucide-react';
 
-export const BlockHistoryView: React.FC = () => {
+export interface BlockHistoryViewProps {
+  initialClientId?: string;
+}
+
+export const BlockHistoryView: React.FC<BlockHistoryViewProps> = ({ initialClientId }) => {
   const [histories, setHistories] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
@@ -26,6 +30,7 @@ export const BlockHistoryView: React.FC = () => {
       const query = new URLSearchParams();
       if (search) query.set('search', search);
       if (actionFilter) query.set('actionType', actionFilter);
+      if (initialClientId) query.set('clientId', initialClientId);
 
       const res = await fetch(`/api/employees/block-history?${query.toString()}`);
       if (res.ok) {
@@ -41,7 +46,7 @@ export const BlockHistoryView: React.FC = () => {
 
   useEffect(() => {
     fetchHistory();
-  }, [search, actionFilter]);
+  }, [search, actionFilter, initialClientId]);
 
   const blockCount = histories.filter((h) => h.actionType === 'BLOCK').length;
   const unblockCount = histories.filter((h) => h.actionType === 'UNBLOCK').length;
@@ -171,8 +176,8 @@ export const BlockHistoryView: React.FC = () => {
           className="px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:outline-none"
         >
           <option value="">All Action Types</option>
-          <option value="BLOCK">🔴 BLOCK Actions</option>
-          <option value="UNBLOCK">🟢 UNBLOCK Actions</option>
+          <option value="BLOCK">BLOCK Actions</option>
+          <option value="UNBLOCK">UNBLOCK Actions</option>
         </select>
       </div>
 

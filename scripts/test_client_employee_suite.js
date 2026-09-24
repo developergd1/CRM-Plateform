@@ -1,6 +1,81 @@
+const { PrismaClient } = require('@prisma/client');
+const bcrypt = require('bcryptjs');
+const prisma = new PrismaClient();
+
 const BASE_URL = 'http://localhost:3000';
 
+async function ensureTestFixtures() {
+  const clientRole = await prisma.role.findFirst({ where: { name: 'CLIENT' } });
+  const empRole = await prisma.role.findFirst({ where: { name: 'EMPLOYEE' } });
+
+  let clientUser = await prisma.user.findUnique({ where: { email: 'rajesh@nexusdynamics.com' } });
+  let client = await prisma.client.findFirst({ where: { email: 'rajesh@nexusdynamics.com' } });
+
+  if (!clientUser) {
+    const passwordHash = await bcrypt.hash('Client@123', 10);
+    clientUser = await prisma.user.create({
+      data: {
+        email: 'rajesh@nexusdynamics.com',
+        passwordHash,
+        roleId: clientRole.id,
+        isActive: true,
+      },
+    });
+  }
+
+  if (!client) {
+    client = await prisma.client.create({
+      data: {
+        clientId: 'CLI-NEX-00001',
+        companyName: 'Nexus Dynamics Pvt Ltd',
+        contactPerson: 'Rajesh Verma',
+        mobile: '+91 98111 22233',
+        email: 'rajesh@nexusdynamics.com',
+        status: 'ACTIVE',
+        userId: clientUser.id,
+      },
+    });
+  }
+
+  let empUser = await prisma.user.findUnique({ where: { email: 'aarav.sharma@nexusdynamics.com' }, include: { employeeProfile: true } });
+  if (!empUser) {
+    const empHash = await bcrypt.hash('Emp@12345', 10);
+    empUser = await prisma.user.create({
+      data: {
+        email: 'aarav.sharma@nexusdynamics.com',
+        passwordHash: empHash,
+        roleId: empRole.id,
+        isActive: true,
+      },
+    });
+  }
+  if (!empUser.employeeProfile) {
+    const existingEmp = await prisma.employee.findUnique({ where: { employeeId: 'GI-EMP-000002' } });
+    if (!existingEmp) {
+      await prisma.employee.create({
+        data: {
+          employeeId: 'GI-EMP-000002',
+          fullName: 'Aarav Sharma',
+          personalEmail: 'aarav.sharma@nexusdynamics.com',
+          phone: '+91 98765 43210',
+          designation: 'Senior Software Engineer',
+          departmentName: 'General Operations',
+          clientId: client.id,
+          userId: empUser.id,
+          status: 'ACTIVE',
+        },
+      });
+    } else {
+      await prisma.employee.update({
+        where: { id: existingEmp.id },
+        data: { userId: empUser.id },
+      });
+    }
+  }
+}
+
 async function runClientAndEmployeeVerification() {
+  await ensureTestFixtures();
   console.log('================================================================');
   console.log('🏢  STARTING GROWTH INDIA CLIENT & EMPLOYEE ROLES VERIFICATION');
   console.log('================================================================\n');
@@ -286,7 +361,12 @@ async function runClientAndEmployeeVerification() {
   console.log('================================================================\n');
 }
 
-runClientAndEmployeeVerification().catch((err) => {
-  console.error('\n❌ Client/Employee Verification Failed:', err);
-  process.exit(1);
-});
+runClientAndEmployeeVerification()
+  .catch((err) => {
+    console.error('\n❌ Client/Employee Verification Failed:', err);
+    process.exit(1);
+  })
+  .finally(async () => {
+    await prisma.$disconnect();
+  });
+

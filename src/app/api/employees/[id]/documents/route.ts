@@ -17,7 +17,29 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
     if (!employee) return NextResponse.json({ error: 'Employee not found' }, { status: 404 });
 
     const isSelf = user.employeeId === employee.employeeId;
-    if (!isAdminOrHR(user.role) && !isSelf) {
+    let isClientEmployer = false;
+    if (user.role === 'CLIENT' && employee.clientId) {
+      if (user.parentClientId && user.parentClientId === employee.clientId) {
+        isClientEmployer = true;
+      } else {
+        const clientRecord = await prisma.client.findFirst({
+          where: {
+            OR: [
+              { userId: user.id },
+              ...(user.parentClientId ? [{ id: user.parentClientId }] : []),
+              ...(user.parentUserId ? [{ userId: user.parentUserId }] : []),
+              ...(user.clientId ? [{ clientId: user.clientId }] : []),
+            ],
+          },
+          select: { id: true },
+        });
+        if (clientRecord && clientRecord.id === employee.clientId) {
+          isClientEmployer = true;
+        }
+      }
+    }
+
+    if (!isAdminOrHR(user.role) && !isSelf && !isClientEmployer) {
       return NextResponse.json({ error: 'Permission denied. You cannot view other employees’ KYC documents.' }, { status: 403 });
     }
 
@@ -51,7 +73,29 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     if (!employee) return NextResponse.json({ error: 'Employee not found' }, { status: 404 });
 
     const isSelf = user.employeeId === employee.employeeId;
-    if (!isAdminOrHR(user.role) && !isSelf) {
+    let isClientEmployer = false;
+    if (user.role === 'CLIENT' && employee.clientId) {
+      if (user.parentClientId && user.parentClientId === employee.clientId) {
+        isClientEmployer = true;
+      } else {
+        const clientRecord = await prisma.client.findFirst({
+          where: {
+            OR: [
+              { userId: user.id },
+              ...(user.parentClientId ? [{ id: user.parentClientId }] : []),
+              ...(user.parentUserId ? [{ userId: user.parentUserId }] : []),
+              ...(user.clientId ? [{ clientId: user.clientId }] : []),
+            ],
+          },
+          select: { id: true },
+        });
+        if (clientRecord && clientRecord.id === employee.clientId) {
+          isClientEmployer = true;
+        }
+      }
+    }
+
+    if (!isAdminOrHR(user.role) && !isSelf && !isClientEmployer) {
       return NextResponse.json({ error: 'Permission denied' }, { status: 403 });
     }
 
@@ -90,7 +134,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
       status: 'SUCCESS',
     });
 
-    return NextResponse.json({ success: true, document: newDoc });
+    return NextResponse.json({ success: true, document: newDoc }, { status: 201 });
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }

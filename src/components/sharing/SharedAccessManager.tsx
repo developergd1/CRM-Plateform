@@ -88,7 +88,7 @@ export const SharedAccessManager: React.FC<SharedAccessManagerProps> = ({ role }
     const inviterTitle = user?.fullName || (role === 'ADMIN' ? 'Platform Administrator' : 'Client Management');
     const roleType = role === 'ADMIN' ? 'Admin Team Member' : 'Corporate Client Workspace';
 
-    const message = `*Growth India CRM Invitation*\n\nHello *${invitation.name}*,\n\nYou have been invited by *${inviterTitle}* to access the *Growth India CRM Platform* (${roleType}).\n\n👉 *Click here to set your password and activate your account:*\n${inviteUrl}\n\n_Note: This secure link remains active until manually revoked._`;
+    const message = `*Growth India CRM Invitation*\n\nHello *${invitation.name}*,\n\nYou have been invited by *${inviterTitle}* to access the *Growth India CRM Platform* (${roleType}).\n\n*Click here to set your password and activate your account:*\n${inviteUrl}\n\n_Note: This secure link remains active until manually revoked._`;
 
     const waUrl = `https://api.whatsapp.com/send?text=${encodeURIComponent(message)}`;
     window.open(waUrl, '_blank');
@@ -171,16 +171,16 @@ export const SharedAccessManager: React.FC<SharedAccessManagerProps> = ({ role }
       {/* Toast Notification */}
       {notification && (
         <div
-          className={`fixed top-4 right-4 z-50 px-4 py-3 rounded-2xl shadow-2xl border text-xs font-bold flex items-center gap-2 animate-slideDown ${
-            notification.type === 'success'
-              ? 'bg-emerald-950 border-emerald-500/50 text-emerald-200'
-              : 'bg-rose-950 border-rose-500/50 text-rose-200'
+          className={`fixed top-4 right-4 z-50 px-4 py-3 rounded-2xl shadow-xl border text-xs font-bold flex items-center gap-2 animate-slideDown ${
+            notification.type === 'error'
+              ? 'bg-rose-50 border-rose-200 text-rose-800'
+              : 'bg-emerald-50 border-emerald-200 text-emerald-800'
           }`}
         >
-          {notification.type === 'success' ? (
-            <ShieldCheck className="w-4 h-4 text-emerald-400" />
+          {notification.type === 'error' ? (
+            <AlertTriangle className="w-4 h-4 text-rose-600 shrink-0" />
           ) : (
-            <AlertTriangle className="w-4 h-4 text-rose-400" />
+            <Check className="w-4 h-4 text-emerald-600 shrink-0" />
           )}
           <span>{notification.message}</span>
         </div>
@@ -195,7 +195,7 @@ export const SharedAccessManager: React.FC<SharedAccessManagerProps> = ({ role }
           <div>
             <div className="flex items-center gap-2.5 flex-wrap">
               <h1 className="title-interactive-hover text-xl font-black text-slate-900 tracking-tight cursor-pointer">
-                Shared Team Access & Delegated RBAC
+                Delegated Access & Role-Based Permissions
               </h1>
               <span className="text-[10px] uppercase font-mono px-2.5 py-0.5 rounded-full bg-amber-50 text-amber-700 border border-amber-200 font-bold shrink-0">
                 Live Security
@@ -203,7 +203,7 @@ export const SharedAccessManager: React.FC<SharedAccessManagerProps> = ({ role }
             </div>
             <p className="subtitle-interactive-hover text-xs text-slate-500 font-medium mt-0.5">
               {role === 'ADMIN'
-                ? 'Share access to specific Admin CRM modules with assistants without revealing your master password.'
+                ? 'Delegate access to specific Admin modules with individualized user accounts and granular RBAC without sharing credentials.'
                 : 'Invite colleagues and team members to your Client workspace with strictly assigned privileges.'}
             </p>
           </div>
@@ -225,7 +225,7 @@ export const SharedAccessManager: React.FC<SharedAccessManagerProps> = ({ role }
             className="interactive-btn-hover flex items-center gap-2 px-4 py-2.5 bg-growth-teal hover:bg-growth-tealDark text-white font-bold text-xs rounded-xl shadow-tealGlow transition-all cursor-pointer"
           >
             <UserPlus className="w-4 h-4" />
-            <span>+ Invite Person / Share Account</span>
+            <span>+ Delegate Access / Invite Member</span>
           </button>
         </div>
       </div>

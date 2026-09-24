@@ -5,33 +5,29 @@ import { useAuth } from '@/context/AuthContext';
 import {
   Search,
   CheckCircle,
-  Clock,
-  AlertCircle,
   Plus,
-  User,
-  Filter,
-  ArrowRight,
-  Briefcase,
-  Building2,
   RefreshCw,
-  Layers,
-  Sparkles,
-  CheckSquare,
-  AlertTriangle,
-  UserCheck
 } from 'lucide-react';
 import { TaskCreateModal } from './TaskCreateModal';
 import { TaskDetailModal } from './TaskDetailModal';
 import { clientCache } from '@/lib/client-cache';
 
-export const TaskManager: React.FC = () => {
+export interface TaskManagerProps {
+  initialClientId?: string;
+  hideClientFilter?: boolean;
+}
+
+export const TaskManager: React.FC<TaskManagerProps> = ({
+  initialClientId,
+  hideClientFilter = false,
+}) => {
   const { user } = useAuth();
   const isAdminUser = user?.role === 'ADMIN' || (user as any)?.role?.name === 'ADMIN' || (user as any)?.role?.name === 'SUPER_ADMIN';
   const isClientUser = user?.role === 'CLIENT';
 
   const [viewTab, setViewTab] = useState('all'); // all, client-tasks, admin-tasks, my-tasks, assigned-by-me
   const [search, setSearch] = useState('');
-  const [selectedClientId, setSelectedClientId] = useState<string>('ALL');
+  const [selectedClientId, setSelectedClientId] = useState<string>(initialClientId || 'ALL');
   const [selectedStatus, setSelectedStatus] = useState<string>('ALL');
   const [clients, setClients] = useState<any[]>([]);
 
@@ -106,13 +102,13 @@ export const TaskManager: React.FC = () => {
       case 'ACCEPTED':
         return <span className="px-2.5 py-1 rounded-lg text-[10px] font-black bg-blue-50 text-blue-700 border border-blue-200">ACCEPTED</span>;
       case 'IN_PROGRESS':
-        return <span className="px-2.5 py-1 rounded-lg text-[10px] font-black bg-indigo-50 text-indigo-700 border border-indigo-200 flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-indigo-600 animate-pulse" /> IN PROGRESS</span>;
+        return <span className="px-2.5 py-1 rounded-lg text-[10px] font-black bg-indigo-50 text-indigo-700 border border-indigo-200">IN PROGRESS</span>;
       case 'WAITING_FOR_REVIEW':
         return <span className="px-2.5 py-1 rounded-lg text-[10px] font-black bg-amber-50 text-amber-800 border border-amber-200">REVIEW PENDING</span>;
       case 'CHANGES_REQUESTED':
         return <span className="px-2.5 py-1 rounded-lg text-[10px] font-black bg-rose-50 text-rose-700 border border-rose-200">CHANGES REQ</span>;
       case 'COMPLETED':
-        return <span className="px-2.5 py-1 rounded-lg text-[10px] font-black bg-emerald-50 text-emerald-700 border border-emerald-200 flex items-center gap-1"><CheckCircle className="w-3 h-3 text-emerald-600" /> COMPLETED</span>;
+        return <span className="px-2.5 py-1 rounded-lg text-[10px] font-black bg-emerald-50 text-emerald-700 border border-emerald-200">COMPLETED</span>;
       case 'OVERDUE':
         return <span className="px-2.5 py-1 rounded-lg text-[10px] font-black bg-red-100 text-red-800 border border-red-200">OVERDUE</span>;
       default:
@@ -150,23 +146,8 @@ export const TaskManager: React.FC = () => {
       {/* Header & Controls */}
       {/* ========================================================================= */}
       <div className="bg-white border-b border-slate-200 px-6 py-4 shrink-0 flex flex-col md:flex-row md:items-center justify-between gap-4 z-10 shadow-xs">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-2xl bg-growth-teal/10 flex items-center justify-center text-growth-teal font-black shadow-xs">
-            <CheckSquare className="w-5 h-5" />
-          </div>
-          <div>
-            <div className="flex items-center gap-2">
-              <h1 className="text-xl font-black text-slate-900 tracking-tight">Task & Deliverables Manager</h1>
-              <span className="text-[10px] font-bold px-2 py-0.5 bg-teal-50 text-growth-teal border border-teal-200 rounded-full">
-                Live Governance
-              </span>
-            </div>
-            <p className="text-xs text-slate-500 font-medium">
-              {isAdminUser
-                ? 'Comprehensive visibility: Track tasks assigned by Corporate Clients, Admin, and Team Leads'
-                : 'Assign, execute, and verify staff deliverables'}
-            </p>
-          </div>
+        <div>
+          <h1 className="text-xl font-bold text-slate-900 tracking-tight">Task & Deliverables Manager</h1>
         </div>
 
         {/* Action Controls */}
@@ -183,7 +164,7 @@ export const TaskManager: React.FC = () => {
           </div>
 
           {/* Client Filter Dropdown for Admin */}
-          {isAdminUser && (
+          {isAdminUser && !hideClientFilter && (
             <div className="flex items-center">
               <select
                 value={selectedClientId}
@@ -216,7 +197,7 @@ export const TaskManager: React.FC = () => {
           <button
             onClick={() => fetchTasks(true)}
             disabled={refreshing}
-            className="interactive-btn-hover flex items-center gap-1.5 px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-xl transition-colors cursor-pointer"
+            className="flex items-center gap-1.5 px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-xl transition-colors cursor-pointer"
             title="Refresh Tasks"
           >
             <RefreshCw className={`w-3.5 h-3.5 ${refreshing ? 'animate-spin text-growth-teal' : 'text-slate-500'}`} />
@@ -225,7 +206,7 @@ export const TaskManager: React.FC = () => {
 
           <button
             onClick={() => setIsCreateModalOpen(true)}
-            className="px-4 py-2 bg-growth-teal hover:bg-growth-tealDark text-white text-xs font-black rounded-xl shadow-md flex items-center gap-1.5 transition-all transform active:scale-95"
+            className="px-4 py-2 bg-teal-600 hover:bg-teal-700 text-white text-xs font-bold rounded-xl shadow-xs flex items-center gap-1.5 transition-all cursor-pointer"
           >
             <Plus className="w-4 h-4" />
             <span>New Task</span>
@@ -236,19 +217,18 @@ export const TaskManager: React.FC = () => {
       {/* ========================================================================= */}
       {/* Role-Based Operational View Tabs */}
       {/* ========================================================================= */}
-      <div className="px-6 py-2.5 border-b border-slate-200 bg-white flex items-center gap-3 text-xs font-bold overflow-x-auto shrink-0">
+      <div className="px-6 py-2.5 border-b border-slate-200 bg-white flex items-center gap-5 text-xs font-semibold overflow-x-auto shrink-0">
         {isAdminUser ? (
           <>
             <button
               onClick={() => setViewTab('all')}
               className={`pb-2.5 border-b-2 flex items-center gap-1.5 transition-colors cursor-pointer ${
                 viewTab === 'all'
-                  ? 'border-growth-teal text-growth-teal font-black'
+                  ? 'border-growth-teal text-growth-teal font-bold'
                   : 'border-transparent text-slate-500 hover:text-slate-900'
               }`}
             >
-              <Layers className="w-3.5 h-3.5" />
-              <span>All Tasks (Global Overview)</span>
+              <span>All Tasks</span>
               <span className="px-1.5 py-0.5 rounded-full text-[10px] bg-slate-100 text-slate-700 font-mono">
                 {viewTab === 'all' ? tasks.length : ''}
               </span>
@@ -256,37 +236,34 @@ export const TaskManager: React.FC = () => {
 
             <button
               onClick={() => setViewTab('client-tasks')}
-              className={`pb-2.5 border-b-2 flex items-center gap-1.5 transition-colors cursor-pointer ${
+              className={`pb-2.5 border-b-2 transition-colors cursor-pointer ${
                 viewTab === 'client-tasks'
-                  ? 'border-growth-teal text-growth-teal font-black'
+                  ? 'border-growth-teal text-growth-teal font-bold'
                   : 'border-transparent text-slate-500 hover:text-slate-900'
               }`}
             >
-              <Building2 className="w-3.5 h-3.5" />
-              <span>Client Delegated Tasks</span>
+              <span>Client Delegated</span>
             </button>
 
             <button
               onClick={() => setViewTab('admin-tasks')}
-              className={`pb-2.5 border-b-2 flex items-center gap-1.5 transition-colors cursor-pointer ${
+              className={`pb-2.5 border-b-2 transition-colors cursor-pointer ${
                 viewTab === 'admin-tasks'
-                  ? 'border-growth-teal text-growth-teal font-black'
+                  ? 'border-growth-teal text-growth-teal font-bold'
                   : 'border-transparent text-slate-500 hover:text-slate-900'
               }`}
             >
-              <Sparkles className="w-3.5 h-3.5" />
-              <span>Internal / Admin Tasks</span>
+              <span>Internal / Admin</span>
             </button>
 
             <button
               onClick={() => setViewTab('my-tasks')}
-              className={`pb-2.5 border-b-2 flex items-center gap-1.5 transition-colors cursor-pointer ${
+              className={`pb-2.5 border-b-2 transition-colors cursor-pointer ${
                 viewTab === 'my-tasks'
-                  ? 'border-growth-teal text-growth-teal font-black'
+                  ? 'border-growth-teal text-growth-teal font-bold'
                   : 'border-transparent text-slate-500 hover:text-slate-900'
               }`}
             >
-              <User className="w-3.5 h-3.5" />
               <span>My Direct Tasks</span>
             </button>
           </>
@@ -294,25 +271,23 @@ export const TaskManager: React.FC = () => {
           <>
             <button
               onClick={() => setViewTab('all')}
-              className={`pb-2.5 border-b-2 flex items-center gap-1.5 transition-colors cursor-pointer ${
+              className={`pb-2.5 border-b-2 transition-colors cursor-pointer ${
                 viewTab === 'all'
-                  ? 'border-growth-teal text-growth-teal font-black'
+                  ? 'border-growth-teal text-growth-teal font-bold'
                   : 'border-transparent text-slate-500 hover:text-slate-900'
               }`}
             >
-              <Building2 className="w-3.5 h-3.5" />
-              <span>All Company Staff Tasks</span>
+              <span>Company Staff Tasks</span>
             </button>
 
             <button
               onClick={() => setViewTab('assigned-by-me')}
-              className={`pb-2.5 border-b-2 flex items-center gap-1.5 transition-colors cursor-pointer ${
+              className={`pb-2.5 border-b-2 transition-colors cursor-pointer ${
                 viewTab === 'assigned-by-me'
-                  ? 'border-growth-teal text-growth-teal font-black'
+                  ? 'border-growth-teal text-growth-teal font-bold'
                   : 'border-transparent text-slate-500 hover:text-slate-900'
               }`}
             >
-              <CheckSquare className="w-3.5 h-3.5" />
               <span>Assigned by Me</span>
             </button>
           </>
@@ -320,25 +295,23 @@ export const TaskManager: React.FC = () => {
           <>
             <button
               onClick={() => setViewTab('my-tasks')}
-              className={`pb-2.5 border-b-2 flex items-center gap-1.5 transition-colors cursor-pointer ${
+              className={`pb-2.5 border-b-2 transition-colors cursor-pointer ${
                 viewTab === 'my-tasks'
-                  ? 'border-growth-teal text-growth-teal font-black'
+                  ? 'border-growth-teal text-growth-teal font-bold'
                   : 'border-transparent text-slate-500 hover:text-slate-900'
               }`}
             >
-              <UserCheck className="w-3.5 h-3.5" />
               <span>My Assigned Tasks</span>
             </button>
 
             <button
               onClick={() => setViewTab('all')}
-              className={`pb-2.5 border-b-2 flex items-center gap-1.5 transition-colors cursor-pointer ${
+              className={`pb-2.5 border-b-2 transition-colors cursor-pointer ${
                 viewTab === 'all'
-                  ? 'border-growth-teal text-growth-teal font-black'
+                  ? 'border-growth-teal text-growth-teal font-bold'
                   : 'border-transparent text-slate-500 hover:text-slate-900'
               }`}
             >
-              <Layers className="w-3.5 h-3.5" />
               <span>Team Deliverables</span>
             </button>
           </>
@@ -388,9 +361,9 @@ export const TaskManager: React.FC = () => {
             </p>
             <button
               onClick={() => setIsCreateModalOpen(true)}
-              className="mt-4 px-4 py-2.5 bg-growth-navy hover:bg-slate-900 text-white text-xs font-black rounded-xl shadow-md transition-all flex items-center gap-1.5 cursor-pointer"
+              className="mt-4 px-4 py-2.5 bg-teal-600 hover:bg-teal-700 text-white text-xs font-bold rounded-xl shadow-xs transition-all flex items-center gap-1.5 cursor-pointer"
             >
-              <Plus className="w-4 h-4 text-growth-teal" />
+              <Plus className="w-4 h-4" />
               <span>Assign New Task</span>
             </button>
           </div>
@@ -441,71 +414,55 @@ export const TaskManager: React.FC = () => {
 
                       {/* Assignee */}
                       <td className="py-3.5 px-4 whitespace-nowrap">
-                        <div className="flex items-center gap-2">
-                          <div className="w-7 h-7 rounded-full bg-slate-100 border border-slate-200 flex items-center justify-center text-[11px] font-black text-slate-700 shrink-0">
-                            {task.assignedTo?.fullName?.charAt(0) || '?'}
-                          </div>
+                        {task.assignedTo ? (
                           <div>
-                            <div className="font-bold text-slate-900">
-                              {task.assignedTo?.fullName || 'Unassigned'}
+                            <div className="font-semibold text-slate-900">
+                              {task.assignedTo.fullName}
                             </div>
-                            <div className="font-mono text-[10px] text-slate-400">
-                              {task.assignedTo?.employeeId || ''} • {task.assignedTo?.designation || 'Staff'}
-                            </div>
+                            {task.assignedTo.employeeId && (
+                              <div className="font-mono text-[10px] text-slate-400">
+                                {task.assignedTo.employeeId}
+                              </div>
+                            )}
                           </div>
-                        </div>
+                        ) : (
+                          <span className="text-slate-400 font-medium">Unassigned</span>
+                        )}
                       </td>
 
                       {/* Client / Organization */}
                       <td className="py-3.5 px-4 whitespace-nowrap">
                         {task.client ? (
-                          <div className="inline-flex flex-col">
-                            <span className="px-2 py-0.5 rounded-md bg-teal-50 text-teal-800 border border-teal-200 text-[11px] font-bold">
-                              {task.client.companyName}
-                            </span>
-                            <span className="font-mono text-[9px] text-slate-400 mt-0.5">
-                              {task.client.clientId}
-                            </span>
-                          </div>
+                          <span className="px-2 py-0.5 rounded-md bg-teal-50 text-teal-800 border border-teal-200 text-[11px] font-semibold">
+                            {task.client.companyName}
+                          </span>
                         ) : task.deal ? (
                           <span className="text-[11px] font-medium text-slate-600">
                             Deal: {task.deal.dealNumber}
                           </span>
                         ) : (
-                          <span className="text-[11px] text-slate-400 italic">Internal Platform</span>
+                          <span className="text-[11px] text-slate-400">Internal Platform</span>
                         )}
                       </td>
 
                       {/* Assigned By Origin */}
                       <td className="py-3.5 px-4 whitespace-nowrap">
                         {task.client && !task.createdBy ? (
-                          <span className="text-[11px] font-bold text-indigo-700 bg-indigo-50 border border-indigo-200 px-2 py-0.5 rounded-md">
+                          <span className="text-[11px] font-semibold text-indigo-700 bg-indigo-50 border border-indigo-200 px-2 py-0.5 rounded-md">
                             Client ({task.client.contactPerson || task.client.companyName})
                           </span>
                         ) : task.createdBy ? (
-                          <div>
-                            <div className="font-bold text-slate-800 text-[11px]">
-                              {task.createdBy.fullName}
-                            </div>
-                            <div className="font-mono text-[9px] text-slate-400">
-                              {task.createdBy.employeeId || 'Administrator'}
-                            </div>
+                          <div className="font-semibold text-slate-800 text-[11px]">
+                            {task.createdBy.fullName}
                           </div>
                         ) : (
-                          <span className="text-[11px] font-semibold text-slate-500">System Admin</span>
+                          <span className="text-[11px] font-medium text-slate-500">System Admin</span>
                         )}
                       </td>
 
                       {/* Due Date */}
-                      <td className="py-3.5 px-4 whitespace-nowrap">
-                        {task.dueDate ? (
-                          <div className="text-[11px] font-semibold flex items-center gap-1.5 text-slate-700">
-                            <Clock className="w-3.5 h-3.5 text-slate-400" />
-                            <span>{new Date(task.dueDate).toLocaleDateString('en-IN')}</span>
-                          </div>
-                        ) : (
-                          <span className="text-slate-400 text-xs">-</span>
-                        )}
+                      <td className="py-3.5 px-4 whitespace-nowrap text-[11px] font-medium text-slate-700">
+                        {task.dueDate ? new Date(task.dueDate).toLocaleDateString('en-IN') : '-'}
                       </td>
 
                       {/* Actions */}
@@ -515,10 +472,9 @@ export const TaskManager: React.FC = () => {
                             e.stopPropagation();
                             setSelectedTask(task.id);
                           }}
-                          className="px-2.5 py-1 bg-slate-100 hover:bg-growth-teal hover:text-white text-slate-700 text-[11px] font-bold rounded-lg transition-all inline-flex items-center gap-1"
+                          className="px-3 py-1 bg-slate-100 hover:bg-growth-teal hover:text-white text-slate-700 text-[11px] font-semibold rounded-lg transition-colors cursor-pointer"
                         >
-                          <span>Review</span>
-                          <ArrowRight className="w-3.5 h-3.5" />
+                          Review
                         </button>
                       </td>
                     </tr>

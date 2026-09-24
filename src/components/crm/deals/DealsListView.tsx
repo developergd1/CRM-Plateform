@@ -37,6 +37,7 @@ interface DealsListViewProps {
   initialLeadId?: string;
   initialOpportunityId?: string;
   initialOpenCreateModal?: boolean;
+  initialClientId?: string;
 }
 
 import { clientCache } from '@/lib/client-cache';
@@ -47,6 +48,7 @@ export const DealsListView: React.FC<DealsListViewProps> = ({
   initialLeadId,
   initialOpportunityId,
   initialOpenCreateModal,
+  initialClientId,
 }) => {
   const cachedDeals = clientCache.get<DealItem[]>('crm_deals_list', 15 * 60 * 1000);
   const cachedOpps = clientCache.get<any[]>('crm_opportunities_list', 15 * 60 * 1000);
@@ -112,7 +114,10 @@ export const DealsListView: React.FC<DealsListViewProps> = ({
     if (initialOpportunityId) {
       setFormData((prev) => ({ ...prev, opportunityId: initialOpportunityId }));
     }
-  }, [initialOpenCreateModal, initialLeadId, initialOpportunityId]);
+    if (initialClientId) {
+      setFormData((prev) => ({ ...prev, clientId: initialClientId }));
+    }
+  }, [initialOpenCreateModal, initialLeadId, initialOpportunityId, initialClientId]);
 
   const fetchDeals = async (forceRefresh = false) => {
     const cached = !forceRefresh ? clientCache.get<DealItem[]>('crm_deals_list', 15 * 60 * 1000) : null;
@@ -357,20 +362,16 @@ export const DealsListView: React.FC<DealsListViewProps> = ({
   return (
     <div className="space-y-6 pb-12 font-sans">
       {/* Executive Command Banner */}
-      <div className="bg-gradient-to-r from-slate-950 via-growth-navy to-slate-900 rounded-3xl p-6 text-white shadow-2xl border border-slate-800/80 relative overflow-hidden hero-banner-interactive">
-        <div className="absolute -right-16 -top-16 w-72 h-72 bg-growth-teal/15 rounded-full blur-3xl pointer-events-none" />
-        <div className="absolute right-1/3 -bottom-20 w-72 h-72 bg-growth-gold/10 rounded-full blur-3xl pointer-events-none" />
-
+      <div className="bg-white rounded-2xl p-6 text-slate-900 shadow-sm border border-slate-200/80 relative overflow-hidden panel-premium">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 relative z-10">
           <div>
-            <div className="inline-flex items-center gap-2 px-3 py-1 bg-white/10 rounded-full text-xs font-semibold text-growth-gold mb-2 border border-white/10 backdrop-blur-md chip-premium-highlight cursor-pointer">
-              <Sparkles className="w-3.5 h-3.5 text-growth-gold" />
+            <div className="inline-flex items-center px-3 py-1 bg-[#0D9488]/10 rounded-full text-xs font-bold text-[#0D9488] mb-2 border border-[#0D9488]/20">
               <span>CRM • Commercial Contracts & Revenue</span>
             </div>
-            <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-white hero-title-interactive">
+            <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-slate-900">
               Deals & Revenue Contracts
             </h1>
-            <p className="text-xs text-slate-300 mt-1 max-w-xl leading-relaxed hero-subtitle-interactive">
+            <p className="text-xs text-slate-500 mt-1 max-w-xl leading-relaxed">
               Monitor deal values, win probabilities, stage progression, and conversion to corporate client accounts.
             </p>
           </div>
@@ -379,25 +380,23 @@ export const DealsListView: React.FC<DealsListViewProps> = ({
             {onOpenPipeline && (
               <button
                 onClick={onOpenPipeline}
-                className="flex items-center gap-2 px-3.5 py-2.5 rounded-xl font-bold text-xs bg-slate-800 hover:bg-slate-700 text-slate-100 border border-slate-700 transition-colors interactive-btn-hover"
+                className="px-4 py-2.5 rounded-xl font-bold text-xs bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200 transition-colors cursor-pointer"
               >
-                <TrendingUp className="w-4 h-4 text-growth-teal" />
-                <span>Kanban Flow</span>
+                Kanban Flow
               </button>
             )}
             <button
               onClick={() => setRefreshKey((k) => k + 1)}
-              className="p-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 transition-colors border border-slate-700 interactive-btn-hover"
+              className="p-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-600 transition-colors border border-slate-200 cursor-pointer"
               title="Refresh"
             >
               <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin text-growth-teal' : ''}`} />
             </button>
             <button
               onClick={() => setIsCreateModalOpen(true)}
-              className="flex items-center gap-2 px-5 py-2.5 bg-growth-teal hover:bg-growth-tealDark text-white font-bold text-xs rounded-xl shadow-md transition-all active:scale-95 interactive-btn-hover"
+              className="px-5 py-2.5 bg-growth-teal hover:bg-growth-tealDark text-white font-bold text-xs rounded-xl shadow-sm transition-all active:scale-95 cursor-pointer"
             >
-              <Plus className="w-4 h-4" />
-              <span>New Deal</span>
+              New Deal
             </button>
           </div>
         </div>
@@ -406,14 +405,14 @@ export const DealsListView: React.FC<DealsListViewProps> = ({
       {/* Metrics Row */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3.5">
         <div className="bg-white border border-slate-200/80 rounded-2xl p-4 shadow-sm interactive-box-hover group">
-          <div className="text-[10px] font-black text-slate-500 uppercase tracking-wider group-hover:text-growth-teal transition-colors">Active Deals</div>
-          <div className="text-2xl font-black text-slate-900 font-mono mt-1.5 group-hover:text-growth-teal transition-colors">{metrics.activeCount}</div>
+          <div className="text-[10px] font-black text-slate-500 uppercase tracking-wider">Active Deals</div>
+          <div className="text-2xl font-black text-slate-900 font-mono mt-1.5">{metrics.activeCount}</div>
           <div className="text-[11px] text-slate-500 font-semibold mt-0.5">Total Deals: {deals.length}</div>
         </div>
 
         <div className="bg-white border border-slate-200/80 rounded-2xl p-4 shadow-sm interactive-box-hover group">
-          <div className="text-[10px] font-black text-blue-600 uppercase tracking-wider">Open Pipeline</div>
-          <div className="text-2xl font-black text-blue-600 font-mono mt-1.5">₹{metrics.totalPipeline.toLocaleString('en-IN')}</div>
+          <div className="text-[10px] font-black text-growth-orange uppercase tracking-wider">Open Pipeline</div>
+          <div className="text-2xl font-black text-growth-orange font-mono mt-1.5">₹{metrics.totalPipeline.toLocaleString('en-IN')}</div>
           <div className="text-[11px] text-slate-500 font-semibold mt-0.5">Unweighted contract volume</div>
         </div>
 
@@ -424,8 +423,8 @@ export const DealsListView: React.FC<DealsListViewProps> = ({
         </div>
 
         <div className="bg-white border border-slate-200/80 rounded-2xl p-4 shadow-sm interactive-box-hover group">
-          <div className="text-[10px] font-black text-emerald-600 uppercase tracking-wider">Won Revenue</div>
-          <div className="text-2xl font-black text-emerald-600 font-mono mt-1.5">₹{metrics.wonRevenue.toLocaleString('en-IN')}</div>
+          <div className="text-[10px] font-black text-growth-teal uppercase tracking-wider">Won Revenue</div>
+          <div className="text-2xl font-black text-growth-teal font-mono mt-1.5">₹{metrics.wonRevenue.toLocaleString('en-IN')}</div>
           <div className="text-[11px] text-slate-500 font-semibold mt-0.5">Win Rate: {metrics.winRate}%</div>
         </div>
       </div>
@@ -506,17 +505,17 @@ export const DealsListView: React.FC<DealsListViewProps> = ({
                   const getDealStageBadge = (stage: string) => {
                     switch (stage) {
                       case 'WON':
-                        return 'bg-emerald-50 text-emerald-700 border-emerald-200';
+                        return 'bg-teal-50 text-growth-teal border-teal-200 font-bold';
                       case 'LOST':
-                        return 'bg-rose-50 text-rose-700 border-rose-200';
+                        return 'bg-slate-100 text-slate-700 border-slate-300';
                       case 'PROPOSAL':
-                        return 'bg-amber-50 text-amber-700 border-amber-200';
+                        return 'bg-orange-50 text-growth-orange border-orange-200';
                       case 'NEGOTIATION':
-                        return 'bg-orange-50 text-orange-700 border-orange-200';
+                        return 'bg-orange-50 text-growth-orange border-orange-300 font-bold';
                       case 'QUALIFIED':
-                        return 'bg-indigo-50 text-indigo-700 border-indigo-200';
+                        return 'bg-teal-50 text-growth-teal border-teal-200';
                       default:
-                        return 'bg-blue-50 text-blue-700 border-blue-200';
+                        return 'bg-slate-50 text-slate-700 border-slate-200';
                     }
                   };
 
@@ -579,7 +578,7 @@ export const DealsListView: React.FC<DealsListViewProps> = ({
 
                       <td className="py-3.5 px-4">
                         {deal.isConvertedToClient ? (
-                          <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-lg bg-emerald-50 text-emerald-700 border border-emerald-200">
+                          <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-lg bg-teal-50 text-growth-teal border border-teal-200">
                             Converted
                           </span>
                         ) : deal.stage === 'WON' ? (
@@ -645,36 +644,28 @@ export const DealsListView: React.FC<DealsListViewProps> = ({
 
       {/* CREATE DEAL MODAL */}
       {isCreateModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
-          <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 max-w-xl w-full shadow-2xl space-y-4 max-h-[90vh] overflow-y-auto">
-            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
-              <div className="flex items-center gap-2.5">
-                <div className="w-9 h-9 rounded-xl bg-teal-500/10 border border-teal-500/20 flex items-center justify-center text-teal-400">
-                  <Building2 className="w-5 h-5" />
-                </div>
-                <div>
-                  <h3 className="text-base font-bold text-white">Create Commercial Deal</h3>
-                  <p className="text-xs text-slate-400">Register new contract and revenue opportunity</p>
-                </div>
-              </div>
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs">
+          <div className="bg-white border border-slate-200 rounded-2xl p-6 max-w-xl w-full shadow-2xl space-y-4 max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+              <h3 className="text-base font-bold text-slate-900">Create Commercial Deal</h3>
               <button
                 onClick={() => setIsCreateModalOpen(false)}
-                className="p-1 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800"
+                className="p-1 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
             {errorMsg && (
-              <div className="p-3 rounded-lg bg-rose-500/10 border border-rose-500/20 text-rose-400 text-xs">
+              <div className="p-3 rounded-lg bg-rose-50 border border-rose-200 text-rose-700 text-xs">
                 {errorMsg}
               </div>
             )}
 
             <form onSubmit={handleCreateSubmit} className="space-y-3.5">
               <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1">
-                  Deal Title <span className="text-rose-400">*</span>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">
+                  Deal Title <span className="text-rose-500">*</span>
                 </label>
                 <input
                   type="text"
@@ -682,17 +673,17 @@ export const DealsListView: React.FC<DealsListViewProps> = ({
                   placeholder="e.g. Annual Workforce Contracting - 200 Personnel"
                   value={formData.title}
                   onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                  className="w-full text-xs bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-slate-200 focus:outline-none focus:border-teal-500"
+                  className="w-full text-xs bg-slate-50 border border-slate-200 rounded-lg p-2.5 text-slate-900 focus:outline-none focus:bg-white focus:border-teal-600 transition-colors"
                 />
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <div>
-                  <label className="block text-xs font-semibold text-slate-300 mb-1">Link Opportunity</label>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">Link Opportunity</label>
                   <select
                     value={formData.opportunityId}
                     onChange={(e) => setFormData({ ...formData, opportunityId: e.target.value })}
-                    className="w-full text-xs bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-slate-200 focus:outline-none focus:border-teal-500"
+                    className="w-full text-xs bg-slate-50 border border-slate-200 rounded-lg p-2.5 text-slate-900 focus:outline-none focus:bg-white focus:border-teal-600 transition-colors"
                   >
                     <option value="">None</option>
                     {opportunities.map((o) => (
@@ -704,11 +695,11 @@ export const DealsListView: React.FC<DealsListViewProps> = ({
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-slate-300 mb-1">Or Link Lead</label>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">Or Link Lead</label>
                   <select
                     value={formData.leadId}
                     onChange={(e) => setFormData({ ...formData, leadId: e.target.value, clientId: '' })}
-                    className="w-full text-xs bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-slate-200 focus:outline-none focus:border-teal-500"
+                    className="w-full text-xs bg-slate-50 border border-slate-200 rounded-lg p-2.5 text-slate-900 focus:outline-none focus:bg-white focus:border-teal-600 transition-colors"
                   >
                     <option value="">None</option>
                     {leads.map((l) => (
@@ -720,11 +711,11 @@ export const DealsListView: React.FC<DealsListViewProps> = ({
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-slate-300 mb-1">Or Link Client</label>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">Or Link Client</label>
                   <select
                     value={formData.clientId}
                     onChange={(e) => setFormData({ ...formData, clientId: e.target.value, leadId: '' })}
-                    className="w-full text-xs bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-slate-200 focus:outline-none focus:border-teal-500"
+                    className="w-full text-xs bg-slate-50 border border-slate-200 rounded-lg p-2.5 text-slate-900 focus:outline-none focus:bg-white focus:border-teal-600 transition-colors"
                   >
                     <option value="">None</option>
                     {clients.map((c) => (
@@ -738,8 +729,8 @@ export const DealsListView: React.FC<DealsListViewProps> = ({
 
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <div>
-                  <label className="block text-xs font-semibold text-slate-300 mb-1">
-                    Contract Amount (₹) <span className="text-rose-400">*</span>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">
+                    Contract Amount (₹) <span className="text-rose-500">*</span>
                   </label>
                   <input
                     type="number"
@@ -747,12 +738,12 @@ export const DealsListView: React.FC<DealsListViewProps> = ({
                     placeholder="1200000"
                     value={formData.amount}
                     onChange={(e) => setFormData({ ...formData, amount: e.target.value })}
-                    className="w-full text-xs bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-slate-200 focus:outline-none focus:border-teal-500"
+                    className="w-full text-xs bg-slate-50 border border-slate-200 rounded-lg p-2.5 text-slate-900 focus:outline-none focus:bg-white focus:border-teal-600 transition-colors"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-slate-300 mb-1">Sales Stage</label>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">Sales Stage</label>
                   <select
                     value={formData.stage}
                     onChange={(e) => {
@@ -760,7 +751,7 @@ export const DealsListView: React.FC<DealsListViewProps> = ({
                       const defProb = DEAL_STAGE_DEFAULT_PROBABILITIES[st] ?? 10;
                       setFormData({ ...formData, stage: st, probability: String(defProb) });
                     }}
-                    className="w-full text-xs bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-slate-200 focus:outline-none focus:border-teal-500"
+                    className="w-full text-xs bg-slate-50 border border-slate-200 rounded-lg p-2.5 text-slate-900 focus:outline-none focus:bg-white focus:border-teal-600 transition-colors"
                   >
                     {DEAL_STAGES.map((s) => (
                       <option key={s} value={s}>
@@ -771,25 +762,25 @@ export const DealsListView: React.FC<DealsListViewProps> = ({
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-slate-300 mb-1">Probability (%)</label>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">Probability (%)</label>
                   <input
                     type="number"
                     min={0}
                     max={100}
                     value={formData.probability}
                     onChange={(e) => setFormData({ ...formData, probability: e.target.value })}
-                    className="w-full text-xs bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-slate-200 focus:outline-none focus:border-teal-500"
+                    className="w-full text-xs bg-slate-50 border border-slate-200 rounded-lg p-2.5 text-slate-900 focus:outline-none focus:bg-white focus:border-teal-600 transition-colors"
                   />
                 </div>
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-semibold text-slate-300 mb-1">Proposal Status</label>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">Proposal Status</label>
                   <select
                     value={formData.proposalStatus}
                     onChange={(e) => setFormData({ ...formData, proposalStatus: e.target.value })}
-                    className="w-full text-xs bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-slate-200 focus:outline-none focus:border-teal-500"
+                    className="w-full text-xs bg-slate-50 border border-slate-200 rounded-lg p-2.5 text-slate-900 focus:outline-none focus:bg-white focus:border-teal-600 transition-colors"
                   >
                     {PROPOSAL_STATUSES.map((ps) => (
                       <option key={ps} value={ps}>
@@ -800,34 +791,34 @@ export const DealsListView: React.FC<DealsListViewProps> = ({
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-slate-300 mb-1">Expected Close Date</label>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">Expected Close Date</label>
                   <input
                     type="date"
                     value={formData.expectedCloseDate}
                     onChange={(e) => setFormData({ ...formData, expectedCloseDate: e.target.value })}
-                    className="w-full text-xs bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-slate-200 focus:outline-none focus:border-teal-500"
+                    className="w-full text-xs bg-slate-50 border border-slate-200 rounded-lg p-2.5 text-slate-900 focus:outline-none focus:bg-white focus:border-teal-600 transition-colors"
                   />
                 </div>
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-semibold text-slate-300 mb-1">Product / Scope</label>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">Product / Scope</label>
                   <input
                     type="text"
                     placeholder="e.g. Industrial Security & Housekeeping"
                     value={formData.productService}
                     onChange={(e) => setFormData({ ...formData, productService: e.target.value })}
-                    className="w-full text-xs bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-slate-200 focus:outline-none focus:border-teal-500"
+                    className="w-full text-xs bg-slate-50 border border-slate-200 rounded-lg p-2.5 text-slate-900 focus:outline-none focus:bg-white focus:border-teal-600 transition-colors"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-slate-300 mb-1">Assigned Sales Owner</label>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">Assigned Sales Owner</label>
                   <select
                     value={formData.assignedToId}
                     onChange={(e) => setFormData({ ...formData, assignedToId: e.target.value })}
-                    className="w-full text-xs bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-slate-200 focus:outline-none focus:border-teal-500"
+                    className="w-full text-xs bg-slate-50 border border-slate-200 rounded-lg p-2.5 text-slate-900 focus:outline-none focus:bg-white focus:border-teal-600 transition-colors"
                   >
                     <option value="">Select Employee</option>
                     {employees.map((emp) => (
@@ -840,28 +831,28 @@ export const DealsListView: React.FC<DealsListViewProps> = ({
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1">Commercial Terms / Notes</label>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">Commercial Terms / Notes</label>
                 <textarea
                   rows={2}
                   placeholder="Payment terms, margin expectations, SLAs..."
                   value={formData.terms}
                   onChange={(e) => setFormData({ ...formData, terms: e.target.value })}
-                  className="w-full text-xs bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-slate-200 focus:outline-none focus:border-teal-500"
+                  className="w-full text-xs bg-slate-50 border border-slate-200 rounded-lg p-2.5 text-slate-900 focus:outline-none focus:bg-white focus:border-teal-600 transition-colors"
                 />
               </div>
 
-              <div className="flex items-center justify-end gap-3 pt-3 border-t border-slate-800">
+              <div className="flex items-center justify-end gap-3 pt-3 border-t border-slate-100">
                 <button
                   type="button"
                   onClick={() => setIsCreateModalOpen(false)}
-                  className="px-4 py-2 text-xs font-semibold text-slate-400 hover:text-white"
+                  className="px-4 py-2 text-xs font-semibold text-slate-600 hover:text-slate-900"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={submitting}
-                  className="px-4 py-2 text-xs font-bold rounded-lg bg-teal-500 hover:bg-teal-400 text-slate-950 transition-all disabled:opacity-50"
+                  className="px-4 py-2 text-xs font-bold rounded-lg bg-teal-600 hover:bg-teal-700 text-white transition-all disabled:opacity-50"
                 >
                   {submitting ? 'Creating...' : 'Create Deal'}
                 </button>
@@ -873,33 +864,36 @@ export const DealsListView: React.FC<DealsListViewProps> = ({
 
       {/* MARK WON MODAL */}
       {wonModalDeal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
-          <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 max-w-md w-full shadow-2xl space-y-4">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400">
-                <CheckCircle2 className="w-5 h-5" />
-              </div>
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs">
+          <div className="bg-white border border-slate-200 rounded-2xl p-6 max-w-md w-full shadow-2xl space-y-4">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
               <div>
-                <h3 className="text-base font-bold text-white">Mark Deal as WON</h3>
-                <p className="text-xs text-slate-400">{wonModalDeal.dealNumber} — {wonModalDeal.title}</p>
+                <h3 className="text-base font-bold text-slate-900">Mark Deal as Won</h3>
+                <p className="text-xs text-slate-500">{wonModalDeal.dealNumber} — {wonModalDeal.title}</p>
               </div>
+              <button
+                onClick={() => setWonModalDeal(null)}
+                className="p-1 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
             </div>
 
             {errorMsg && (
-              <div className="p-3 rounded-lg bg-rose-500/10 border border-rose-500/20 text-rose-400 text-xs">
+              <div className="p-3 rounded-lg bg-rose-50 border border-rose-200 text-rose-700 text-xs">
                 {errorMsg}
               </div>
             )}
 
             <form onSubmit={handleMarkWonSubmit} className="space-y-4">
               <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1">
-                  Won Reason <span className="text-rose-400">*</span>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">
+                  Won Reason <span className="text-rose-500">*</span>
                 </label>
                 <select
                   value={wonReason}
                   onChange={(e) => setWonReason(e.target.value)}
-                  className="w-full text-xs bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-slate-200 focus:outline-none focus:border-emerald-500"
+                  className="w-full text-xs bg-slate-50 border border-slate-200 rounded-lg p-2.5 text-slate-900 focus:outline-none focus:bg-white focus:border-emerald-600 transition-colors"
                   required
                 >
                   {WON_REASONS.map((r) => (
@@ -911,28 +905,28 @@ export const DealsListView: React.FC<DealsListViewProps> = ({
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1">Closing Notes</label>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">Closing Notes</label>
                 <textarea
                   value={wonNotes}
                   onChange={(e) => setWonNotes(e.target.value)}
                   placeholder="Key highlights on why client chose Growth India..."
                   rows={3}
-                  className="w-full text-xs bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-slate-200 placeholder-slate-500 focus:outline-none focus:border-emerald-500"
+                  className="w-full text-xs bg-slate-50 border border-slate-200 rounded-lg p-2.5 text-slate-900 placeholder-slate-400 focus:outline-none focus:bg-white focus:border-emerald-600 transition-colors"
                 />
               </div>
 
-              <div className="flex items-center justify-end gap-3 pt-2">
+              <div className="flex items-center justify-end gap-3 pt-2 border-t border-slate-100">
                 <button
                   type="button"
                   onClick={() => setWonModalDeal(null)}
-                  className="px-4 py-2 text-xs font-semibold text-slate-400 hover:text-white"
+                  className="px-4 py-2 text-xs font-semibold text-slate-600 hover:text-slate-900"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={submitting}
-                  className="px-4 py-2 text-xs font-bold rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white transition-all disabled:opacity-50"
+                  className="px-4 py-2 text-xs font-bold rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white transition-all disabled:opacity-50"
                 >
                   {submitting ? 'Updating...' : 'Confirm Won'}
                 </button>
@@ -944,33 +938,36 @@ export const DealsListView: React.FC<DealsListViewProps> = ({
 
       {/* MARK LOST MODAL */}
       {lostModalDeal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
-          <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 max-w-md w-full shadow-2xl space-y-4">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-rose-500/10 border border-rose-500/20 flex items-center justify-center text-rose-400">
-                <XCircle className="w-5 h-5" />
-              </div>
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs">
+          <div className="bg-white border border-slate-200 rounded-2xl p-6 max-w-md w-full shadow-2xl space-y-4">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
               <div>
-                <h3 className="text-base font-bold text-white">Mark Deal as LOST</h3>
-                <p className="text-xs text-slate-400">{lostModalDeal.dealNumber} — {lostModalDeal.title}</p>
+                <h3 className="text-base font-bold text-slate-900">Mark Deal as Lost</h3>
+                <p className="text-xs text-slate-500">{lostModalDeal.dealNumber} — {lostModalDeal.title}</p>
               </div>
+              <button
+                onClick={() => setLostModalDeal(null)}
+                className="p-1 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
             </div>
 
             {errorMsg && (
-              <div className="p-3 rounded-lg bg-rose-500/10 border border-rose-500/20 text-rose-400 text-xs">
+              <div className="p-3 rounded-lg bg-rose-50 border border-rose-200 text-rose-700 text-xs">
                 {errorMsg}
               </div>
             )}
 
             <form onSubmit={handleMarkLostSubmit} className="space-y-4">
               <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1">
-                  Lost Reason <span className="text-rose-400">*</span>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">
+                  Lost Reason <span className="text-rose-500">*</span>
                 </label>
                 <select
                   value={lostReason}
                   onChange={(e) => setLostReason(e.target.value)}
-                  className="w-full text-xs bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-slate-200 focus:outline-none focus:border-rose-500"
+                  className="w-full text-xs bg-slate-50 border border-slate-200 rounded-lg p-2.5 text-slate-900 focus:outline-none focus:bg-white focus:border-rose-600 transition-colors"
                   required
                 >
                   {LOST_REASONS.map((r) => (
@@ -982,28 +979,28 @@ export const DealsListView: React.FC<DealsListViewProps> = ({
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1">Closing Notes</label>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">Closing Notes</label>
                 <textarea
                   value={lostNotes}
                   onChange={(e) => setLostNotes(e.target.value)}
                   placeholder="Competitor chosen, price difference, reasons..."
                   rows={3}
-                  className="w-full text-xs bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-slate-200 placeholder-slate-500 focus:outline-none focus:border-rose-500"
+                  className="w-full text-xs bg-slate-50 border border-slate-200 rounded-lg p-2.5 text-slate-900 placeholder-slate-400 focus:outline-none focus:bg-white focus:border-rose-600 transition-colors"
                 />
               </div>
 
-              <div className="flex items-center justify-end gap-3 pt-2">
+              <div className="flex items-center justify-end gap-3 pt-2 border-t border-slate-100">
                 <button
                   type="button"
                   onClick={() => setLostModalDeal(null)}
-                  className="px-4 py-2 text-xs font-semibold text-slate-400 hover:text-white"
+                  className="px-4 py-2 text-xs font-semibold text-slate-600 hover:text-slate-900"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={submitting}
-                  className="px-4 py-2 text-xs font-bold rounded-lg bg-rose-600 hover:bg-rose-500 text-white transition-all disabled:opacity-50"
+                  className="px-4 py-2 text-xs font-bold rounded-lg bg-rose-600 hover:bg-rose-700 text-white transition-all disabled:opacity-50"
                 >
                   {submitting ? 'Updating...' : 'Confirm Lost'}
                 </button>
@@ -1015,35 +1012,38 @@ export const DealsListView: React.FC<DealsListViewProps> = ({
 
       {/* CONVERT TO CLIENT MODAL */}
       {convertModalDeal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
-          <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 max-w-lg w-full shadow-2xl space-y-4">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-teal-500/10 border border-teal-500/20 flex items-center justify-center text-teal-400">
-                <Building2 className="w-5 h-5" />
-              </div>
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs">
+          <div className="bg-white border border-slate-200 rounded-2xl p-6 max-w-lg w-full shadow-2xl space-y-4">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
               <div>
-                <h3 className="text-base font-bold text-white">Convert Won Deal to Client</h3>
-                <p className="text-xs text-slate-400">
+                <h3 className="text-base font-bold text-slate-900">Convert Won Deal to Client</h3>
+                <p className="text-xs text-slate-500">
                   {convertModalDeal.dealNumber} — ₹{(convertModalDeal.amount || 0).toLocaleString('en-IN')}
                 </p>
               </div>
+              <button
+                onClick={() => setConvertModalDeal(null)}
+                className="p-1 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
             </div>
 
             {errorMsg && (
-              <div className="p-3 rounded-lg bg-rose-500/10 border border-rose-500/20 text-rose-400 text-xs">
+              <div className="p-3 rounded-lg bg-rose-50 border border-rose-200 text-rose-700 text-xs">
                 {errorMsg}
               </div>
             )}
 
             {convertStatus?.duplicateFound && (
-              <div className="p-4 rounded-xl bg-amber-500/10 border border-amber-500/30 space-y-3">
-                <div className="flex items-center gap-2 text-amber-400 text-xs font-bold">
+              <div className="p-4 rounded-xl bg-amber-50 border border-amber-200 space-y-3">
+                <div className="flex items-center gap-2 text-amber-800 text-xs font-bold">
                   <AlertCircle className="w-4 h-4" />
                   Existing Client Found
                 </div>
-                <p className="text-xs text-slate-300">
-                  A client named <strong className="text-white">{convertStatus.candidate.companyName}</strong> (
-                  <span className="font-mono text-teal-400">{convertStatus.candidate.clientId}</span>) already exists.
+                <p className="text-xs text-slate-700">
+                  A client named <strong className="text-slate-900">{convertStatus.candidate.companyName}</strong> (
+                  <span className="font-mono text-teal-700 font-semibold">{convertStatus.candidate.clientId}</span>) already exists.
                 </p>
                 <div className="flex items-center gap-2 pt-1">
                   <button
@@ -1065,14 +1065,14 @@ export const DealsListView: React.FC<DealsListViewProps> = ({
                         setSubmitting(false);
                       }
                     }}
-                    className="px-3 py-1.5 rounded-lg text-xs font-bold bg-amber-500 hover:bg-amber-400 text-slate-950 transition-all"
+                    className="px-3 py-1.5 rounded-lg text-xs font-bold bg-amber-600 hover:bg-amber-700 text-white transition-all"
                   >
                     Link to Existing Client
                   </button>
                   <button
                     type="button"
                     onClick={() => handleConvertToClient(convertModalDeal, true)}
-                    className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-800 hover:bg-slate-700 text-slate-300 transition-all"
+                    className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-100 hover:bg-slate-200 text-slate-700 transition-all"
                   >
                     Create Separate New Client
                   </button>
@@ -1081,14 +1081,14 @@ export const DealsListView: React.FC<DealsListViewProps> = ({
             )}
 
             {convertStatus?.success && (
-              <div className="p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/30 space-y-3">
-                <div className="flex items-center gap-2 text-emerald-400 text-xs font-bold">
+              <div className="p-4 rounded-xl bg-emerald-50 border border-emerald-200 space-y-3">
+                <div className="flex items-center gap-2 text-emerald-800 text-xs font-bold">
                   <CheckCircle2 className="w-4 h-4" />
                   Conversion Completed!
                 </div>
-                <p className="text-xs text-slate-300">
-                  Client <strong className="text-white">{convertStatus.client?.companyName}</strong> (
-                  <span className="font-mono text-teal-400">{convertStatus.client?.clientId}</span>) is now active in
+                <p className="text-xs text-slate-700">
+                  Client <strong className="text-slate-900">{convertStatus.client?.companyName}</strong> (
+                  <span className="font-mono text-teal-700 font-semibold">{convertStatus.client?.clientId}</span>) is now active in
                   Workforce & Client Management.
                 </p>
                 <div className="pt-2 flex justify-end">
@@ -1098,7 +1098,7 @@ export const DealsListView: React.FC<DealsListViewProps> = ({
                       setConvertModalDeal(null);
                       setConvertStatus(null);
                     }}
-                    className="px-4 py-2 text-xs font-bold rounded-lg bg-teal-500 hover:bg-teal-400 text-slate-950"
+                    className="px-4 py-2 text-xs font-bold rounded-lg bg-teal-600 hover:bg-teal-700 text-white"
                   >
                     Done
                   </button>
@@ -1108,16 +1108,16 @@ export const DealsListView: React.FC<DealsListViewProps> = ({
 
             {!convertStatus?.duplicateFound && !convertStatus?.success && (
               <div className="space-y-4">
-                <p className="text-xs text-slate-300">
+                <p className="text-xs text-slate-600">
                   Converting this deal provisions a new corporate client record (
-                  <span className="font-mono text-teal-400">CLI-XXXXX</span>) and seamlessly integrates with employee directory
+                  <span className="font-mono text-teal-700 font-semibold">CLI-XXXXX</span>) and seamlessly integrates with employee directory
                   and attendance operations.
                 </p>
-                <div className="flex items-center justify-end gap-3 pt-2">
+                <div className="flex items-center justify-end gap-3 pt-2 border-t border-slate-100">
                   <button
                     type="button"
                     onClick={() => setConvertModalDeal(null)}
-                    className="px-4 py-2 text-xs font-semibold text-slate-400 hover:text-white"
+                    className="px-4 py-2 text-xs font-semibold text-slate-600 hover:text-slate-900"
                   >
                     Cancel
                   </button>
@@ -1125,7 +1125,7 @@ export const DealsListView: React.FC<DealsListViewProps> = ({
                     type="button"
                     onClick={() => handleConvertToClient(convertModalDeal, false)}
                     disabled={submitting}
-                    className="px-4 py-2 text-xs font-bold rounded-lg bg-teal-500 hover:bg-teal-400 text-slate-950 transition-all disabled:opacity-50"
+                    className="px-4 py-2 text-xs font-bold rounded-lg bg-teal-600 hover:bg-teal-700 text-white transition-all disabled:opacity-50"
                   >
                     {submitting ? 'Converting...' : 'Proceed with Conversion'}
                   </button>

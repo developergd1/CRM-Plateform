@@ -27,6 +27,7 @@ import {
   Layers,
   LayoutGrid,
   List,
+  X,
 } from 'lucide-react';
 import { DealItem } from '@/types/crm';
 import {
@@ -37,13 +38,18 @@ import {
   LOST_REASONS,
   PROPOSAL_STATUS_CONFIG,
 } from '@/lib/constants/crm';
+import { clientCache } from '@/lib/client-cache';
 
 interface PipelineKanbanViewProps {
   onSelectDeal?: (dealId: string) => void;
   onOpenCreateDeal?: () => void;
+  initialLeadId?: string;
+  initialOpportunityId?: string;
+  initialOpenCreateModal?: boolean;
+  onNavigateToCMSClient?: (clientId: string) => void;
 }
 
-// Stage progression order and visual theme
+// Stage progression order and visual theme — Teal Unified
 const STAGE_FLOW_META: Record<
   DealStage,
   {
@@ -63,33 +69,33 @@ const STAGE_FLOW_META: Record<
     step: 1,
     title: 'Discovery & Needs',
     description: 'Initial inquiry & scope definition',
-    accentColor: 'text-blue-600',
-    borderAccent: 'border-t-blue-500',
-    headerBg: 'bg-blue-50/60',
-    badgeBg: 'bg-blue-50 border-blue-200',
-    badgeText: 'text-blue-700',
-    dotColor: 'bg-blue-500',
+    accentColor: 'text-[#0D9488]',
+    borderAccent: 'border-t-[#0D9488]',
+    headerBg: 'bg-[#F0FDFA]',
+    badgeBg: 'bg-[#0D9488]/10 border-[#0D9488]/30',
+    badgeText: 'text-[#0D9488]',
+    dotColor: 'bg-[#0D9488]',
     defaultProb: 20,
   },
   QUALIFIED: {
     step: 2,
     title: 'Solution Qualified',
     description: 'Budget, decision maker & feasibility confirmed',
-    accentColor: 'text-indigo-600',
-    borderAccent: 'border-t-indigo-500',
-    headerBg: 'bg-indigo-50/60',
-    badgeBg: 'bg-indigo-50 border-indigo-200',
-    badgeText: 'text-indigo-700',
-    dotColor: 'bg-indigo-500',
+    accentColor: 'text-[#0D9488]',
+    borderAccent: 'border-t-[#0D9488]',
+    headerBg: 'bg-[#F0FDFA]',
+    badgeBg: 'bg-[#0D9488]/10 border-[#0D9488]/30',
+    badgeText: 'text-[#0D9488]',
+    dotColor: 'bg-[#0D9488]',
     defaultProb: 40,
   },
   PROPOSAL: {
     step: 3,
     title: 'Proposal & Quote',
     description: 'Commercial & SLA terms submitted',
-    accentColor: 'text-amber-600',
-    borderAccent: 'border-t-amber-500',
-    headerBg: 'bg-amber-50/60',
+    accentColor: 'text-amber-700',
+    borderAccent: 'border-t-amber-600',
+    headerBg: 'bg-amber-50/50',
     badgeBg: 'bg-amber-50 border-amber-200',
     badgeText: 'text-amber-800',
     dotColor: 'bg-amber-500',
@@ -99,12 +105,12 @@ const STAGE_FLOW_META: Record<
     step: 4,
     title: 'Negotiation & Legal',
     description: 'Final price revision & legal review',
-    accentColor: 'text-orange-600',
-    borderAccent: 'border-t-orange-500',
-    headerBg: 'bg-orange-50/60',
-    badgeBg: 'bg-orange-50 border-orange-200',
-    badgeText: 'text-orange-800',
-    dotColor: 'bg-orange-500',
+    accentColor: 'text-amber-800',
+    borderAccent: 'border-t-amber-700',
+    headerBg: 'bg-amber-50/70',
+    badgeBg: 'bg-amber-100 border-amber-300',
+    badgeText: 'text-amber-900',
+    dotColor: 'bg-amber-600',
     defaultProb: 80,
   },
   WON: {
@@ -112,20 +118,20 @@ const STAGE_FLOW_META: Record<
     title: 'Closed Won',
     description: 'Agreement signed, ready for onboarding',
     accentColor: 'text-emerald-700',
-    borderAccent: 'border-t-emerald-500',
-    headerBg: 'bg-emerald-50/60',
+    borderAccent: 'border-t-emerald-600',
+    headerBg: 'bg-emerald-50/50',
     badgeBg: 'bg-emerald-50 border-emerald-200',
     badgeText: 'text-emerald-800',
-    dotColor: 'bg-emerald-500',
+    dotColor: 'bg-emerald-600',
     defaultProb: 100,
   },
   LOST: {
     step: 6,
     title: 'Closed Lost',
     description: 'Deal disqualified or lost to competitor',
-    accentColor: 'text-rose-600',
+    accentColor: 'text-rose-700',
     borderAccent: 'border-t-rose-500',
-    headerBg: 'bg-rose-50/60',
+    headerBg: 'bg-rose-50/50',
     badgeBg: 'bg-rose-50 border-rose-200',
     badgeText: 'text-rose-800',
     dotColor: 'bg-rose-500',
@@ -133,11 +139,13 @@ const STAGE_FLOW_META: Record<
   },
 };
 
-import { clientCache } from '@/lib/client-cache';
-
 export const PipelineKanbanView: React.FC<PipelineKanbanViewProps> = ({
   onSelectDeal,
   onOpenCreateDeal,
+  initialLeadId,
+  initialOpportunityId,
+  initialOpenCreateModal,
+  onNavigateToCMSClient,
 }) => {
   const cachedDeals = clientCache.get<DealItem[]>('crm_deals_list', 15 * 60 * 1000);
   const [deals, setDeals] = useState<DealItem[]>(() => cachedDeals || []);
@@ -150,6 +158,7 @@ export const PipelineKanbanView: React.FC<PipelineKanbanViewProps> = ({
   const [refreshKey, setRefreshKey] = useState(0);
 
   // Modals state
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(!!initialOpenCreateModal);
   const [wonModalDeal, setWonModalDeal] = useState<DealItem | null>(null);
   const [lostModalDeal, setLostModalDeal] = useState<DealItem | null>(null);
   const [convertModalDeal, setConvertModalDeal] = useState<DealItem | null>(null);
@@ -163,9 +172,61 @@ export const PipelineKanbanView: React.FC<PipelineKanbanViewProps> = ({
   const [errorMsg, setErrorMsg] = useState('');
   const [convertStatus, setConvertStatus] = useState<any>(null);
 
+  // Form states for creating a new deal
+  const [formData, setFormData] = useState({
+    title: '',
+    amount: '',
+    stage: 'NEW',
+    probability: '20',
+    proposalStatus: 'NOT_REQUIRED',
+    productService: '',
+    competitor: '',
+    expectedCloseDate: '',
+    terms: '',
+    opportunityId: initialOpportunityId || '',
+    leadId: initialLeadId || '',
+    clientId: '',
+    assignedToId: '',
+  });
+
+  // Supporting Dropdown Lists
+  const [leads, setLeads] = useState<any[]>([]);
+  const [clients, setClients] = useState<any[]>([]);
+  const [employees, setEmployees] = useState<any[]>([]);
+
+  useEffect(() => {
+    if (initialOpenCreateModal) {
+      setIsCreateModalOpen(true);
+    }
+    if (initialLeadId) {
+      setFormData((prev) => ({ ...prev, leadId: initialLeadId }));
+    }
+    if (initialOpportunityId) {
+      setFormData((prev) => ({ ...prev, opportunityId: initialOpportunityId }));
+    }
+  }, [initialOpenCreateModal, initialLeadId, initialOpportunityId]);
+
   useEffect(() => {
     fetchDeals(false);
+    loadSupportingData();
   }, [refreshKey]);
+
+  const loadSupportingData = async () => {
+    try {
+      const [resLeads, resClients, resEmployees] = await Promise.all([
+        fetch('/api/crm/leads?take=100').then((r) => (r.ok ? r.json() : { data: [] })).catch(() => ({ data: [] })),
+        fetch('/api/clients').then((r) => (r.ok ? r.json() : { clients: [] })).catch(() => ({ clients: [] })),
+        fetch('/api/employees').then((r) => (r.ok ? r.json() : { employees: [] })).catch(() => ({ employees: [] })),
+      ]);
+      if (resLeads.data) setLeads(resLeads.data);
+      if (resClients.clients) setClients(resClients.clients);
+      if (resEmployees.employees) {
+        setEmployees(resEmployees.employees.filter((e: any) => e.employeeId !== 'GI-EMP-000001'));
+      }
+    } catch (err) {
+      console.error('Error loading dropdown resources:', err);
+    }
+  };
 
   const fetchDeals = async (forceRefresh = false) => {
     const cached = !forceRefresh ? clientCache.get<DealItem[]>('crm_deals_list', 15 * 60 * 1000) : null;
@@ -391,52 +452,106 @@ export const PipelineKanbanView: React.FC<PipelineKanbanViewProps> = ({
     }
   };
 
+  // Submit Create Deal
+  const handleCreateDealSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSubmitting(true);
+    setErrorMsg('');
+    try {
+      const res = await fetch('/api/crm/deals', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: formData.title,
+          amount: parseFloat(formData.amount) || 0,
+          stage: formData.stage,
+          probability: parseInt(formData.probability) || 20,
+          proposalStatus: formData.proposalStatus,
+          productService: formData.productService,
+          competitor: formData.competitor,
+          expectedCloseDate: formData.expectedCloseDate || null,
+          terms: formData.terms,
+          opportunityId: formData.opportunityId || null,
+          leadId: formData.leadId || null,
+          clientId: formData.clientId || null,
+          assignedToId: formData.assignedToId || null,
+        }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setIsCreateModalOpen(false);
+        setFormData({
+          title: '',
+          amount: '',
+          stage: 'NEW',
+          probability: '20',
+          proposalStatus: 'NOT_REQUIRED',
+          productService: '',
+          competitor: '',
+          expectedCloseDate: '',
+          terms: '',
+          opportunityId: '',
+          leadId: '',
+          clientId: '',
+          assignedToId: '',
+        });
+        setRefreshKey((k) => k + 1);
+      } else {
+        setErrorMsg(data.error || 'Failed to create deal.');
+      }
+    } catch (err: any) {
+      setErrorMsg(err.message || 'Error creating deal.');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
       {/* 1. Top Executive Banner */}
-      <div className="hero-banner-interactive flex flex-col md:flex-row md:items-center justify-between gap-4 bg-gradient-to-r from-slate-900 via-slate-800 to-teal-950 rounded-2xl p-6 text-white border border-slate-700/60 shadow-lg">
+      <div className="bg-white rounded-2xl p-6 text-slate-900 border border-slate-200/80 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-2 mb-2">
-            <span className="chip-premium-highlight px-2.5 py-0.5 rounded-full text-xs font-bold bg-teal-500/10 text-teal-300 border border-teal-500/30 tracking-wide uppercase">
-              SALES PIPELINE & ARCHITECTURE
+            <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-[#0D9488]/10 text-[#0D9488] border border-[#0D9488]/30 tracking-wide uppercase">
+              Sales Pipeline & Deals
             </span>
-            <span className="text-xs text-slate-300 font-medium">Stage Velocity & Commercial Conversion</span>
+            <span className="text-xs text-slate-500 font-medium">Stage Velocity & Commercial Conversion</span>
           </div>
-          <h1 className="hero-title-interactive text-2xl lg:text-3xl font-black text-white tracking-tight">
-            Commercial Pipeline & Deal Flow
+          <h1 className="text-2xl lg:text-3xl font-black text-slate-900 tracking-tight">
+            Commercial Pipeline & Deals
           </h1>
-          <p className="hero-subtitle-interactive text-xs sm:text-sm text-slate-300 mt-1 max-w-2xl leading-relaxed">
-            Track deals across 5 progression stages from initial discovery through proposal delivery, commercial negotiation, and corporate client onboarding.
+          <p className="text-xs sm:text-sm text-slate-500 mt-1 max-w-2xl leading-relaxed">
+            Unified pipeline tracking across 6 progression stages: Discovery, Qualified, Proposal, Negotiation, Won, and Lost.
           </p>
         </div>
 
         <div className="flex items-center gap-3 shrink-0">
           <button
             onClick={() => setRefreshKey((k) => k + 1)}
-            className="interactive-btn-hover p-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 transition-colors shadow-sm cursor-pointer"
+            className="p-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-600 border border-slate-200 transition-colors shadow-xs cursor-pointer"
             title="Refresh Pipeline"
           >
-            <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin text-teal-400' : ''}`} />
+            <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin text-[#0D9488]' : ''}`} />
           </button>
-          {onOpenCreateDeal && (
-            <button
-              onClick={onOpenCreateDeal}
-              className="interactive-btn-hover flex items-center gap-2 px-5 py-2.5 rounded-xl font-bold text-xs sm:text-sm bg-gradient-to-r from-[#0E8388] to-teal-500 hover:from-teal-600 hover:to-teal-400 text-white shadow-lg shadow-teal-900/30 transition-all transform active:scale-95 cursor-pointer"
-            >
-              <Plus className="w-4 h-4" />
-              New Deal
-            </button>
-          )}
+          <button
+            onClick={() => {
+              setIsCreateModalOpen(true);
+              setErrorMsg('');
+            }}
+            className="flex items-center gap-2 px-5 py-2.5 rounded-xl font-bold text-xs sm:text-sm bg-[#0D9488] hover:bg-[#115E59] text-white shadow-xs transition-all transform active:scale-95 cursor-pointer"
+          >
+            <Plus className="w-4 h-4" />
+            New Deal
+          </button>
         </div>
       </div>
 
-      {/* 2. Executive Metric Cards (Dashboard Cohesive Styling with Cursor Highlights) */}
+      {/* 2. Executive Metric Cards */}
       <div className="grid grid-cols-2 md:grid-cols-5 gap-3.5">
-        <div className="card-premium interactive-box-hover group relative rounded-2xl p-4 border border-slate-200/90 shadow-xs hover:border-blue-500/50 hover:shadow-xl hover:-translate-y-1 transition-all duration-200 cursor-pointer overflow-hidden flex flex-col justify-between">
-          <div className="absolute inset-0 bg-gradient-to-tr from-blue-500/5 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
+        <div className="bg-white rounded-2xl p-4 border border-slate-200 shadow-xs flex flex-col justify-between">
           <div className="flex items-center justify-between">
             <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Active Deals</span>
-            <div className="w-8 h-8 rounded-xl bg-blue-50 border border-blue-100/60 text-blue-600 flex items-center justify-center group-hover:scale-110 group-hover:bg-blue-600 group-hover:text-white transition-all duration-200">
+            <div className="w-8 h-8 rounded-xl bg-blue-50 border border-blue-100 text-blue-600 flex items-center justify-center">
               <Briefcase className="w-4 h-4" />
             </div>
           </div>
@@ -446,11 +561,10 @@ export const PipelineKanbanView: React.FC<PipelineKanbanViewProps> = ({
           </div>
         </div>
 
-        <div className="card-premium interactive-box-hover group relative rounded-2xl p-4 border border-slate-200/90 shadow-xs hover:border-indigo-500/50 hover:shadow-xl hover:-translate-y-1 transition-all duration-200 cursor-pointer overflow-hidden flex flex-col justify-between">
-          <div className="absolute inset-0 bg-gradient-to-tr from-indigo-500/5 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
+        <div className="bg-white rounded-2xl p-4 border border-slate-200 shadow-xs flex flex-col justify-between">
           <div className="flex items-center justify-between">
             <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Open Pipeline</span>
-            <div className="w-8 h-8 rounded-xl bg-indigo-50 border border-indigo-100/60 text-indigo-600 flex items-center justify-center group-hover:scale-110 group-hover:bg-indigo-600 group-hover:text-white transition-all duration-200">
+            <div className="w-8 h-8 rounded-xl bg-indigo-50 border border-indigo-100 text-indigo-600 flex items-center justify-center">
               <DollarSign className="w-4 h-4" />
             </div>
           </div>
@@ -462,27 +576,25 @@ export const PipelineKanbanView: React.FC<PipelineKanbanViewProps> = ({
           </div>
         </div>
 
-        <div className="card-premium interactive-box-hover group relative rounded-2xl p-4 border border-slate-200/90 shadow-xs hover:border-growth-teal/50 hover:shadow-xl hover:-translate-y-1 transition-all duration-200 cursor-pointer overflow-hidden flex flex-col justify-between">
-          <div className="absolute inset-0 bg-gradient-to-tr from-growth-teal/5 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
+        <div className="bg-white rounded-2xl p-4 border border-slate-200 shadow-xs flex flex-col justify-between">
           <div className="flex items-center justify-between">
             <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Weighted Forecast</span>
-            <div className="w-8 h-8 rounded-xl bg-teal-50 border border-teal-100/60 text-[#0E8388] flex items-center justify-center group-hover:scale-110 group-hover:bg-growth-teal group-hover:text-white transition-all duration-200">
+            <div className="w-8 h-8 rounded-xl bg-[#0D9488]/10 border border-[#0D9488]/20 text-[#0D9488] flex items-center justify-center">
               <TrendingUp className="w-4 h-4" />
             </div>
           </div>
           <div className="mt-2.5">
-            <div className="text-2xl font-black text-[#0E8388] font-mono tracking-tight">
+            <div className="text-2xl font-black text-[#0D9488] font-mono tracking-tight">
               ₹{Math.round(metrics.weightedPipeline).toLocaleString('en-IN')}
             </div>
             <div className="text-xs text-slate-500 mt-0.5 font-medium">Probability adjusted</div>
           </div>
         </div>
 
-        <div className="card-premium interactive-box-hover group relative rounded-2xl p-4 border border-emerald-200/80 shadow-xs bg-gradient-to-b from-emerald-50/30 to-white hover:border-emerald-500/50 hover:shadow-xl hover:-translate-y-1 transition-all duration-200 cursor-pointer overflow-hidden flex flex-col justify-between">
-          <div className="absolute inset-0 bg-gradient-to-tr from-emerald-500/5 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
+        <div className="bg-white rounded-2xl p-4 border border-emerald-200 shadow-xs bg-gradient-to-b from-emerald-50/30 to-white flex flex-col justify-between">
           <div className="flex items-center justify-between">
             <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Won Revenue</span>
-            <div className="w-8 h-8 rounded-xl bg-emerald-50 border border-emerald-100/60 text-emerald-600 flex items-center justify-center group-hover:scale-110 group-hover:bg-emerald-600 group-hover:text-white transition-all duration-200">
+            <div className="w-8 h-8 rounded-xl bg-emerald-50 border border-emerald-100 text-emerald-600 flex items-center justify-center">
               <CheckCircle2 className="w-4 h-4" />
             </div>
           </div>
@@ -494,11 +606,10 @@ export const PipelineKanbanView: React.FC<PipelineKanbanViewProps> = ({
           </div>
         </div>
 
-        <div className="card-premium interactive-box-hover group relative rounded-2xl p-4 border border-slate-200/90 shadow-xs hover:border-amber-500/50 hover:shadow-xl hover:-translate-y-1 transition-all duration-200 cursor-pointer overflow-hidden flex flex-col justify-between">
-          <div className="absolute inset-0 bg-gradient-to-tr from-amber-500/5 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
+        <div className="bg-white rounded-2xl p-4 border border-slate-200 shadow-xs flex flex-col justify-between">
           <div className="flex items-center justify-between">
             <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Win Rate</span>
-            <div className="w-8 h-8 rounded-xl bg-amber-50 border border-amber-100/60 text-amber-600 flex items-center justify-center group-hover:scale-110 group-hover:bg-amber-600 group-hover:text-white transition-all duration-200">
+            <div className="w-8 h-8 rounded-xl bg-amber-50 border border-amber-100 text-amber-600 flex items-center justify-center">
               <Sparkles className="w-4 h-4" />
             </div>
           </div>
@@ -509,14 +620,13 @@ export const PipelineKanbanView: React.FC<PipelineKanbanViewProps> = ({
         </div>
       </div>
 
-      {/* 3. Redesigned Stage Progression Architecture & View Controls */}
-      <div className="panel-premium bg-white rounded-2xl p-4 border border-slate-200/90 shadow-sm space-y-4">
-        {/* Sleek Horizontal Stage Progression Stepper (Replaces old duplicate parallel blocks) */}
+      {/* 3. Stage Progression Stepper & View Controls */}
+      <div className="bg-white rounded-2xl p-4 border border-slate-200 shadow-xs space-y-4">
         <div className="flex items-center justify-between flex-wrap gap-2 pb-3 border-b border-slate-100">
           <div className="flex items-center gap-1.5 flex-wrap">
             <button
               onClick={() => setSelectedStageFilter('ALL')}
-              className={`interactive-btn-hover px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+              className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
                 selectedStageFilter === 'ALL'
                   ? 'bg-slate-900 text-white shadow-xs'
                   : 'text-slate-600 hover:bg-slate-100'
@@ -534,9 +644,9 @@ export const PipelineKanbanView: React.FC<PipelineKanbanViewProps> = ({
                 <React.Fragment key={stage}>
                   <button
                     onClick={() => setSelectedStageFilter(isSelected ? 'ALL' : stage)}
-                    className={`chip-premium-highlight group inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all border cursor-pointer ${
+                    className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all border cursor-pointer ${
                       isSelected
-                        ? `${meta.badgeBg} ${meta.badgeText} shadow-xs ring-2 ring-growth-teal/20`
+                        ? `${meta.badgeBg} ${meta.badgeText} shadow-xs ring-2 ring-[#0D9488]/20`
                         : 'border-slate-200 bg-slate-50/70 text-slate-700 hover:bg-white hover:border-slate-300'
                     }`}
                   >
@@ -556,7 +666,7 @@ export const PipelineKanbanView: React.FC<PipelineKanbanViewProps> = ({
           <div className="flex items-center bg-slate-100 p-1 rounded-xl text-xs font-bold">
             <button
               onClick={() => setViewMode('kanban')}
-              className={`interactive-btn-hover flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-all cursor-pointer ${
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-all cursor-pointer ${
                 viewMode === 'kanban'
                   ? 'bg-white text-slate-900 shadow-xs'
                   : 'text-slate-600 hover:text-slate-900'
@@ -567,14 +677,14 @@ export const PipelineKanbanView: React.FC<PipelineKanbanViewProps> = ({
             </button>
             <button
               onClick={() => setViewMode('table')}
-              className={`interactive-btn-hover flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-all cursor-pointer ${
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-all cursor-pointer ${
                 viewMode === 'table'
                   ? 'bg-white text-slate-900 shadow-xs'
                   : 'text-slate-600 hover:text-slate-900'
               }`}
             >
               <List className="w-3.5 h-3.5" />
-              Deal Matrix
+              Table View
             </button>
           </div>
         </div>
@@ -588,7 +698,7 @@ export const PipelineKanbanView: React.FC<PipelineKanbanViewProps> = ({
               placeholder="Search deals, code, client, or lead..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-9 pr-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl text-slate-800 placeholder-slate-400 focus:outline-none focus:bg-white focus:border-[#0E8388] transition-colors"
+              className="w-full pl-9 pr-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl text-slate-800 placeholder-slate-400 focus:outline-none focus:bg-white focus:border-[#0D9488] transition-colors"
             />
           </div>
 
@@ -597,7 +707,7 @@ export const PipelineKanbanView: React.FC<PipelineKanbanViewProps> = ({
               <select
                 value={selectedOwner}
                 onChange={(e) => setSelectedOwner(e.target.value)}
-                className="text-xs bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-slate-700 font-medium focus:outline-none focus:border-[#0E8388]"
+                className="text-xs bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-slate-700 font-medium focus:outline-none focus:border-[#0D9488]"
               >
                 <option value="">All Deal Owners</option>
                 {owners.map((o) => (
@@ -650,7 +760,7 @@ export const PipelineKanbanView: React.FC<PipelineKanbanViewProps> = ({
                     handleAdvanceStage(targetDeal, stage as DealStage);
                   }
                 }}
-                className={`bg-slate-50/90 border border-slate-200/90 ${meta.borderAccent} border-t-4 rounded-2xl p-3.5 flex flex-col h-[calc(100vh-240px)] min-h-[500px] max-h-[800px] transition-all shadow-sm hover:shadow-md`}
+                className={`bg-slate-50/90 border border-slate-200/90 ${meta.borderAccent} border-t-4 rounded-2xl p-3.5 flex flex-col h-[calc(100vh-240px)] min-h-[500px] max-h-[800px] transition-all shadow-xs hover:shadow-sm`}
               >
                 {/* Column Header */}
                 <div className="pb-3 mb-3 border-b border-slate-200">
@@ -672,7 +782,7 @@ export const PipelineKanbanView: React.FC<PipelineKanbanViewProps> = ({
                     </div>
                     {stage !== 'WON' && stage !== 'LOST' && (
                       <div className="text-[10px] text-slate-500 font-medium">
-                        Forecast: <span className="font-bold text-[#0E8388] font-mono">₹{Math.round(colWeighted).toLocaleString('en-IN')}</span>
+                        Forecast: <span className="font-bold text-[#0D9488] font-mono">₹{Math.round(colWeighted).toLocaleString('en-IN')}</span>
                       </div>
                     )}
                   </div>
@@ -701,13 +811,11 @@ export const PipelineKanbanView: React.FC<PipelineKanbanViewProps> = ({
                             e.dataTransfer.setData('text/plain', deal.id);
                             e.dataTransfer.effectAllowed = 'move';
                           }}
-                          className="card-premium interactive-box-hover group relative rounded-xl p-3.5 border border-slate-200/90 shadow-xs hover:border-[#0E8388]/60 hover:shadow-xl hover:-translate-y-1 transition-all duration-200 cursor-grab active:cursor-grabbing overflow-hidden"
+                          className="bg-white rounded-xl p-3.5 border border-slate-200 shadow-xs hover:border-[#0D9488]/60 hover:shadow-md transition-all duration-200 cursor-grab active:cursor-grabbing"
                         >
-                          <div className="absolute inset-0 bg-gradient-to-tr from-growth-teal/5 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
-
                           {/* Header: Deal number & Stage probability */}
                           <div className="flex items-center justify-between mb-2">
-                            <span className="text-[10px] font-mono font-bold text-[#0E8388] bg-teal-50 border border-teal-200/60 px-2 py-0.5 rounded-md">
+                            <span className="text-[10px] font-mono font-bold text-[#0D9488] bg-[#0D9488]/10 border border-[#0D9488]/20 px-2 py-0.5 rounded-md">
                               {deal.dealNumber}
                             </span>
                             <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md border ${meta.badgeBg} ${meta.badgeText}`}>
@@ -719,7 +827,7 @@ export const PipelineKanbanView: React.FC<PipelineKanbanViewProps> = ({
                           <div className="w-full h-1.5 bg-slate-100 rounded-full overflow-hidden mb-2.5">
                             <div
                               className={`h-full transition-all duration-300 ${
-                                prob >= 80 ? 'bg-emerald-500' : prob >= 50 ? 'bg-[#0E8388]' : 'bg-blue-500'
+                                prob >= 80 ? 'bg-emerald-500' : prob >= 50 ? 'bg-[#0D9488]' : 'bg-blue-500'
                               }`}
                               style={{ width: `${Math.min(100, Math.max(5, prob))}%` }}
                             />
@@ -728,7 +836,7 @@ export const PipelineKanbanView: React.FC<PipelineKanbanViewProps> = ({
                           {/* Deal Title */}
                           <h4
                             onClick={() => onSelectDeal?.(deal.id)}
-                            className="title-interactive-hover text-xs font-bold text-slate-900 line-clamp-2 hover:text-[#0E8388] cursor-pointer transition-colors leading-snug"
+                            className="text-xs font-bold text-slate-900 line-clamp-2 hover:text-[#0D9488] cursor-pointer transition-colors leading-snug"
                           >
                             {deal.title}
                           </h4>
@@ -769,14 +877,14 @@ export const PipelineKanbanView: React.FC<PipelineKanbanViewProps> = ({
                               {stage !== 'WON' && stage !== 'LOST' && (
                                 <div className="text-right">
                                   <div className="text-[10px] text-slate-400 uppercase tracking-wider font-bold">Forecast</div>
-                                  <div className="text-xs font-black text-[#0E8388] font-mono">
+                                  <div className="text-xs font-black text-[#0D9488] font-mono">
                                     ₹{Math.round(deal.weightedValue || 0).toLocaleString('en-IN')}
                                   </div>
                                 </div>
                               )}
                             </div>
 
-                            {/* Owner & Clear Action Buttons */}
+                            {/* Owner & Action Buttons */}
                             <div className="flex items-center justify-between pt-2 border-t border-slate-200/60">
                               <div className="flex items-center gap-1.5 text-[11px] text-slate-500 truncate">
                                 <User className="w-3 h-3 text-slate-400 shrink-0" />
@@ -784,7 +892,6 @@ export const PipelineKanbanView: React.FC<PipelineKanbanViewProps> = ({
                               </div>
 
                               <div className="flex items-center gap-1 shrink-0">
-                                {/* Stage Transition CTAs */}
                                 {stage === 'NEW' && (
                                   <button
                                     onClick={() => handleAdvanceStage(deal, 'QUALIFIED')}
@@ -849,7 +956,7 @@ export const PipelineKanbanView: React.FC<PipelineKanbanViewProps> = ({
                                       setConvertStatus(null);
                                       setErrorMsg('');
                                     }}
-                                    className="px-2.5 py-1 rounded-md text-[10px] font-bold bg-[#0E8388] hover:bg-teal-700 text-white shadow-xs transition-colors"
+                                    className="px-2.5 py-1 rounded-md text-[10px] font-bold bg-[#0D9488] hover:bg-[#115E59] text-white shadow-xs transition-colors"
                                     title="Convert to Corporate Client Account"
                                   >
                                     + Convert
@@ -873,8 +980,8 @@ export const PipelineKanbanView: React.FC<PipelineKanbanViewProps> = ({
           })}
         </div>
       ) : (
-        /* DEAL MATRIX TABLE VIEW */
-        <div className="bg-white rounded-2xl border border-slate-200/90 shadow-sm overflow-hidden">
+        /* DEAL TABLE VIEW MODE */
+        <div className="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse">
               <thead>
@@ -906,18 +1013,18 @@ export const PipelineKanbanView: React.FC<PipelineKanbanViewProps> = ({
                     return (
                       <tr
                         key={deal.id}
-                        className="interactive-row-hover hover:bg-teal-50/20 transition-colors group cursor-pointer"
+                        className="hover:bg-[#F0FDFA] transition-colors group cursor-pointer"
                         onClick={() => onSelectDeal?.(deal.id)}
                       >
-                        <td className="py-3.5 px-4 font-mono font-bold text-[#0E8388]">
+                        <td className="py-3.5 px-4 font-mono font-bold text-[#0D9488]">
                           {deal.dealNumber}
                         </td>
                         <td className="py-3.5 px-4">
-                          <div className="title-interactive-hover font-bold text-slate-900 group-hover:text-[#0E8388] transition-colors">
+                          <div className="font-bold text-slate-900 group-hover:text-[#0D9488] transition-colors">
                             {deal.title}
                           </div>
                           <div className="text-[11px] text-slate-500 flex items-center gap-1.5 mt-0.5">
-                            <Building2 className="w-3 h-3 text-slate-400" />
+                            <Building2 className="w-3.5 h-3.5 text-slate-400" />
                             <span>{clientName}</span>
                             {isClient && (
                               <span className="text-[9px] font-bold px-1.5 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded">
@@ -951,14 +1058,14 @@ export const PipelineKanbanView: React.FC<PipelineKanbanViewProps> = ({
                           <div className="flex items-center gap-2">
                             <div className="w-16 h-1.5 bg-slate-100 rounded-full overflow-hidden">
                               <div
-                                className="h-full bg-[#0E8388] rounded-full"
+                                className="h-full bg-[#0D9488] rounded-full"
                                 style={{ width: `${Math.min(100, Math.max(5, deal.probability || 0))}%` }}
                               />
                             </div>
                             <span className="font-mono text-slate-700 font-bold">{deal.probability}%</span>
                           </div>
                         </td>
-                        <td className="py-3.5 px-4 font-mono font-bold text-[#0E8388]">
+                        <td className="py-3.5 px-4 font-mono font-bold text-[#0D9488]">
                           ₹{Math.round(deal.weightedValue || 0).toLocaleString('en-IN')}
                         </td>
                         <td className="py-3.5 px-4 text-slate-600 font-medium">
@@ -985,7 +1092,7 @@ export const PipelineKanbanView: React.FC<PipelineKanbanViewProps> = ({
                             {deal.stage === 'WON' && !deal.isConvertedToClient && (
                               <button
                                 onClick={() => setConvertModalDeal(deal)}
-                                className="px-2.5 py-1 bg-[#0E8388] hover:bg-teal-700 text-white rounded-md text-[10px] font-bold"
+                                className="px-2.5 py-1 bg-[#0D9488] hover:bg-[#115E59] text-white rounded-md text-[10px] font-bold"
                               >
                                 Convert
                               </button>
@@ -1002,7 +1109,209 @@ export const PipelineKanbanView: React.FC<PipelineKanbanViewProps> = ({
         </div>
       )}
 
-      {/* 6. MARK WON MODAL (Executive Light Modal) */}
+      {/* 5. CREATE NEW DEAL MODAL */}
+      {isCreateModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-200">
+          <div className="bg-white border border-slate-200 rounded-2xl p-6 max-w-xl w-full shadow-2xl space-y-4 max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-[#0D9488]/10 border border-[#0D9488]/20 flex items-center justify-center text-[#0D9488]">
+                  <Briefcase className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-base font-black text-slate-900">Create Commercial Deal</h3>
+                  <p className="text-xs text-slate-500 font-medium">Add a new deal to the active sales pipeline</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsCreateModalOpen(false)}
+                className="p-1 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {errorMsg && (
+              <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs font-medium">
+                {errorMsg}
+              </div>
+            )}
+
+            <form onSubmit={handleCreateDealSubmit} className="space-y-4">
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">
+                  Deal Title <span className="text-rose-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  required
+                  placeholder="e.g. Enterprise Workforce Platform Deployment"
+                  value={formData.title}
+                  onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                  className="w-full text-xs bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-slate-900 focus:outline-none focus:bg-white focus:border-[#0D9488] transition-colors"
+                />
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">
+                    Deal Value (₹) <span className="text-rose-500">*</span>
+                  </label>
+                  <input
+                    type="number"
+                    required
+                    min="0"
+                    placeholder="e.g. 500000"
+                    value={formData.amount}
+                    onChange={(e) => setFormData({ ...formData, amount: e.target.value })}
+                    className="w-full text-xs bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-slate-900 focus:outline-none focus:bg-white focus:border-[#0D9488] transition-colors font-mono"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">Initial Pipeline Stage</label>
+                  <select
+                    value={formData.stage}
+                    onChange={(e) => {
+                      const st = e.target.value as DealStage;
+                      setFormData({
+                        ...formData,
+                        stage: st,
+                        probability: String(STAGE_FLOW_META[st]?.defaultProb || 20),
+                      });
+                    }}
+                    className="w-full text-xs bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-slate-900 focus:outline-none focus:bg-white focus:border-[#0D9488]"
+                  >
+                    {DEAL_STAGES.map((s) => (
+                      <option key={s} value={s}>
+                        {STAGE_FLOW_META[s]?.title || s}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">Probability (%)</label>
+                  <input
+                    type="number"
+                    min="0"
+                    max="100"
+                    value={formData.probability}
+                    onChange={(e) => setFormData({ ...formData, probability: e.target.value })}
+                    className="w-full text-xs bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-slate-900 focus:outline-none focus:bg-white focus:border-[#0D9488] font-mono"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">Expected Close Date</label>
+                  <input
+                    type="date"
+                    value={formData.expectedCloseDate}
+                    onChange={(e) => setFormData({ ...formData, expectedCloseDate: e.target.value })}
+                    className="w-full text-xs bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-slate-900 focus:outline-none focus:bg-white focus:border-[#0D9488]"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">Related Lead (Optional)</label>
+                  <select
+                    value={formData.leadId}
+                    onChange={(e) => setFormData({ ...formData, leadId: e.target.value })}
+                    className="w-full text-xs bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-slate-900 focus:outline-none focus:bg-white focus:border-[#0D9488]"
+                  >
+                    <option value="">No Lead Linked</option>
+                    {leads.map((l) => (
+                      <option key={l.id} value={l.id}>
+                        {l.leadNumber} — {l.companyName || l.fullName}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">Related Account / Client (Optional)</label>
+                  <select
+                    value={formData.clientId}
+                    onChange={(e) => setFormData({ ...formData, clientId: e.target.value })}
+                    className="w-full text-xs bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-slate-900 focus:outline-none focus:bg-white focus:border-[#0D9488]"
+                  >
+                    <option value="">No Client Linked</option>
+                    {clients.map((c) => (
+                      <option key={c.id} value={c.id}>
+                        {c.clientId} — {c.companyName}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">Deal Owner / Sales Rep</label>
+                  <select
+                    value={formData.assignedToId}
+                    onChange={(e) => setFormData({ ...formData, assignedToId: e.target.value })}
+                    className="w-full text-xs bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-slate-900 focus:outline-none focus:bg-white focus:border-[#0D9488]"
+                  >
+                    <option value="">Unassigned</option>
+                    {employees.map((emp) => (
+                      <option key={emp.id} value={emp.id}>
+                        {emp.fullName} ({emp.employeeId})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">Product / Service</label>
+                  <input
+                    type="text"
+                    placeholder="e.g. EMS Enterprise License + Setup"
+                    value={formData.productService}
+                    onChange={(e) => setFormData({ ...formData, productService: e.target.value })}
+                    className="w-full text-xs bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-slate-900 focus:outline-none focus:bg-white focus:border-[#0D9488]"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">Notes & Commercial Terms</label>
+                <textarea
+                  rows={2}
+                  placeholder="Key milestones, deliverables, payment terms..."
+                  value={formData.terms}
+                  onChange={(e) => setFormData({ ...formData, terms: e.target.value })}
+                  className="w-full text-xs bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-slate-900 focus:outline-none focus:bg-white focus:border-[#0D9488]"
+                />
+              </div>
+
+              <div className="flex items-center justify-end gap-3 pt-3 border-t border-slate-100">
+                <button
+                  type="button"
+                  onClick={() => setIsCreateModalOpen(false)}
+                  className="px-4 py-2 text-xs font-semibold text-slate-600 hover:text-slate-900 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={submitting}
+                  className="px-5 py-2.5 text-xs font-bold rounded-xl bg-[#0D9488] hover:bg-[#115E59] text-white transition-all shadow-md shadow-[#0D9488]/20 disabled:opacity-50 cursor-pointer"
+                >
+                  {submitting ? 'Creating...' : 'Create Deal'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* 6. MARK WON MODAL */}
       {wonModalDeal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-200">
           <div className="bg-white border border-slate-200 rounded-2xl p-6 max-w-md w-full shadow-2xl space-y-4">
@@ -1075,7 +1384,7 @@ export const PipelineKanbanView: React.FC<PipelineKanbanViewProps> = ({
         </div>
       )}
 
-      {/* 7. MARK LOST MODAL (Executive Light Modal) */}
+      {/* 7. MARK LOST MODAL */}
       {lostModalDeal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-200">
           <div className="bg-white border border-slate-200 rounded-2xl p-6 max-w-md w-full shadow-2xl space-y-4">
@@ -1148,12 +1457,12 @@ export const PipelineKanbanView: React.FC<PipelineKanbanViewProps> = ({
         </div>
       )}
 
-      {/* 8. CONVERT WON DEAL TO CLIENT MODAL (Executive Light Modal) */}
+      {/* 8. CONVERT WON DEAL TO CLIENT MODAL */}
       {convertModalDeal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-200">
           <div className="bg-white border border-slate-200 rounded-2xl p-6 max-w-lg w-full shadow-2xl space-y-4">
             <div className="flex items-center gap-3">
-              <div className="w-11 h-11 rounded-xl bg-teal-50 border border-teal-200 flex items-center justify-center text-[#0E8388] shrink-0">
+              <div className="w-11 h-11 rounded-xl bg-[#0D9488]/10 border border-[#0D9488]/20 flex items-center justify-center text-[#0D9488] shrink-0">
                 <Building2 className="w-6 h-6" />
               </div>
               <div>
@@ -1179,7 +1488,7 @@ export const PipelineKanbanView: React.FC<PipelineKanbanViewProps> = ({
                 </div>
                 <p className="text-xs text-slate-700 leading-relaxed">
                   A registered client account named <strong className="text-slate-900">{convertStatus.candidate.companyName}</strong> (
-                  <span className="font-mono text-[#0E8388] font-bold">{convertStatus.candidate.clientId}</span>) already exists.
+                  <span className="font-mono text-[#0D9488] font-bold">{convertStatus.candidate.clientId}</span>) already exists.
                 </p>
                 <div className="flex items-center gap-2 pt-1">
                   <button
@@ -1201,14 +1510,14 @@ export const PipelineKanbanView: React.FC<PipelineKanbanViewProps> = ({
                         setSubmitting(false);
                       }
                     }}
-                    className="px-3.5 py-1.5 rounded-lg text-xs font-bold bg-amber-500 hover:bg-amber-400 text-slate-950 transition-all shadow-xs"
+                    className="px-3.5 py-1.5 rounded-lg text-xs font-bold bg-amber-500 hover:bg-amber-400 text-slate-950 transition-all shadow-xs cursor-pointer"
                   >
                     Link to {convertStatus.candidate.clientId}
                   </button>
                   <button
                     type="button"
                     onClick={() => handleConvertToClient(convertModalDeal, true)}
-                    className="px-3.5 py-1.5 rounded-lg text-xs font-semibold bg-slate-100 hover:bg-slate-200 text-slate-700 transition-all"
+                    className="px-3.5 py-1.5 rounded-lg text-xs font-semibold bg-slate-100 hover:bg-slate-200 text-slate-700 transition-all cursor-pointer"
                   >
                     Create Separate Account
                   </button>
@@ -1225,7 +1534,7 @@ export const PipelineKanbanView: React.FC<PipelineKanbanViewProps> = ({
                 </div>
                 <p className="text-xs text-slate-700 leading-relaxed">
                   Client <strong className="text-slate-900">{convertStatus.client?.companyName}</strong> (
-                  <span className="font-mono text-[#0E8388] font-bold">{convertStatus.client?.clientId}</span>) is now fully active in Workforce Management, Employee Roster, and Invoicing.
+                  <span className="font-mono text-[#0D9488] font-bold">{convertStatus.client?.clientId}</span>) is now active in Workforce Management, Employee Roster, and Invoicing.
                 </p>
                 {convertStatus.credentials && (
                   <div className="p-3 rounded-lg bg-white border border-emerald-200 text-xs font-mono text-slate-700 space-y-1">
@@ -1233,14 +1542,28 @@ export const PipelineKanbanView: React.FC<PipelineKanbanViewProps> = ({
                     <div>Temporary Password: <span className="font-bold text-slate-900">{convertStatus.credentials.temporaryPassword}</span></div>
                   </div>
                 )}
-                <div className="pt-2 flex justify-end">
+                <div className="pt-2 flex items-center justify-end gap-2">
+                  {onNavigateToCMSClient && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const targetId = convertStatus.client?.id || convertStatus.client?.clientId;
+                        setConvertModalDeal(null);
+                        setConvertStatus(null);
+                        onNavigateToCMSClient(targetId);
+                      }}
+                      className="px-4 py-2 text-xs font-bold rounded-xl bg-[#0D9488] hover:bg-[#115E59] text-white shadow-xs cursor-pointer"
+                    >
+                      Open in CMS Clients
+                    </button>
+                  )}
                   <button
                     type="button"
                     onClick={() => {
                       setConvertModalDeal(null);
                       setConvertStatus(null);
                     }}
-                    className="px-5 py-2 text-xs font-bold rounded-xl bg-[#0E8388] hover:bg-teal-700 text-white shadow-md shadow-teal-900/20"
+                    className="px-4 py-2 text-xs font-semibold rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 cursor-pointer"
                   >
                     Done
                   </button>
@@ -1253,11 +1576,11 @@ export const PipelineKanbanView: React.FC<PipelineKanbanViewProps> = ({
               <div className="space-y-4">
                 <p className="text-xs text-slate-600 leading-relaxed">
                   Converting this won deal will automatically provision a new corporate client record (
-                  <span className="font-mono text-[#0E8388] font-bold">CLI-XXXXX</span>), establish access credentials, link all deal history, and enable immediate workforce attendance deployment.
+                  <span className="font-mono text-[#0D9488] font-bold">CLI-XXXXX</span>), establish access credentials, link all deal history, and enable immediate workforce attendance deployment.
                 </p>
                 <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200 text-xs text-slate-600 space-y-1.5 font-medium">
                   <div>Company: <span className="text-slate-900 font-bold">{convertModalDeal.client?.companyName || convertModalDeal.lead?.companyName || convertModalDeal.title}</span></div>
-                  <div>Deal Value: <span className="text-[#0E8388] font-black">₹{(convertModalDeal.amount || 0).toLocaleString('en-IN')}</span></div>
+                  <div>Deal Value: <span className="text-[#0D9488] font-black">₹{(convertModalDeal.amount || 0).toLocaleString('en-IN')}</span></div>
                 </div>
 
                 <div className="flex items-center justify-end gap-3 pt-2">
@@ -1272,7 +1595,7 @@ export const PipelineKanbanView: React.FC<PipelineKanbanViewProps> = ({
                     type="button"
                     onClick={() => handleConvertToClient(convertModalDeal, false)}
                     disabled={submitting}
-                    className="px-5 py-2.5 text-xs font-bold rounded-xl bg-[#0E8388] hover:bg-teal-700 text-white transition-all shadow-md shadow-teal-900/20 disabled:opacity-50"
+                    className="px-5 py-2.5 text-xs font-bold rounded-xl bg-[#0D9488] hover:bg-[#115E59] text-white transition-all shadow-md shadow-[#0D9488]/20 disabled:opacity-50 cursor-pointer"
                   >
                     {submitting ? 'Converting...' : 'Proceed to Convert'}
                   </button>

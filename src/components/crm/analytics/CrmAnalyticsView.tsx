@@ -51,20 +51,20 @@ export const CrmAnalyticsView: React.FC = () => {
   return (
     <div className="space-y-6 pb-12 font-sans">
       {/* Header Banner */}
-      <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 text-white shadow-xl flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div className="bg-white border border-slate-200/80 rounded-2xl p-6 text-slate-900 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4 panel-premium">
         <div>
-          <div className="inline-flex items-center gap-2 px-3 py-1 bg-growth-teal/20 text-growth-teal border border-growth-teal/30 rounded-full text-xs font-bold mb-2">
+          <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-[#0D9488]/10 text-[#0D9488] border border-[#0D9488]/20 rounded-full text-xs font-bold mb-2">
             <TrendingUp className="w-3.5 h-3.5" />
             <span>Commercial Sales Intelligence & Telemetry</span>
           </div>
-          <h1 className="text-2xl font-black tracking-tight">CRM Analytics & Pipeline Insights</h1>
-          <p className="text-xs text-slate-400 mt-1">
+          <h1 className="text-2xl font-black tracking-tight text-slate-900">CRM Analytics & Pipeline Insights</h1>
+          <p className="text-xs text-slate-500 mt-1">
             Real-time lead conversion rates, salesperson leaderboards, pipeline funnel analytics, and won/lost metrics.
           </p>
         </div>
 
         {/* Preset Filter */}
-        <div className="flex flex-wrap items-center gap-1.5 bg-slate-950 p-1.5 rounded-2xl border border-slate-800">
+        <div className="flex flex-wrap items-center gap-1.5 bg-slate-100 p-1.5 rounded-2xl border border-slate-200">
           {[
             { id: 'THIS_MONTH', label: 'This Month' },
             { id: 'LAST_MONTH', label: 'Last Month' },
@@ -75,10 +75,10 @@ export const CrmAnalyticsView: React.FC = () => {
             <button
               key={item.id}
               onClick={() => setPreset(item.id)}
-              className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
+              className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
                 preset === item.id
-                  ? 'bg-growth-teal text-white shadow-sm'
-                  : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/60'
+                  ? 'bg-growth-teal text-white shadow-xs'
+                  : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/70'
               }`}
             >
               {item.label}
@@ -86,7 +86,7 @@ export const CrmAnalyticsView: React.FC = () => {
           ))}
           <button
             onClick={() => fetchAnalytics(preset)}
-            className="p-1.5 text-slate-400 hover:text-white rounded-xl transition-colors ml-1"
+            className="p-1.5 text-slate-500 hover:text-slate-800 rounded-xl transition-colors ml-1 cursor-pointer"
             title="Refresh Analytics"
           >
             <RefreshCw className="w-4 h-4" />

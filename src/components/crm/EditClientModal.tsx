@@ -27,6 +27,8 @@ export const EditClientModal: React.FC<EditClientModalProps> = ({
   const [sameAsTemporary, setSameAsTemporary] = useState(false);
   const [industry, setIndustry] = useState('IT & Software Services');
   const [customIndustry, setCustomIndustry] = useState('');
+  const [companyType, setCompanyType] = useState('Private Limited');
+  const [customCompanyType, setCustomCompanyType] = useState('');
   const [status, setStatus] = useState<'ACTIVE' | 'INACTIVE'>('ACTIVE');
   const [hasGst, setHasGst] = useState(true);
   const [gstNumber, setGstNumber] = useState('');
@@ -87,8 +89,25 @@ export const EditClientModal: React.FC<EditClientModalProps> = ({
         setIndustry(clientInd);
         setCustomIndustry('');
       } else {
-        setIndustry('Other Industry');
-        setCustomIndustry(clientInd === 'Other Industry' ? '' : clientInd);
+        setIndustry('Other');
+        setCustomIndustry((clientInd === 'Other' || clientInd === 'Other Industry') ? '' : clientInd);
+      }
+
+      const standardCompanyTypes = [
+        'Private Limited',
+        'Public Limited',
+        'LLP',
+        'Partnership',
+        'Sole Proprietorship',
+        'Government / PSU',
+      ];
+      const clientType = (client as any).companyType || 'Private Limited';
+      if (standardCompanyTypes.includes(clientType)) {
+        setCompanyType(clientType);
+        setCustomCompanyType('');
+      } else {
+        setCompanyType('Other');
+        setCustomCompanyType(clientType === 'Other' ? '' : clientType);
       }
 
       setStatus(client.status || 'ACTIVE');
@@ -118,9 +137,13 @@ export const EditClientModal: React.FC<EditClientModalProps> = ({
       ? gstNumber.trim().toUpperCase().slice(2, 12)
       : panNumber.trim().toUpperCase();
 
-    const finalIndustry = industry === 'Other Industry'
-      ? (customIndustry.trim() || 'Other Industry')
+    const finalIndustry = (industry === 'Other' || industry === 'Other Industry')
+      ? (customIndustry.trim() || 'Other')
       : industry;
+
+    const finalCompanyType = companyType === 'Other'
+      ? (customCompanyType.trim() || 'Other')
+      : companyType;
 
     try {
       const res = await fetch(`/api/clients/${client.id}`, {
@@ -138,6 +161,7 @@ export const EditClientModal: React.FC<EditClientModalProps> = ({
           temporaryAddress,
           permanentAddress,
           industry: finalIndustry,
+          companyType: finalCompanyType,
           status,
           newPassword: newPassword.trim() || undefined,
         }),
@@ -167,28 +191,21 @@ export const EditClientModal: React.FC<EditClientModalProps> = ({
       }}
     >
       <div className="bg-white rounded-3xl max-w-lg w-full shadow-2xl border border-slate-200 overflow-hidden my-auto flex flex-col max-h-[90vh]">
-        {/* Modal Header */}
-        <div className="p-5 sm:p-6 bg-slate-900 text-white flex items-center justify-between shrink-0">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-growth-teal text-white flex items-center justify-center font-bold shrink-0">
-              <Edit className="w-5 h-5" />
-            </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <span className="font-mono text-xs font-bold text-growth-gold bg-amber-950/80 px-2 py-0.5 rounded border border-growth-gold/30">
-                  {client.clientId}
-                </span>
-              </div>
-              <h2 className="text-lg font-black tracking-tight mt-0.5">Edit Client Information</h2>
-            </div>
+        {/* Clean Light Modal Header */}
+        <div className="px-6 py-4 bg-white border-b border-slate-100 flex items-center justify-between shrink-0">
+          <div className="flex items-center gap-2">
+            <h2 className="text-base font-bold text-slate-900 tracking-tight">Edit Client Information</h2>
+            <span className="font-mono text-xs font-bold text-teal-700 bg-teal-50 px-2 py-0.5 rounded border border-teal-200">
+              {client.clientId}
+            </span>
           </div>
           <button
             type="button"
             onClick={onClose}
-            className="p-2 text-slate-400 hover:text-white rounded-xl transition-colors shrink-0"
+            className="p-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-xl transition-colors shrink-0 cursor-pointer"
             title="Close modal (Esc)"
           >
-            <X className="w-5 h-5" />
+            <X className="w-4 h-4" />
           </button>
         </div>
 
@@ -259,7 +276,7 @@ export const EditClientModal: React.FC<EditClientModalProps> = ({
                   value={industry}
                   onChange={(e) => {
                     setIndustry(e.target.value);
-                    if (e.target.value !== 'Other Industry') {
+                    if (e.target.value !== 'Other' && e.target.value !== 'Other Industry') {
                       setCustomIndustry('');
                     }
                   }}
@@ -272,9 +289,9 @@ export const EditClientModal: React.FC<EditClientModalProps> = ({
                   <option value="Manufacturing & Industrial">Manufacturing & Industrial</option>
                   <option value="Retail & E-Commerce">Retail & E-Commerce</option>
                   <option value="Hospitality & Services">Hospitality & Services</option>
-                  <option value="Other Industry">Other Industry</option>
+                  <option value="Other">Other</option>
                 </select>
-                {industry === 'Other Industry' && (
+                {(industry === 'Other' || industry === 'Other Industry') && (
                   <div className="mt-2 animate-in fade-in slide-in-from-top-1 duration-200">
                     <label className="block text-[11px] font-bold text-slate-600 mb-1">
                       Specify Industry Sector *
@@ -285,6 +302,43 @@ export const EditClientModal: React.FC<EditClientModalProps> = ({
                       placeholder="e.g. EdTech, Real Estate, Automotive..."
                       value={customIndustry}
                       onChange={(e) => setCustomIndustry(e.target.value)}
+                      className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 text-xs font-semibold focus:bg-white focus:outline-none focus:ring-1 focus:ring-growth-teal"
+                    />
+                  </div>
+                )}
+              </div>
+
+              <div>
+                <label className="block font-bold text-slate-700 mb-1">Company Entity Type</label>
+                <select
+                  value={companyType}
+                  onChange={(e) => {
+                    setCompanyType(e.target.value);
+                    if (e.target.value !== 'Other') {
+                      setCustomCompanyType('');
+                    }
+                  }}
+                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 font-semibold focus:bg-white focus:outline-none focus:ring-1 focus:ring-growth-teal"
+                >
+                  <option value="Private Limited">Private Limited (Pvt Ltd)</option>
+                  <option value="Public Limited">Public Limited</option>
+                  <option value="LLP">Limited Liability Partnership (LLP)</option>
+                  <option value="Partnership">Partnership Firm</option>
+                  <option value="Sole Proprietorship">Sole Proprietorship</option>
+                  <option value="Government / PSU">Government / PSU</option>
+                  <option value="Other">Other</option>
+                </select>
+                {companyType === 'Other' && (
+                  <div className="mt-2 animate-in fade-in slide-in-from-top-1 duration-200">
+                    <label className="block text-[11px] font-bold text-slate-600 mb-1">
+                      Specify Entity Type *
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      placeholder="e.g. Section 8 Company, Trust, Society, Joint Venture..."
+                      value={customCompanyType}
+                      onChange={(e) => setCustomCompanyType(e.target.value)}
                       className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 text-xs font-semibold focus:bg-white focus:outline-none focus:ring-1 focus:ring-growth-teal"
                     />
                   </div>

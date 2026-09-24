@@ -36,6 +36,20 @@ export async function GET(req: NextRequest) {
       } else {
         return NextResponse.json({ success: true, histories: [] });
       }
+    } else {
+      const clientIdParam = searchParams.get('clientId');
+      if (clientIdParam) {
+        const clientEmployees = await prisma.employee.findMany({
+          where: {
+            OR: [
+              { clientId: clientIdParam },
+              { client: { clientId: clientIdParam } },
+            ],
+          },
+          select: { id: true },
+        });
+        where.employeeId = { in: clientEmployees.map((e) => e.id) };
+      }
     }
 
     if (actionType) {

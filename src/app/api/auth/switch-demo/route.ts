@@ -3,8 +3,28 @@ import { prisma } from '@/lib/prisma';
 import { createToken, AUTH_COOKIE_NAME } from '@/lib/auth';
 import { logAuditEvent } from '@/lib/audit';
 
+import { getSessionUser } from '@/lib/auth';
+import { isAdmin } from '@/lib/rbac';
+
 export async function POST(req: NextRequest) {
   try {
+    // 1. Never allow demo switching in production
+    if ((process.env.NODE_ENV as string) === 'production') {
+      return NextResponse.json(
+        { error: 'Security Restriction: Demo role switching is completely disabled in production.' },
+        { status: 403 }
+      );
+    }
+
+    // 2. Require active authenticated Admin session to simulate role switching
+    const currentUser = await getSessionUser(req);
+    if (!currentUser || !isAdmin(currentUser.role)) {
+      return NextResponse.json(
+        { error: 'Security Restriction: Only active Platform Administrators can test persona switching.' },
+        { status: 403 }
+      );
+    }
+
     const body = await req.json().catch(() => ({}));
     const role = body.role || body.roleCode;
     const directEmail = body.email;
@@ -53,7 +73,7 @@ export async function POST(req: NextRequest) {
     if (isBlocked) {
       return NextResponse.json(
         {
-          error: `🔒 Access Denied: The profile for ${user.employeeProfile?.fullName || user.email} (${user.employeeProfile?.employeeId || 'DEMO'}) is currently BLOCKED by Administrator governance.`,
+          error: `Access Denied: The profile for ${user.employeeProfile?.fullName || user.email} (${user.employeeProfile?.employeeId || 'DEMO'}) is currently BLOCKED by Administrator governance.`,
           isBlocked: true,
         },
         { status: 403 }
@@ -94,7 +114,7 @@ export async function POST(req: NextRequest) {
       name: AUTH_COOKIE_NAME,
       value: token,
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
+      secure: (process.env.NODE_ENV as string) === 'production',
       sameSite: 'lax',
       path: '/',
       maxAge: 7 * 24 * 60 * 60,

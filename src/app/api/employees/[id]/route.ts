@@ -4,6 +4,7 @@ import { prisma, getEmployeeLookup } from '@/lib/prisma';
 import { getSessionUser } from '@/lib/auth';
 import { isAdminOrHR } from '@/lib/rbac';
 import { logAuditEvent, maskPAN } from '@/lib/audit';
+import { archiveEmployee } from '@/lib/services/ems-service';
 
 export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
   try {
@@ -17,21 +18,46 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
         department: true,
         user: {
           select: {
+            id: true,
             email: true,
             isActive: true,
             isSuspended: true,
             lastLoginAt: true,
             role: true,
+            isDelegated: true,
+          },
+        },
+        reportingManager: {
+          select: {
+            id: true,
+            employeeId: true,
+            fullName: true,
+            designation: true,
           },
         },
         blockHistories: {
           orderBy: { actionDate: 'desc' },
+        },
+        documents: {
+          select: {
+            id: true,
+            documentId: true,
+            documentType: true,
+            title: true,
+            verificationStatus: true,
+            mimeType: true,
+            fileSizeBytes: true,
+            createdAt: true,
+            verifiedAt: true,
+          },
         },
         _count: {
           select: {
             blockHistories: true,
             documents: true,
             attendanceRecords: true,
+            leaveRequests: true,
+            subordinates: true,
           },
         },
       },
@@ -41,9 +67,50 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
       return NextResponse.json({ error: 'Employee not found' }, { status: 404 });
     }
 
+    // Role-based boundary enforcement:
+    const isAdmin = isAdminOrHR(user.role);
+    if (!isAdmin) {
+      if (user.role === 'CLIENT') {
+        const isClientEmployee =
+          user.clientId === employee.client?.clientId ||
+          user.clientId === employee.clientId ||
+          user.id === employee.client?.userId ||
+          user.clientId === employee.client?.id ||
+          user.parentClientId === employee.clientId ||
+          user.parentClientId === employee.client?.id;
+        if (!isClientEmployee) {
+          return NextResponse.json(
+            { error: 'Permission denied. You can only view employees enrolled in your organization.' },
+            { status: 403 }
+          );
+        }
+      } else if (user.role === 'EMPLOYEE') {
+        const isSelfOrSubordinate =
+          employee.id === user.employeeProfileId ||
+          employee.employeeId === user.employeeId ||
+          employee.userId === user.id ||
+          employee.reportingManagerId === user.employeeProfileId;
+        if (!isSelfOrSubordinate) {
+          return NextResponse.json(
+            { error: 'Permission denied. You can only view your own profile or direct subordinates.' },
+            { status: 403 }
+          );
+        }
+      } else {
+        return NextResponse.json({ error: 'Permission denied.' }, { status: 403 });
+      }
+    }
+
     const sanitized = {
       ...employee,
       panMasked: employee.panMasked || (employee.panNumber ? maskPAN(employee.panNumber) : null),
+      accountStatus: employee.user?.isSuspended
+        ? 'SUSPENDED'
+        : employee.isBlocked
+        ? 'BLOCKED'
+        : employee.user?.isActive === false
+        ? 'DEACTIVATED'
+        : 'ACTIVE',
     };
 
     return NextResponse.json({ success: true, employee: sanitized });
@@ -78,12 +145,13 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
         user.clientId === existing.client?.clientId ||
         user.clientId === existing.clientId ||
         user.id === existing.client?.userId ||
-        user.clientId === existing.client?.id;
+        user.clientId === existing.client?.id ||
+        user.parentClientId === existing.clientId ||
+        user.parentClientId === existing.client?.id;
       if (!authorized) {
         return NextResponse.json({ error: 'Permission denied. You can only edit your own assigned employees.' }, { status: 403 });
       }
     }
-
 
     const data = await req.json();
     const {
@@ -99,6 +167,8 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
       address,
       temporaryAddress,
       permanentAddress,
+      emergencyContact,
+      emergencyName,
       departmentName,
       designation,
       jobLocation,
@@ -110,6 +180,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
       status,
       password,
       customPassword,
+      reportingManagerId,
     } = data;
 
     let finalAddress = address !== undefined ? (address ? address.trim() : null) : undefined;
@@ -123,7 +194,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
       }
     }
 
-    // Handle password update if passed
+    // Handle password update if passed securely
     const newPlainPassword = (password || customPassword)?.trim();
     if (newPlainPassword && newPlainPassword.length >= 4) {
       const passwordHash = await bcrypt.hash(newPlainPassword, 10);
@@ -189,6 +260,8 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
           : {}),
         ...(aadharNumber !== undefined ? { aadhaarMasked: aadharNumber ? aadharNumber.trim() : null } : {}),
         ...(finalAddress !== undefined ? { address: finalAddress } : {}),
+        ...(emergencyContact !== undefined ? { emergencyContact: emergencyContact ? emergencyContact.trim() : null } : {}),
+        ...(emergencyName !== undefined ? { emergencyName: emergencyName ? emergencyName.trim() : null } : {}),
         ...(departmentName ? { departmentName: departmentName.trim() } : {}),
         ...(designation ? { designation: designation.trim() } : {}),
         ...(jobLocation ? { jobLocation: jobLocation.trim(), location: jobLocation.trim() } : {}),
@@ -197,6 +270,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
         ...(shiftStartTime !== undefined ? { shiftStartTime: shiftStartTime || '10:00' } : {}),
         ...(shiftEndTime !== undefined ? { shiftEndTime: shiftEndTime || '19:00' } : {}),
         ...(remarks !== undefined ? { remarks: remarks ? remarks.trim() : null } : {}),
+        ...(reportingManagerId !== undefined ? { reportingManagerId: reportingManagerId || null } : {}),
         ...(status && status !== 'BLOCKED' ? { status, isBlocked: false } : {}),
         updatedBy: `${user.fullName} (${user.employeeId})`,
       },
@@ -226,6 +300,11 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
   }
 }
 
+/**
+ * Controlled Deletion / Retention Policy.
+ * By default, employees are safely archived to preserve historical attendance, leave,
+ * timesheets, and audit lineage.
+ */
 export async function DELETE(req: NextRequest, { params }: { params: { id: string } }) {
   try {
     const user = await getSessionUser(req);
@@ -236,12 +315,11 @@ export async function DELETE(req: NextRequest, { params }: { params: { id: strin
       include: { user: true, client: true },
     });
 
-
     if (!existing) {
       return NextResponse.json({ error: 'Employee not found' }, { status: 404 });
     }
 
-    // Safety guard: Super Admin or self account cannot be deleted
+    // Safety guard: Super Admin or self account cannot be deleted or archived
     if (
       existing.employeeId === 'GI-EMP-000001' ||
       existing.employeeId === user.employeeId ||
@@ -249,7 +327,7 @@ export async function DELETE(req: NextRequest, { params }: { params: { id: strin
       existing.user?.email === 'admin@growthindia.in'
     ) {
       return NextResponse.json(
-        { error: 'Primary Super Administrator and your own active account cannot be deleted.' },
+        { error: 'Primary Super Administrator and your own active account cannot be removed or archived.' },
         { status: 400 }
       );
     }
@@ -258,144 +336,36 @@ export async function DELETE(req: NextRequest, { params }: { params: { id: strin
     const isAdmin = isAdminOrHR(user.role);
     const isOwnerClient =
       user.role === 'CLIENT' &&
-      user.clientId === existing.client?.clientId &&
+      (user.clientId === existing.client?.clientId ||
+       user.parentClientId === existing.clientId ||
+       user.parentClientId === existing.client?.id ||
+       user.id === existing.client?.userId) &&
       user.canDeleteEmployees;
 
     if (!isAdmin && !isOwnerClient) {
       return NextResponse.json(
-        { error: 'Permission denied. You are not authorized to delete this employee.' },
+        { error: 'Permission denied. You are not authorized to archive this employee.' },
         { status: 403 }
       );
     }
 
-    const employeeDbId = existing.id;
-    const employeeUserId = existing.userId;
+    const { searchParams } = new URL(req.url);
+    const reason = searchParams.get('reason') || 'Administrative archive via Employee Management';
 
-    // Clean up all referencing foreign keys & child relations safely
-    await prisma.$transaction(async (tx) => {
-      // 1. Unlink client relationships
-      await tx.client.updateMany({
-        where: { createdById: employeeDbId },
-        data: { createdById: null },
-      });
-      await tx.client.updateMany({
-        where: { assignedEmployeeId: employeeDbId },
-        data: { assignedEmployeeId: null },
-      });
-
-      // 2. Unlink asset allocations
-      await tx.asset.updateMany({
-        where: { assignedEmployeeId: employeeDbId },
-        data: { assignedEmployeeId: null, status: 'AVAILABLE' },
-      });
-
-      // 3. Unlink manager and team lead hierarchies
-      await tx.employee.updateMany({
-        where: { reportingManagerId: employeeDbId },
-        data: { reportingManagerId: null },
-      });
-      await tx.team.updateMany({
-        where: { leadEmployeeId: employeeDbId },
-        data: { leadEmployeeId: null },
-      });
-
-      // 4. Delete CRM activities, notes, tasks, assignments
-      await tx.clientAssignment.deleteMany({
-        where: { OR: [{ toEmployeeId: employeeDbId }, { assignedById: employeeDbId }] },
-      });
-      await tx.clientActivity.deleteMany({
-        where: { actorEmployeeId: employeeDbId },
-      });
-      await tx.clientNote.deleteMany({
-        where: { authorId: employeeDbId },
-      });
-      await tx.clientTask.deleteMany({
-        where: { OR: [{ assignedToId: employeeDbId }, { createdById: employeeDbId }] },
-      });
-
-      // 5. Delete employee operations data
-      await tx.notification.deleteMany({
-        where: { recipientId: employeeDbId },
-      });
-      await tx.workSession.deleteMany({
-        where: { employeeId: employeeDbId },
-      });
-      await tx.leaveRequest.deleteMany({
-        where: { employeeId: employeeDbId },
-      });
-      await tx.employeeBlockHistory.deleteMany({
-        where: { employeeId: employeeDbId },
-      });
-
-      // Documents
-      const docs = await tx.employeeDocument.findMany({
-        where: { employeeId: employeeDbId },
-        select: { id: true },
-      });
-      if (docs.length > 0) {
-        const docIds = docs.map((d) => d.id);
-        await tx.documentAccessLog.deleteMany({
-          where: { documentId: { in: docIds } },
-        });
-        await tx.employeeDocument.deleteMany({
-          where: { employeeId: employeeDbId },
-        });
-      }
-
-      // Attendance
-      const attendances = await tx.attendance.findMany({
-        where: { employeeId: employeeDbId },
-        select: { id: true },
-      });
-      if (attendances.length > 0) {
-        const attIds = attendances.map((a) => a.id);
-        await tx.attendanceBreak.deleteMany({
-          where: { attendanceId: { in: attIds } },
-        });
-        await tx.attendance.deleteMany({
-          where: { employeeId: employeeDbId },
-        });
-      }
-
-      // 6. Delete active user sessions
-      if (employeeUserId) {
-        await tx.activeUserSession.deleteMany({
-          where: { userId: employeeUserId },
-        });
-      }
-
-      // 7. Delete employee record first
-      await tx.employee.delete({
-        where: { id: employeeDbId },
-      });
-
-      // 8. Delete user record if exists
-      if (employeeUserId) {
-        await tx.user.delete({
-          where: { id: employeeUserId },
-        }).catch(() => {});
-      }
-    });
-
-    const ip = req.headers.get('x-forwarded-for') || '127.0.0.1';
-    await logAuditEvent({
-      actorUserId: user.id,
-      actorEmployeeId: user.employeeId || user.clientId || 'ADMIN',
-      action: 'DELETE_EMPLOYEE',
-      entityType: 'EMPLOYEE',
-      entityId: existing.employeeId,
-      reason: 'Employee record deleted by administrator',
-      previousData: { employeeId: existing.employeeId, fullName: existing.fullName },
-      ipAddress: ip,
-      status: 'SUCCESS',
-    });
+    // Execute Enterprise Soft-Archive Governance
+    const result = await archiveEmployee(
+      existing.employeeId,
+      { reason, remarks: `Archived by ${user.fullName} (${user.employeeId})` },
+      user
+    );
 
     return NextResponse.json({
       success: true,
-      message: `Employee ${existing.employeeId} (${existing.fullName}) was removed.`,
+      message: result.message,
+      employeeId: existing.employeeId,
     });
   } catch (error: any) {
-    console.error('Error deleting employee:', error);
-    return NextResponse.json({ error: error.message || 'Failed to delete employee record.' }, { status: 500 });
+    console.error('Error archiving employee:', error);
+    return NextResponse.json({ error: error.message || 'Failed to archive employee record.' }, { status: 500 });
   }
 }

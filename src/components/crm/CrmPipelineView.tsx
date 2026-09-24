@@ -44,14 +44,14 @@ export const CrmPipelineView: React.FC = () => {
   }, [user]);
 
   const stages = [
-    { id: 'NEW', title: 'New Leads', color: 'border-blue-500 bg-blue-50/40 text-blue-700' },
-    { id: 'CONTACTED', title: 'Contacted', color: 'border-indigo-500 bg-indigo-50/40 text-indigo-700' },
-    { id: 'QUALIFIED', title: 'Qualified', color: 'border-cyan-500 bg-cyan-50/40 text-cyan-700' },
-    { id: 'FOLLOW_UP', title: 'Follow-up', color: 'border-amber-500 bg-amber-50/40 text-amber-700' },
-    { id: 'PROPOSAL', title: 'Proposal Sent', color: 'border-purple-500 bg-purple-50/40 text-purple-700' },
-    { id: 'NEGOTIATION', title: 'Negotiation', color: 'border-orange-500 bg-orange-50/40 text-orange-700' },
-    { id: 'WON', title: 'Deals Won', color: 'border-emerald-500 bg-emerald-50/40 text-emerald-700' },
-    { id: 'LOST', title: 'Lost / Dormant', color: 'border-rose-500 bg-rose-50/40 text-rose-700' },
+    { id: 'NEW', title: 'New Leads', color: 'border-growth-teal bg-teal-50/40 text-growth-teal' },
+    { id: 'CONTACTED', title: 'Contacted', color: 'border-growth-orange bg-orange-50/40 text-growth-orange' },
+    { id: 'QUALIFIED', title: 'Qualified', color: 'border-growth-teal bg-teal-50/40 text-growth-teal' },
+    { id: 'FOLLOW_UP', title: 'Follow-up', color: 'border-growth-orange bg-orange-50/40 text-growth-orange' },
+    { id: 'PROPOSAL', title: 'Proposal Sent', color: 'border-growth-teal bg-teal-50/40 text-growth-teal' },
+    { id: 'NEGOTIATION', title: 'Negotiation', color: 'border-growth-orange bg-orange-50/40 text-growth-orange' },
+    { id: 'WON', title: 'Deals Won', color: 'border-slate-950 bg-slate-100 text-slate-950' },
+    { id: 'LOST', title: 'Lost / Dormant', color: 'border-slate-300 bg-slate-50 text-slate-600' },
   ];
 
   const filteredClients = clients.filter((c) => {
@@ -70,12 +70,11 @@ export const CrmPipelineView: React.FC = () => {
       {/* Top Controls Bar */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 shrink-0 bg-white p-4 rounded-2xl border border-slate-200 shadow-card">
         <div>
-          <h1 className="text-xl font-extrabold text-slate-900 tracking-tight flex items-center gap-2">
-            <Layers className="w-5 h-5 text-growth-teal" />
-            <span>CRM Pipeline Board</span>
+          <h1 className="text-xl font-extrabold text-slate-900 tracking-tight">
+            CRM Pipeline Board
           </h1>
-          <p className="text-xs text-slate-500">
-            Drag, click, and manage deal progression across all operational stages
+          <p className="text-xs text-slate-500 mt-0.5">
+            Manage deal progression across all operational stages
           </p>
         </div>
 
@@ -93,10 +92,9 @@ export const CrmPipelineView: React.FC = () => {
 
           <button
             onClick={() => setShowAddModal(true)}
-            className="flex items-center gap-1.5 px-4 py-2 bg-growth-teal hover:bg-growth-tealDark text-white font-bold text-xs rounded-xl shadow-sm transition-all"
+            className="px-4 py-2 bg-growth-teal hover:bg-growth-tealDark text-white font-bold text-xs rounded-xl shadow-sm transition-all"
           >
-            <Plus className="w-4 h-4" />
-            <span>Add Client</span>
+            Add Client
           </button>
         </div>
       </div>
@@ -143,11 +141,11 @@ export const CrmPipelineView: React.FC = () => {
                           {client.clientId}
                         </span>
                         <span
-                          className={`text-[9px] font-extrabold uppercase px-1.5 py-0.2 rounded ${
+                          className={`text-[9px] font-extrabold uppercase px-1.5 py-0.5 rounded ${
                             client.priority === 'URGENT'
-                              ? 'bg-rose-100 text-rose-700'
+                              ? 'bg-orange-100 text-growth-orange font-black'
                               : client.priority === 'HIGH'
-                              ? 'bg-amber-100 text-amber-700'
+                              ? 'bg-orange-50 text-growth-orange'
                               : 'bg-slate-100 text-slate-600'
                           }`}
                         >

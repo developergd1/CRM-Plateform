@@ -150,7 +150,7 @@ export const EmployeeTasksView: React.FC = () => {
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'ACCEPTED':
-        return <span className="bg-emerald-100 text-emerald-800 border border-emerald-300 text-[10px] font-black px-2 py-0.5 rounded-lg uppercase">✓ ACCEPTED</span>;
+        return <span className="bg-emerald-100 text-emerald-800 border border-emerald-300 text-[10px] font-black px-2 py-0.5 rounded-lg uppercase">ACCEPTED</span>;
       case 'IN_PROGRESS':
         return <span className="bg-blue-100 text-blue-800 border border-blue-300 text-[10px] font-black px-2 py-0.5 rounded-lg uppercase">IN PROGRESS</span>;
       case 'WAITING_FOR_REVIEW':

@@ -136,7 +136,7 @@ export const ClientAttendanceView: React.FC = () => {
       <div className="space-y-4">
         {/* Monthly KPI Summary */}
         {historyData?.summary && (
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
             <div className="card-premium interactive-box-hover bg-white border border-slate-200 p-4 rounded-2xl shadow-sm">
               <span className="text-slate-500 text-[10px] uppercase font-bold block">Total Logged</span>
               <span className="text-2xl font-black text-slate-900 font-mono mt-1 block">{historyData.summary.totalRecords}</span>
@@ -148,6 +148,10 @@ export const ClientAttendanceView: React.FC = () => {
             <div className="card-premium interactive-box-hover bg-white border border-slate-200 p-4 rounded-2xl shadow-sm">
               <span className="text-amber-600 text-[10px] uppercase font-bold block">Late Check-Ins</span>
               <span className="text-2xl font-black text-amber-600 font-mono mt-1 block">{historyData.summary.lateCount}</span>
+            </div>
+            <div className="card-premium interactive-box-hover bg-white border border-purple-200 p-4 rounded-2xl shadow-sm">
+              <span className="text-purple-600 text-[10px] uppercase font-bold block">On Leave</span>
+              <span className="text-2xl font-black text-purple-600 font-mono mt-1 block">{historyData.summary.onLeaveCount || 0}</span>
             </div>
             <div className="card-premium interactive-box-hover bg-white border border-slate-200 p-4 rounded-2xl shadow-sm">
               <span className="text-teal-700 text-[10px] uppercase font-bold block">Total Work Hours</span>
@@ -165,14 +169,14 @@ export const ClientAttendanceView: React.FC = () => {
             className="bg-slate-50 border border-slate-200 rounded-xl text-xs px-3 py-1.5 text-slate-800 focus:bg-white focus:outline-none focus:border-teal-500 font-mono"
           />
 
-          <div className="relative flex-1 w-full">
-            <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
+          <div className="relative flex-1 w-full sm:w-auto">
+            <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
             <input
               type="text"
-              placeholder="Filter by employee name or ID..."
+              placeholder="Search by employee name or ID..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-9 pr-3 py-1.5 text-xs text-slate-800 placeholder-slate-400 focus:bg-white focus:outline-none focus:border-teal-500"
+              className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-8 pr-3 py-1.5 text-xs text-slate-800 placeholder-slate-400 focus:bg-white focus:outline-none focus:border-teal-500"
             />
           </div>
 
@@ -185,6 +189,7 @@ export const ClientAttendanceView: React.FC = () => {
             <option value="PRESENT">Present</option>
             <option value="LATE">Late</option>
             <option value="HALF_DAY">Half Day</option>
+            <option value="ON_LEAVE">On Leave</option>
             <option value="EARLY_EXIT">Early Exit</option>
           </select>
         </div>
@@ -212,9 +217,14 @@ export const ClientAttendanceView: React.FC = () => {
                     const workHrs = `${Math.floor((r.totalWorkMinutes || 0) / 60)}h ${(r.totalWorkMinutes || 0) % 60}m`;
 
                     let badgeColor = 'bg-emerald-50 text-emerald-700 border-emerald-200';
+                    let displayStatus = r.status;
                     if (r.status === 'LATE') badgeColor = 'bg-amber-50 text-amber-700 border-amber-200';
                     if (r.status === 'HALF_DAY') badgeColor = 'bg-yellow-50 text-yellow-800 border-yellow-200';
                     if (r.status === 'EARLY_EXIT') badgeColor = 'bg-rose-50 text-rose-700 border-rose-200';
+                    if (r.status === 'ON_LEAVE') {
+                      badgeColor = 'bg-purple-50 text-purple-700 border-purple-200';
+                      displayStatus = 'ON LEAVE';
+                    }
 
                     return (
                       <tr key={r.id} className="interactive-row-hover hover:bg-teal-50/20 transition cursor-pointer">
@@ -235,11 +245,11 @@ export const ClientAttendanceView: React.FC = () => {
                         </td>
                         <td className="py-3.5 px-4 font-mono text-slate-700">{inStr}</td>
                         <td className="py-3.5 px-4 font-mono text-slate-700">{outStr}</td>
-                        <td className="py-3.5 px-4 font-mono text-teal-700 font-bold">{workHrs}</td>
+                        <td className="py-3.5 px-4 font-mono text-teal-700 font-bold">{r.status === 'ON_LEAVE' ? '—' : workHrs}</td>
                         <td className="py-3.5 px-4 font-mono text-slate-500">{r.totalBreakMinutes || 0}m</td>
                         <td className="py-3.5 px-4">
                           <span className={`px-2 py-0.5 rounded text-[10px] font-black border uppercase tracking-wider ${badgeColor}`}>
-                            {r.status}
+                            {displayStatus}
                           </span>
                         </td>
                       </tr>

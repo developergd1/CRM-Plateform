@@ -11,10 +11,13 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
       return NextResponse.json({ error: 'Permission denied. Only Managers and Administrators can reassign clients.' }, { status: 403 });
     }
 
-    const currentEmp = await prisma.employee.findUnique({
-      where: { employeeId: user.employeeId },
-    });
-    if (!currentEmp) return NextResponse.json({ error: 'Employee not found' }, { status: 404 });
+    let currentEmp = user.employeeId
+      ? await prisma.employee.findFirst({ where: getEmployeeLookup(user.employeeId) })
+      : null;
+    if (!currentEmp) {
+      currentEmp = await prisma.employee.findFirst({ where: { userId: user.id } });
+    }
+    const currentEmpId = currentEmp?.id || null;
 
     const { id } = params;
     const { targetEmployeeId, assignmentReason } = await req.json();
@@ -54,7 +57,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
         clientId: client.id,
         fromEmployeeId: previousOwnerId,
         toEmployeeId: newOwner.id,
-        assignedById: currentEmp.id,
+        assignedById: currentEmpId || newOwner.id,
         assignmentReason: assignmentReason || 'Reassigned by Manager / Admin',
       },
     });
@@ -65,7 +68,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
       data: {
         activityId,
         clientId: client.id,
-        actorEmployeeId: currentEmp.id,
+        actorEmployeeId: currentEmpId || newOwner.id,
         activityType: 'CLIENT_REASSIGNED',
         title: `Client Reassigned to ${newOwner.fullName} (${newOwner.employeeId})`,
         description: `Ownership transferred from ${previousOwnerName} to ${newOwner.fullName}. Reason: ${assignmentReason || 'Territory optimization / Load balancing'}`,

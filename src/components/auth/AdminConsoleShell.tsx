@@ -1,27 +1,46 @@
 'use client';
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/context/AuthContext';
-import { AppShell } from '@/components/layout/AppShell';
 import { AdminLoginView } from '@/components/auth/AdminLoginView';
+import { AdminPlatformGateway, PlatformProfile } from '@/components/admin/AdminPlatformGateway';
+import { CmsPlatformShell } from '@/components/cms/CmsPlatformShell';
+import { CrmPlatformShell } from '@/components/layout/CrmPlatformShell';
+import { HrmPlatformShell } from '@/components/hrm/HrmPlatformShell';
 import { GrowthIndiaLogo } from '@/components/brand/GrowthIndiaLogo';
 import { ShieldAlert, ArrowLeft, LogOut } from 'lucide-react';
 import Link from 'next/link';
 
 export const AdminConsoleShell: React.FC = () => {
   const { user, loading, logout } = useAuth();
-  const [mounted, setMounted] = React.useState(false);
+  const [mounted, setMounted] = useState(false);
+  const [selectedPlatform, setSelectedPlatform] = useState<PlatformProfile>('GATEWAY');
 
-  React.useEffect(() => {
+  useEffect(() => {
     setMounted(true);
+    try {
+      const saved = localStorage.getItem('gi_admin_selected_platform') as any;
+      if (saved === 'EMPLOYEE_MANAGEMENT' || saved === 'CMS') {
+        setSelectedPlatform('CMS');
+      } else if (saved === 'CRM' || saved === 'HRM' || saved === 'GATEWAY') {
+        setSelectedPlatform(saved);
+      }
+    } catch {}
   }, []);
+
+  const handleSelectPlatform = (platform: PlatformProfile) => {
+    setSelectedPlatform(platform);
+    try {
+      localStorage.setItem('gi_admin_selected_platform', platform);
+    } catch {}
+  };
 
   if (!mounted || loading) {
     return (
-      <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center space-y-4">
+      <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center space-y-4">
         <GrowthIndiaLogo size="lg" />
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-growth-gold" />
-        <p className="text-xs text-slate-400 font-medium">Initializing Growth India Admin Governance Console...</p>
+        <div className="animate-spin rounded-full h-8 w-8 border-2 border-slate-200 border-t-growth-teal" />
+        <p className="text-xs text-slate-600 font-medium">Initializing Growth India Admin Governance Console...</p>
       </div>
     );
   }
@@ -45,11 +64,11 @@ export const AdminConsoleShell: React.FC = () => {
           </p>
           <div className="flex flex-col gap-2 pt-2">
             <Link
-              href="/"
+              href={user.role === 'CLIENT' ? '/client' : '/employee'}
               className="py-2.5 px-4 bg-growth-teal hover:bg-growth-tealDark text-white font-bold text-xs rounded-xl transition-all flex items-center justify-center gap-1.5"
             >
               <ArrowLeft className="w-4 h-4" />
-              <span>Go to Client / Employee Workspace</span>
+              <span>Go to {user.role === 'CLIENT' ? 'Client Portal' : 'Employee Workspace'}</span>
             </Link>
             <button
               onClick={() => logout()}
@@ -64,6 +83,16 @@ export const AdminConsoleShell: React.FC = () => {
     );
   }
 
-  // If authenticated as Admin, show the complete AppShell
-  return <AppShell />;
+  // Render the Selected Platform Environment
+  switch (selectedPlatform) {
+    case 'CMS':
+      return <CmsPlatformShell onSelectPlatform={handleSelectPlatform} />;
+    case 'CRM':
+      return <CrmPlatformShell onSelectPlatform={handleSelectPlatform} />;
+    case 'HRM':
+      return <HrmPlatformShell onSelectPlatform={handleSelectPlatform} />;
+    case 'GATEWAY':
+    default:
+      return <AdminPlatformGateway onSelectPlatform={handleSelectPlatform} />;
+  }
 };

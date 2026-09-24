@@ -23,9 +23,10 @@ interface CreateLeadModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSuccess: (newLead: any) => void;
+  initialClientId?: string;
 }
 
-export const CreateLeadModal: React.FC<CreateLeadModalProps> = ({ isOpen, onClose, onSuccess }) => {
+export const CreateLeadModal: React.FC<CreateLeadModalProps> = ({ isOpen, onClose, onSuccess, initialClientId }) => {
   const [formData, setFormData] = useState({
     fullName: '',
     contactPerson: '',
@@ -47,7 +48,7 @@ export const CreateLeadModal: React.FC<CreateLeadModalProps> = ({ isOpen, onClos
     description: '',
     nextFollowUpAt: '',
     assignedToId: '',
-    clientId: '',
+    clientId: initialClientId || '',
   });
 
   const [employees, setEmployees] = useState<any[]>([]);
@@ -84,10 +85,13 @@ export const CreateLeadModal: React.FC<CreateLeadModalProps> = ({ isOpen, onClos
     };
 
     fetchLookups();
+    if (initialClientId) {
+      setFormData((prev) => ({ ...prev, clientId: initialClientId }));
+    }
     return () => {
       mounted = false;
     };
-  }, [isOpen]);
+  }, [isOpen, initialClientId]);
 
   // Debounced duplicate detection
   useEffect(() => {
@@ -211,30 +215,22 @@ export const CreateLeadModal: React.FC<CreateLeadModalProps> = ({ isOpen, onClos
     <div
       role="dialog"
       aria-modal="true"
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-3 sm:p-4 md:p-6 animate-in fade-in"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-xs p-3 sm:p-4 md:p-6 animate-in fade-in"
       onClick={(e) => {
         if (e.target === e.currentTarget) onClose();
       }}
     >
-      <div className="relative w-full max-w-4xl bg-slate-900 border border-slate-800 rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh] my-auto">
+      <div className="relative w-full max-w-4xl bg-white border border-slate-200 rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh] my-auto">
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 sm:py-5 border-b border-slate-800 bg-slate-900/90 shrink-0">
-          <div className="flex items-center gap-3">
-            <div className="p-2.5 rounded-xl bg-teal-500/10 border border-teal-500/20 text-teal-400 shrink-0">
-              <Sparkles className="w-5 h-5" />
-            </div>
-            <div>
-              <h2 className="text-lg sm:text-xl font-bold text-white tracking-tight">Create Corporate Lead</h2>
-              <p className="text-xs text-slate-400">Capture and qualify a new prospective corporate client</p>
-            </div>
-          </div>
+        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 bg-white shrink-0">
+          <h2 className="text-base font-bold text-slate-900 tracking-tight">Create Corporate Lead</h2>
           <button
             type="button"
             onClick={onClose}
-            className="p-2 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
+            className="p-1.5 rounded-xl text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors cursor-pointer"
             title="Close modal"
           >
-            <X className="w-5 h-5" />
+            <X className="w-4 h-4" />
           </button>
         </div>
 
@@ -249,7 +245,7 @@ export const CreateLeadModal: React.FC<CreateLeadModalProps> = ({ isOpen, onClos
                   <AlertTriangle className="w-5 h-5 text-amber-400 shrink-0 mt-0.5" />
                   <div className="space-y-1">
                     <p className="text-sm font-semibold text-amber-300">
-                      ⚠️ Potential Duplicate Lead Detected ({duplicateMatches.length} match{duplicateMatches.length > 1 ? 'es' : ''})
+                      Potential Duplicate Lead Detected ({duplicateMatches.length} match{duplicateMatches.length > 1 ? 'es' : ''})
                     </p>
                     <div className="text-xs text-slate-300 space-y-1">
                       {duplicateMatches.map((d) => (
@@ -274,23 +270,21 @@ export const CreateLeadModal: React.FC<CreateLeadModalProps> = ({ isOpen, onClos
 
             {/* Error Message */}
             {errorMsg && (
-              <div className="p-3.5 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-300 text-sm">
+              <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs font-semibold">
                 {errorMsg}
               </div>
             )}
 
             {/* Section 1: Contact Details */}
             <div>
-              <h3 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">
+              <h3 className="text-xs font-bold text-slate-900 uppercase tracking-wider mb-2.5">
                 Primary Contact Details
               </h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-xs font-medium text-slate-300 mb-1.5">
-                  Contact Person / Full Name <span className="text-rose-400">*</span>
-                </label>
-                <div className="relative">
-                  <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">
+                    Contact Person / Full Name <span className="text-rose-500">*</span>
+                  </label>
                   <input
                     type="text"
                     name="fullName"
@@ -298,17 +292,14 @@ export const CreateLeadModal: React.FC<CreateLeadModalProps> = ({ isOpen, onClos
                     onChange={handleChange}
                     required
                     placeholder="e.g. Rajesh Sharma"
-                    className="w-full pl-9 pr-3 py-2 bg-slate-800/80 border border-slate-700/80 rounded-xl text-sm text-white placeholder:text-slate-500 focus:outline-none focus:border-teal-500 transition-colors"
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 hover:border-slate-300 focus:bg-white focus:border-teal-600 focus:ring-2 focus:ring-teal-500/10 rounded-xl text-xs text-slate-900 placeholder:text-slate-400 transition-all"
                   />
                 </div>
-              </div>
 
-              <div>
-                <label className="block text-xs font-medium text-slate-300 mb-1.5">
-                  Primary Phone <span className="text-rose-400">*</span>
-                </label>
-                <div className="relative">
-                  <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">
+                    Primary Phone <span className="text-rose-500">*</span>
+                  </label>
                   <input
                     type="tel"
                     name="phone"
@@ -316,209 +307,191 @@ export const CreateLeadModal: React.FC<CreateLeadModalProps> = ({ isOpen, onClos
                     onChange={handleChange}
                     required
                     placeholder="+91 98765 43210"
-                    className="w-full pl-9 pr-3 py-2 bg-slate-800/80 border border-slate-700/80 rounded-xl text-sm text-white placeholder:text-slate-500 focus:outline-none focus:border-teal-500 transition-colors"
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 hover:border-slate-300 focus:bg-white focus:border-teal-600 focus:ring-2 focus:ring-teal-500/10 rounded-xl text-xs text-slate-900 placeholder:text-slate-400 transition-all"
                   />
                 </div>
-              </div>
 
-              <div>
-                <label className="block text-xs font-medium text-slate-300 mb-1.5">Email ID</label>
-                <div className="relative">
-                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">Email ID</label>
                   <input
                     type="email"
                     name="email"
                     value={formData.email}
                     onChange={handleChange}
                     placeholder="Email ID"
-                    className="w-full pl-9 pr-3 py-2 bg-slate-800/80 border border-slate-700/80 rounded-xl text-sm text-white placeholder:text-slate-500 focus:outline-none focus:border-teal-500 transition-colors"
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 hover:border-slate-300 focus:bg-white focus:border-teal-600 focus:ring-2 focus:ring-teal-500/10 rounded-xl text-xs text-slate-900 placeholder:text-slate-400 transition-all"
                   />
                 </div>
-              </div>
 
-              <div>
-                <label className="block text-xs font-medium text-slate-300 mb-1.5">Alternate Phone</label>
-                <div className="relative">
-                  <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">Alternate Phone</label>
                   <input
                     type="tel"
                     name="alternatePhone"
                     value={formData.alternatePhone}
                     onChange={handleChange}
                     placeholder="Optional secondary phone"
-                    className="w-full pl-9 pr-3 py-2 bg-slate-800/80 border border-slate-700/80 rounded-xl text-sm text-white placeholder:text-slate-500 focus:outline-none focus:border-teal-500 transition-colors"
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 hover:border-slate-300 focus:bg-white focus:border-teal-600 focus:ring-2 focus:ring-teal-500/10 rounded-xl text-xs text-slate-900 placeholder:text-slate-400 transition-all"
                   />
                 </div>
               </div>
             </div>
-          </div>
 
-          {/* Section 2: Organization & Business Details */}
-          <div>
-            <h3 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">
-              Company & Organization
-            </h3>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div>
-                <label className="block text-xs font-medium text-slate-300 mb-1.5">Company Name</label>
-                <div className="relative">
-                  <Building2 className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
+            {/* Section 2: Organization & Business Details */}
+            <div>
+              <h3 className="text-xs font-bold text-slate-900 uppercase tracking-wider mb-2.5">
+                Company & Organization
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3.5">
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">Company Name</label>
                   <input
                     type="text"
                     name="companyName"
                     value={formData.companyName}
                     onChange={handleChange}
                     placeholder="e.g. Tata Steel Ltd"
-                    className="w-full pl-9 pr-3 py-2 bg-slate-800/80 border border-slate-700/80 rounded-xl text-sm text-white placeholder:text-slate-500 focus:outline-none focus:border-teal-500 transition-colors"
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 hover:border-slate-300 focus:bg-white focus:border-teal-600 focus:ring-2 focus:ring-teal-500/10 rounded-xl text-xs text-slate-900 placeholder:text-slate-400 transition-all"
                   />
                 </div>
-              </div>
 
-              <div>
-                <label className="block text-xs font-medium text-slate-300 mb-1.5">Website</label>
-                <div className="relative">
-                  <Globe className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">Website</label>
                   <input
                     type="url"
                     name="website"
                     value={formData.website}
                     onChange={handleChange}
                     placeholder="https://example.com"
-                    className="w-full pl-9 pr-3 py-2 bg-slate-800/80 border border-slate-700/80 rounded-xl text-sm text-white placeholder:text-slate-500 focus:outline-none focus:border-teal-500 transition-colors"
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 hover:border-slate-300 focus:bg-white focus:border-teal-600 focus:ring-2 focus:ring-teal-500/10 rounded-xl text-xs text-slate-900 placeholder:text-slate-400 transition-all"
                   />
                 </div>
-              </div>
 
-              <div>
-                <label className="block text-xs font-medium text-slate-300 mb-1.5">Industry</label>
-                <input
-                  type="text"
-                  name="industry"
-                  value={formData.industry}
-                  onChange={handleChange}
-                  placeholder="e.g. Manufacturing, IT, BFSI"
-                  className="w-full px-3 py-2 bg-slate-800/80 border border-slate-700/80 rounded-xl text-sm text-white placeholder:text-slate-500 focus:outline-none focus:border-teal-500 transition-colors"
-                />
-              </div>
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">Industry</label>
+                  <input
+                    type="text"
+                    name="industry"
+                    value={formData.industry}
+                    onChange={handleChange}
+                    placeholder="e.g. Manufacturing, IT, BFSI"
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 hover:border-slate-300 focus:bg-white focus:border-teal-600 focus:ring-2 focus:ring-teal-500/10 rounded-xl text-xs text-slate-900 placeholder:text-slate-400 transition-all"
+                  />
+                </div>
 
-              <div>
-                <label className="block text-xs font-medium text-slate-300 mb-1.5">City</label>
-                <div className="relative">
-                  <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">City</label>
                   <input
                     type="text"
                     name="city"
                     value={formData.city}
                     onChange={handleChange}
                     placeholder="e.g. Mumbai"
-                    className="w-full pl-9 pr-3 py-2 bg-slate-800/80 border border-slate-700/80 rounded-xl text-sm text-white placeholder:text-slate-500 focus:outline-none focus:border-teal-500 transition-colors"
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 hover:border-slate-300 focus:bg-white focus:border-teal-600 focus:ring-2 focus:ring-teal-500/10 rounded-xl text-xs text-slate-900 placeholder:text-slate-400 transition-all"
                   />
                 </div>
-              </div>
 
-              <div>
-                <label className="block text-xs font-medium text-slate-300 mb-1.5">State</label>
-                <input
-                  type="text"
-                  name="state"
-                  value={formData.state}
-                  onChange={handleChange}
-                  placeholder="e.g. Maharashtra"
-                  className="w-full px-3 py-2 bg-slate-800/80 border border-slate-700/80 rounded-xl text-sm text-white placeholder:text-slate-500 focus:outline-none focus:border-teal-500 transition-colors"
-                />
-              </div>
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">State</label>
+                  <input
+                    type="text"
+                    name="state"
+                    value={formData.state}
+                    onChange={handleChange}
+                    placeholder="e.g. Maharashtra"
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 hover:border-slate-300 focus:bg-white focus:border-teal-600 focus:ring-2 focus:ring-teal-500/10 rounded-xl text-xs text-slate-900 placeholder:text-slate-400 transition-all"
+                  />
+                </div>
 
-              <div>
-                <label className="block text-xs font-medium text-slate-300 mb-1.5">Existing Client / Tenant (Optional)</label>
-                <select
-                  name="clientId"
-                  value={formData.clientId}
-                  onChange={handleChange}
-                  className="w-full px-3 py-2 bg-slate-800/80 border border-slate-700/80 rounded-xl text-sm text-white focus:outline-none focus:border-teal-500 transition-colors"
-                >
-                  <option value="">-- Standalone Prospective Lead --</option>
-                  {clients.map((c) => (
-                    <option key={c.id} value={c.id}>
-                      {c.companyName} ({c.clientId})
-                    </option>
-                  ))}
-                </select>
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">Existing Client / Tenant (Optional)</label>
+                  <select
+                    name="clientId"
+                    value={formData.clientId}
+                    onChange={handleChange}
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 hover:border-slate-300 focus:bg-white focus:border-teal-600 focus:ring-2 focus:ring-teal-500/10 rounded-xl text-xs text-slate-900 transition-all"
+                  >
+                    <option value="">-- Standalone Prospective Lead --</option>
+                    {clients.map((c) => (
+                      <option key={c.id} value={c.id}>
+                        {c.companyName} ({c.clientId})
+                      </option>
+                    ))}
+                  </select>
+                </div>
               </div>
             </div>
-          </div>
 
-          {/* Section 3: Lead Parameters & Assignment */}
-          <div>
-            <h3 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">
-              Lead Parameters & Assignment
-            </h3>
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-              <div>
-                <label className="block text-xs font-medium text-slate-300 mb-1.5">Lead Source</label>
-                <select
-                  name="source"
-                  value={formData.source}
-                  onChange={handleChange}
-                  className="w-full px-3 py-2 bg-slate-800/80 border border-slate-700/80 rounded-xl text-sm text-white focus:outline-none focus:border-teal-500 transition-colors"
-                >
-                  {LEAD_SOURCES.map((s) => (
-                    <option key={s} value={s}>
-                      {s.replace(/_/g, ' ')}
-                    </option>
-                  ))}
-                </select>
-              </div>
+            {/* Section 3: Lead Parameters & Assignment */}
+            <div>
+              <h3 className="text-xs font-bold text-slate-900 uppercase tracking-wider mb-2.5">
+                Lead Parameters & Assignment
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-3.5">
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">Lead Source</label>
+                  <select
+                    name="source"
+                    value={formData.source}
+                    onChange={handleChange}
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 hover:border-slate-300 focus:bg-white focus:border-teal-600 focus:ring-2 focus:ring-teal-500/10 rounded-xl text-xs text-slate-900 transition-all"
+                  >
+                    {LEAD_SOURCES.map((s) => (
+                      <option key={s} value={s}>
+                        {s.replace(/_/g, ' ')}
+                      </option>
+                    ))}
+                  </select>
+                </div>
 
-              <div>
-                <label className="block text-xs font-medium text-slate-300 mb-1.5">Initial Status</label>
-                <select
-                  name="status"
-                  value={formData.status}
-                  onChange={handleChange}
-                  className="w-full px-3 py-2 bg-slate-800/80 border border-slate-700/80 rounded-xl text-sm text-white focus:outline-none focus:border-teal-500 transition-colors"
-                >
-                  <option value="NEW">NEW</option>
-                  <option value="CONTACTED">CONTACTED</option>
-                </select>
-              </div>
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">Initial Status</label>
+                  <select
+                    name="status"
+                    value={formData.status}
+                    onChange={handleChange}
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 hover:border-slate-300 focus:bg-white focus:border-teal-600 focus:ring-2 focus:ring-teal-500/10 rounded-xl text-xs text-slate-900 transition-all"
+                  >
+                    <option value="NEW">NEW</option>
+                    <option value="CONTACTED">CONTACTED</option>
+                  </select>
+                </div>
 
-              <div>
-                <label className="block text-xs font-medium text-slate-300 mb-1.5">Priority</label>
-                <select
-                  name="priority"
-                  value={formData.priority}
-                  onChange={handleChange}
-                  className="w-full px-3 py-2 bg-slate-800/80 border border-slate-700/80 rounded-xl text-sm text-white focus:outline-none focus:border-teal-500 transition-colors"
-                >
-                  {LEAD_PRIORITIES.map((p) => (
-                    <option key={p} value={p}>
-                      {p}
-                    </option>
-                  ))}
-                </select>
-              </div>
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">Priority</label>
+                  <select
+                    name="priority"
+                    value={formData.priority}
+                    onChange={handleChange}
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 hover:border-slate-300 focus:bg-white focus:border-teal-600 focus:ring-2 focus:ring-teal-500/10 rounded-xl text-xs text-slate-900 transition-all"
+                  >
+                    {LEAD_PRIORITIES.map((p) => (
+                      <option key={p} value={p}>
+                        {p}
+                      </option>
+                    ))}
+                  </select>
+                </div>
 
-              <div>
-                <label className="block text-xs font-medium text-slate-300 mb-1.5">Assign To Representative</label>
-                <select
-                  name="assignedToId"
-                  value={formData.assignedToId}
-                  onChange={handleChange}
-                  className="w-full px-3 py-2 bg-slate-800/80 border border-slate-700/80 rounded-xl text-sm text-white focus:outline-none focus:border-teal-500 transition-colors"
-                >
-                  <option value="">-- Unassigned --</option>
-                  {employees.map((emp) => (
-                    <option key={emp.id} value={emp.id}>
-                      {emp.fullName} ({emp.employeeId})
-                    </option>
-                  ))}
-                </select>
-              </div>
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">Assign To Representative</label>
+                  <select
+                    name="assignedToId"
+                    value={formData.assignedToId}
+                    onChange={handleChange}
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 hover:border-slate-300 focus:bg-white focus:border-teal-600 focus:ring-2 focus:ring-teal-500/10 rounded-xl text-xs text-slate-900 transition-all"
+                  >
+                    <option value="">-- Unassigned --</option>
+                    {employees.map((emp) => (
+                      <option key={emp.id} value={emp.id}>
+                        {emp.fullName} ({emp.employeeId})
+                      </option>
+                    ))}
+                  </select>
+                </div>
 
-              <div>
-                <label className="block text-xs font-medium text-slate-300 mb-1.5">Estimated Value (₹)</label>
-                <div className="relative">
-                  <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">Estimated Value (₹)</label>
                   <input
                     type="number"
                     name="estimatedValue"
@@ -526,79 +499,72 @@ export const CreateLeadModal: React.FC<CreateLeadModalProps> = ({ isOpen, onClos
                     onChange={handleChange}
                     placeholder="0"
                     min="0"
-                    className="w-full pl-9 pr-3 py-2 bg-slate-800/80 border border-slate-700/80 rounded-xl text-sm text-white placeholder:text-slate-500 focus:outline-none focus:border-teal-500 transition-colors"
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 hover:border-slate-300 focus:bg-white focus:border-teal-600 focus:ring-2 focus:ring-teal-500/10 rounded-xl font-mono text-xs text-slate-900 placeholder:text-slate-400 transition-all"
                   />
                 </div>
-              </div>
 
-              <div>
-                <label className="block text-xs font-medium text-slate-300 mb-1.5">Lead Score (0-100)</label>
-                <input
-                  type="number"
-                  name="leadScore"
-                  value={formData.leadScore}
-                  onChange={handleChange}
-                  min="0"
-                  max="100"
-                  className="w-full px-3 py-2 bg-slate-800/80 border border-slate-700/80 rounded-xl text-sm text-white placeholder:text-slate-500 focus:outline-none focus:border-teal-500 transition-colors"
-                />
-              </div>
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">Lead Score (0-100)</label>
+                  <input
+                    type="number"
+                    name="leadScore"
+                    value={formData.leadScore}
+                    onChange={handleChange}
+                    min="0"
+                    max="100"
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 hover:border-slate-300 focus:bg-white focus:border-teal-600 focus:ring-2 focus:ring-teal-500/10 rounded-xl font-mono text-xs text-slate-900 placeholder:text-slate-400 transition-all"
+                  />
+                </div>
 
-              <div className="md:col-span-2">
-                <label className="block text-xs font-medium text-slate-300 mb-1.5">Schedule Next Follow-Up</label>
-                <div className="relative">
-                  <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
+                <div className="md:col-span-2">
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">Schedule Next Follow-Up</label>
                   <input
                     type="datetime-local"
                     name="nextFollowUpAt"
                     value={formData.nextFollowUpAt}
                     onChange={handleChange}
-                    className="w-full pl-9 pr-3 py-2 bg-slate-800/80 border border-slate-700/80 rounded-xl text-sm text-white placeholder:text-slate-500 focus:outline-none focus:border-teal-500 transition-colors [color-scheme:dark]"
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 hover:border-slate-300 focus:bg-white focus:border-teal-600 focus:ring-2 focus:ring-teal-500/10 rounded-xl text-xs text-slate-900 placeholder:text-slate-400 transition-all"
                   />
                 </div>
               </div>
             </div>
+
+            {/* Section 4: Notes / Description */}
+            <div>
+              <label className="block text-xs font-semibold text-slate-700 mb-1">Initial Notes / Requirements</label>
+              <textarea
+                name="description"
+                rows={3}
+                value={formData.description}
+                onChange={handleChange}
+                placeholder="Provide background, service interest, headcount requirements, or specific notes..."
+                className="w-full px-3 py-2 bg-slate-50 border border-slate-200 hover:border-slate-300 focus:bg-white focus:border-teal-600 focus:ring-2 focus:ring-teal-500/10 rounded-xl text-xs text-slate-900 placeholder:text-slate-400 transition-all resize-none"
+              />
+            </div>
           </div>
 
-          {/* Section 4: Notes / Description */}
-          <div>
-            <label className="block text-xs font-medium text-slate-300 mb-1.5">Initial Notes / Requirements</label>
-            <textarea
-              name="description"
-              rows={3}
-              value={formData.description}
-              onChange={handleChange}
-              placeholder="Provide background, service interest, headcount requirements, or specific notes..."
-              className="w-full px-3 py-2 bg-slate-800/80 border border-slate-700/80 rounded-xl text-sm text-white placeholder:text-slate-500 focus:outline-none focus:border-teal-500 transition-colors resize-none"
-            />
-          </div>
-        </div>
-
-        {/* Actions (Pinned Footer) */}
-        <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-slate-800 bg-slate-900/90 shrink-0">
+          {/* Actions (Pinned Footer) */}
+          <div className="flex items-center justify-end gap-2.5 px-6 py-3.5 border-t border-slate-100 bg-slate-50/50 shrink-0">
             <button
               type="button"
               onClick={onClose}
               disabled={submitting}
-              className="px-4 py-2.5 rounded-xl border border-slate-700 text-slate-300 hover:bg-slate-800 text-sm font-medium transition-colors"
+              className="px-4 py-2 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-100 hover:text-slate-900 text-xs font-semibold transition-colors cursor-pointer"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={submitting}
-              className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-teal-600 hover:bg-teal-500 text-white text-sm font-medium transition-all shadow-lg shadow-teal-500/20 disabled:opacity-50"
+              className="flex items-center gap-2 px-5 py-2 rounded-xl bg-teal-600 hover:bg-teal-700 text-white text-xs font-semibold transition-all shadow-xs disabled:opacity-50 cursor-pointer"
             >
               {submitting ? (
                 <>
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                  Saving Lead...
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                  <span>Saving Lead...</span>
                 </>
               ) : (
-                <>
-                  <Send className="w-4 h-4" />
-                  Create Lead
-                </>
+                'Create Lead'
               )}
             </button>
           </div>

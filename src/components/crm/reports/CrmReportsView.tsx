@@ -9,12 +9,15 @@ import {
   Search,
   ChevronLeft,
   ChevronRight,
-  TrendingUp,
+  Compass,
   Building2,
   Users,
   Briefcase,
-  DollarSign,
+  IndianRupee,
   Calendar,
+  Layers,
+  PieChart,
+  UserCheck,
 } from 'lucide-react';
 
 export const CrmReportsView: React.FC = () => {
@@ -27,12 +30,12 @@ export const CrmReportsView: React.FC = () => {
 
   const reportTypes = [
     { id: 'leads', label: 'Leads Directory', icon: Users },
-    { id: 'lead-sources', label: 'Lead Sources', icon: TrendingUp },
-    { id: 'salesperson-performance', label: 'Sales Rep Performance', icon: Users },
+    { id: 'lead-sources', label: 'Lead Sources', icon: Compass },
+    { id: 'salesperson-performance', label: 'Sales Rep Performance', icon: UserCheck },
     { id: 'deals', label: 'Commercial Deals', icon: Briefcase },
-    { id: 'opportunities', label: 'Opportunities', icon: TrendingUp },
-    { id: 'won-lost', label: 'Won / Lost Analysis', icon: FileText },
-    { id: 'revenue', label: 'Realized Revenue', icon: DollarSign },
+    { id: 'opportunities', label: 'Opportunities', icon: Layers },
+    { id: 'won-lost', label: 'Won / Lost Analysis', icon: PieChart },
+    { id: 'revenue', label: 'Realized Revenue', icon: IndianRupee },
     { id: 'client-acquisition', label: 'Client Acquisition', icon: Building2 },
     { id: 'follow-ups', label: 'Follow-ups Queue', icon: Calendar },
   ];
@@ -65,7 +68,7 @@ export const CrmReportsView: React.FC = () => {
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
-    setTimeout(() => setDownloading(false), 1000);
+    setTimeout(() => setDownloading(false), 800);
   };
 
   const rows = reportData?.rows || [];
@@ -74,22 +77,24 @@ export const CrmReportsView: React.FC = () => {
   return (
     <div className="space-y-6 pb-12 font-sans">
       {/* Header Banner */}
-      <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 text-white shadow-xl flex flex-col lg:flex-row lg:items-center justify-between gap-4 hero-banner-interactive">
+      <div className="bg-white border border-slate-200/80 rounded-2xl p-6 text-slate-900 shadow-sm flex flex-col lg:flex-row lg:items-center justify-between gap-4 panel-premium">
         <div>
-          <div className="inline-flex items-center gap-2 px-3 py-1 bg-growth-gold/20 text-growth-gold border border-growth-gold/30 rounded-full text-xs font-bold mb-2 chip-premium-highlight cursor-pointer">
-            <FileText className="w-3.5 h-3.5" />
-            <span>Operational & Financial Auditable Records</span>
+          <div className="inline-flex items-center gap-2 px-3 py-1 bg-[#0D9488]/10 text-[#0D9488] border border-[#0D9488]/20 rounded-full text-xs font-bold mb-2">
+            <span className="w-1.5 h-1.5 rounded-full bg-[#0D9488]" />
+            <span>CRM Analytics & Data Exports</span>
           </div>
-          <h1 className="text-2xl font-black tracking-tight hero-title-interactive">CRM Executive Reports & Export</h1>
-          <p className="text-xs text-slate-400 mt-1 hero-subtitle-interactive">
-            Export compliant, audit-ready CSV reports for sales pipelines, deals, revenue, and salesperson activity.
+          <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-slate-900">
+            Executive Reports & Exports
+          </h1>
+          <p className="text-xs text-slate-500 mt-1 max-w-xl leading-relaxed">
+            Generate and export structured CSV reports across leads, pipeline deals, sales performance, and recognized revenue.
           </p>
         </div>
 
         <button
           onClick={handleDownloadCsv}
           disabled={downloading || rows.length === 0}
-          className="flex items-center gap-2 px-5 py-2.5 bg-growth-teal hover:bg-growth-tealDark text-white font-bold text-xs rounded-xl shadow-sm transition-all disabled:opacity-50 self-start lg:self-center interactive-btn-hover"
+          className="flex items-center gap-2 px-5 py-2.5 bg-growth-teal hover:bg-growth-tealDark text-white font-bold text-xs rounded-xl shadow-sm transition-all active:scale-95 disabled:opacity-50 self-start lg:self-center cursor-pointer"
         >
           <Download className="w-4 h-4" />
           <span>{downloading ? 'Preparing CSV...' : 'Download CSV Report'}</span>
@@ -108,13 +113,13 @@ export const CrmReportsView: React.FC = () => {
                 setSelectedType(item.id);
                 setPage(1);
               }}
-              className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-all chip-premium-highlight ${
+              className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-all cursor-pointer ${
                 isSelected
-                  ? 'bg-slate-900 text-white shadow-sm border border-slate-800'
-                  : 'bg-white hover:bg-slate-100 text-slate-600 border border-slate-200'
+                  ? 'bg-growth-teal text-white shadow-sm ring-2 ring-growth-teal/20'
+                  : 'bg-white hover:bg-slate-50 text-slate-600 hover:text-slate-900 border border-slate-200/80 shadow-xs'
               }`}
             >
-              <Icon className={`w-3.5 h-3.5 ${isSelected ? 'text-growth-gold' : 'text-slate-400'}`} />
+              <Icon className={`w-3.5 h-3.5 ${isSelected ? 'text-white' : 'text-slate-400'}`} />
               <span>{item.label}</span>
             </button>
           );

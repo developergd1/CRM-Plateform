@@ -290,7 +290,7 @@ export const CrmModuleView: React.FC<CrmModuleViewProps> = ({ module }) => {
                 onClick={() => setShowCreateModal(false)}
                 className="text-slate-400 hover:text-slate-600 text-lg leading-none"
               >
-                ✕
+                Cancel
               </button>
             </div>
 

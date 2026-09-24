@@ -33,8 +33,17 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     if (!task) return NextResponse.json({ error: 'Task not found' }, { status: 404 });
 
     const isInternalAdmin = isAdminOrHR(user.role) || isManagerOrAbove(user.role);
-    const isOwnerClient = user.role === 'CLIENT' && (task.clientId === user.clientId || task.client?.clientId === user.clientId || task.client?.userId === user.id);
-    const isAssignee = user.employeeProfile?.id === task.assignedToId || user.employeeId === task.assignedTo?.employeeId;
+    const isOwnerClient = user.role === 'CLIENT' && (
+      task.clientId === user.clientId ||
+      task.clientId === user.parentClientId ||
+      task.client?.clientId === user.clientId ||
+      task.client?.id === user.parentClientId ||
+      task.client?.userId === user.id
+    );
+    const isAssignee =
+      user.employeeProfile?.id === task.assignedToId ||
+      user.employeeProfileId === task.assignedToId ||
+      user.employeeId === task.assignedTo?.employeeId;
 
     let updateData: any = {};
     let newStatus = task.status;

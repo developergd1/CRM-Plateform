@@ -30,6 +30,7 @@ import { useRouter } from 'next/navigation';
 import { AddClientModal } from './AddClientModal';
 import { EditClientModal } from './EditClientModal';
 import { AddEmployeeModal } from '../employees/AddEmployeeModal';
+import { EmployeeOnboardingWizard } from '../employees/EmployeeOnboardingWizard';
 import { EmployeeDetailDrawer } from '../employees/EmployeeDetailDrawer';
 import { ClientCredentialsModal } from './ClientCredentialsModal';
 import { isAdminOrHR } from '@/lib/rbac';
@@ -188,7 +189,7 @@ export const ClientsListView: React.FC<ClientsListViewProps> = ({ onView360, ini
       const res = await fetch(`/api/clients/${deleteClientTarget.id}`, { method: 'DELETE' });
       const data = await res.json();
       if (res.ok) {
-        setAlertMsg(`🗑️ ${deleteClientTarget.companyName} (${deleteClientTarget.clientId}) has been deleted.`);
+        setAlertMsg(`${deleteClientTarget.companyName} (${deleteClientTarget.clientId}) has been deleted.`);
         setDeleteClientTarget(null);
         clientCache.remove('crm_clients_list');
         await fetchClients(true);
@@ -215,40 +216,36 @@ export const ClientsListView: React.FC<ClientsListViewProps> = ({ onView360, ini
       {/* Header Bar */}
       <div className="panel-premium bg-white p-6 rounded-3xl border border-slate-200 shadow-card flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="title-interactive-hover text-xl font-extrabold text-slate-900 tracking-tight flex items-center gap-2 cursor-pointer">
-            <Building2 className="w-5 h-5 text-growth-teal" />
-            <span>Client Management Directory</span>
+          <h1 className="title-interactive-hover text-xl font-extrabold text-slate-900 tracking-tight cursor-pointer">
+            Client Management Directory
           </h1>
-          <p className="subtitle-interactive-hover text-xs text-slate-500">
-            Manage corporate client accounts with unique <strong className="text-growth-goldDark font-mono">CLI-XXXXX</strong> identifiers, login credentials & permissions
+          <p className="subtitle-interactive-hover text-xs text-slate-500 mt-0.5">
+            Manage corporate client accounts, login credentials, and authorized access
           </p>
         </div>
 
         <div className="flex items-center gap-2.5">
           <button
             onClick={() => fetchClients(true)}
-            className="interactive-btn-hover flex items-center gap-2 px-3.5 py-2.5 bg-slate-50 hover:bg-slate-100 text-slate-700 font-bold text-xs rounded-xl border border-slate-200 transition-all shadow-sm cursor-pointer"
+            className="interactive-btn-hover px-3.5 py-2.5 bg-slate-50 hover:bg-slate-100 text-slate-700 font-bold text-xs rounded-xl border border-slate-200 transition-all shadow-sm cursor-pointer"
             title="Refresh Client List"
           >
-            <RefreshCw className="w-4 h-4 text-slate-500" />
-            <span>Refresh</span>
+            Refresh
           </button>
 
           <button
             onClick={() => exportClientsCSV()}
-            className="interactive-btn-hover flex items-center gap-2 px-3.5 py-2.5 bg-slate-50 hover:bg-slate-100 text-slate-700 font-bold text-xs rounded-xl border border-slate-200 transition-all cursor-pointer"
+            className="interactive-btn-hover px-3.5 py-2.5 bg-slate-50 hover:bg-slate-100 text-slate-700 font-bold text-xs rounded-xl border border-slate-200 transition-all cursor-pointer"
             title="Export CSV"
           >
-            <Download className="w-4 h-4 text-slate-500" />
-            <span>Export CSV</span>
+            Export CSV
           </button>
 
           <button
             onClick={() => setShowAddModal(true)}
-            className="interactive-btn-hover flex items-center gap-2 px-4 py-2.5 bg-growth-teal hover:bg-growth-tealDark text-white font-bold text-xs rounded-xl shadow-tealGlow transition-all cursor-pointer"
+            className="interactive-btn-hover px-4 py-2.5 bg-growth-teal hover:bg-growth-tealDark text-white font-bold text-xs rounded-xl shadow-tealGlow transition-all cursor-pointer"
           >
-            <Plus className="w-4 h-4" />
-            <span>Add Client / Company</span>
+            Add Client / Company
           </button>
         </div>
       </div>
@@ -382,17 +379,12 @@ export const ClientsListView: React.FC<ClientsListViewProps> = ({ onView360, ini
                       {/* Status */}
                       <td className="py-3.5 px-4 whitespace-nowrap">
                         <span
-                          className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase ${
+                          className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase ${
                             client.status === 'ACTIVE'
-                              ? 'bg-emerald-100 text-emerald-800 border border-emerald-200'
+                              ? 'bg-teal-50 text-growth-teal border border-teal-200'
                               : 'bg-slate-100 text-slate-600 border border-slate-200'
                           }`}
                         >
-                          {client.status === 'ACTIVE' ? (
-                            <CheckCircle className="w-3 h-3 text-emerald-600" />
-                          ) : (
-                            <XCircle className="w-3 h-3 text-slate-400" />
-                          )}
                           <span>{client.status}</span>
                         </span>
                       </td>
@@ -551,18 +543,48 @@ export const ClientsListView: React.FC<ClientsListViewProps> = ({ onView360, ini
         />
       )}
 
-      {/* Add Employee under Client Modal */}
+      {/* Multi-Step Onboard Employee under Client Modal */}
       {onboardClientTarget && (
-        <AddEmployeeModal
-          isOpen={true}
-          preselectedClientId={onboardClientTarget}
-          onClose={() => setOnboardClientTarget(null)}
-          onEmployeeCreated={() => {
-            clientCache.remove('crm_clients_list');
-            clientCache.remove('admin_employees_list');
-            fetchClients(true);
-          }}
-        />
+        <div className="fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4 overflow-y-auto animate-in fade-in">
+          <div className="bg-white rounded-3xl max-w-4xl w-full shadow-2xl border border-slate-200 overflow-hidden my-auto flex flex-col max-h-[92vh]">
+            <div className="p-4 sm:p-5 bg-white border-b border-slate-100 flex items-center justify-between shrink-0">
+              <div className="flex items-center gap-2.5">
+                <div className="w-9 h-9 rounded-xl bg-teal-50 border border-teal-200 text-teal-700 flex items-center justify-center font-bold">
+                  <UserPlus className="w-4 h-4" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-bold text-slate-900">Enterprise Staff Onboarding</h3>
+                  <p className="text-[11px] text-slate-500">
+                    Assigning employee to:{' '}
+                    <strong className="text-teal-700">
+                      {clients.find((c) => c.id === onboardClientTarget || c.clientId === onboardClientTarget)?.companyName || 'Selected Client'}
+                    </strong>
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setOnboardClientTarget(null)}
+                className="p-2 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-xl transition cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="flex-1 overflow-y-auto p-4 sm:p-6">
+              <EmployeeOnboardingWizard
+                initialClientId={onboardClientTarget}
+                initialClientName={clients.find((c) => c.id === onboardClientTarget || c.clientId === onboardClientTarget)?.companyName}
+                onSuccess={() => {
+                  clientCache.remove('crm_clients_list');
+                  clientCache.remove('admin_employees_list');
+                  setOnboardClientTarget(null);
+                  fetchClients(true);
+                }}
+                onCancel={() => setOnboardClientTarget(null)}
+              />
+            </div>
+          </div>
+        </div>
       )}
 
       {/* Client Credentials & Password Reset Modal */}
@@ -580,30 +602,30 @@ export const ClientsListView: React.FC<ClientsListViewProps> = ({ onView360, ini
         <div className="fixed inset-0 z-50 overflow-hidden bg-slate-950/60 backdrop-blur-sm flex justify-end animate-in fade-in">
           <div className="w-full max-w-xl bg-white h-full shadow-2xl flex flex-col justify-between overflow-hidden animate-in slide-in-from-right duration-300">
             {/* Drawer Header */}
-            <div className="p-6 bg-slate-900 text-white flex items-start justify-between border-b border-slate-800">
-              <div className="flex items-center gap-4">
-                <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-growth-teal to-growth-gold flex items-center justify-center font-bold text-lg text-white shadow-sm">
-                  <Building2 className="w-6 h-6" />
+            <div className="p-6 bg-white text-slate-800 flex items-start justify-between border-b border-slate-100">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-teal-50 border border-teal-200 text-teal-700 flex items-center justify-center font-bold shrink-0">
+                  <Building2 className="w-5 h-5" />
                 </div>
                 <div>
                   <div className="flex items-center gap-2">
-                    <span className="font-mono text-xs font-bold text-growth-gold bg-amber-950/80 px-2 py-0.5 rounded border border-growth-gold/30">
+                    <span className="font-mono text-xs font-bold text-teal-700 bg-teal-50 px-2 py-0.5 rounded border border-teal-200">
                       {selectedClient.clientId}
                     </span>
                     <span
-                      className={`text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-full ${
+                      className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded-full ${
                         selectedClient.status === 'ACTIVE'
-                          ? 'bg-emerald-500/20 text-emerald-300'
-                          : 'bg-slate-500/20 text-slate-300'
+                          ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                          : 'bg-slate-100 text-slate-700'
                       }`}
                     >
                       {selectedClient.status}
                     </span>
                   </div>
-                  <h2 className="text-xl font-black mt-1 text-white tracking-tight">
+                  <h2 className="text-base font-bold mt-1 text-slate-900 tracking-tight">
                     {selectedClient.companyName}
                   </h2>
-                  <p className="text-xs text-slate-400">{selectedClient.industry || 'Corporate Account'}</p>
+                  <p className="text-xs text-slate-500">{selectedClient.industry || 'Corporate Account'}</p>
                 </div>
               </div>
 
@@ -766,21 +788,21 @@ export const ClientsListView: React.FC<ClientsListViewProps> = ({ onView360, ini
         <div className="fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto animate-in fade-in">
           <div className="bg-white rounded-3xl max-w-4xl w-full shadow-2xl border border-slate-200 overflow-hidden my-auto flex flex-col max-h-[90vh]">
             {/* Modal Header */}
-            <div className="p-6 bg-slate-900 text-white flex items-center justify-between shrink-0">
+            <div className="p-5 sm:p-6 bg-white text-slate-800 flex items-center justify-between border-b border-slate-100 shrink-0">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-2xl bg-growth-teal text-white flex items-center justify-center font-bold shadow-tealGlow">
+                <div className="w-10 h-10 rounded-xl bg-teal-50 border border-teal-200 text-teal-700 flex items-center justify-center font-bold">
                   <Building2 className="w-5 h-5" />
                 </div>
                 <div>
                   <div className="flex items-center gap-2">
-                    <span className="font-mono text-xs font-black text-growth-gold bg-amber-950/80 px-2 py-0.5 rounded border border-growth-gold/30">
+                    <span className="font-mono text-xs font-bold text-teal-700 bg-teal-50 px-2 py-0.5 rounded border border-teal-200">
                       {viewingCompanyEmployees.clientId}
                     </span>
-                    <span className="text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-full bg-slate-800 text-slate-300 border border-slate-700">
+                    <span className="text-[10px] font-semibold text-slate-500">
                       {viewingCompanyEmployees.industry || 'Corporate Account'}
                     </span>
                   </div>
-                  <h2 className="text-lg font-black tracking-tight mt-0.5 flex items-center gap-2">
+                  <h2 className="text-base font-bold text-slate-900 tracking-tight mt-0.5 flex items-center gap-2">
                     <span>{viewingCompanyEmployees.companyName}</span>
                     <span className="text-xs font-semibold text-slate-400">
                       • Enrolled Employees ({companyEmployees.length})

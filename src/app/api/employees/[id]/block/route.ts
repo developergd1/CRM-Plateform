@@ -23,7 +23,10 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     const isAdmin = isAdminOrHR(user.role);
     const isAuthorizedClient =
       user.role === 'CLIENT' &&
-      (user.clientId === employee.client?.clientId || user.id === employee.client?.userId || (employee.clientId && user.clientId && employee.client?.id === user.clientId));
+      (user.clientId === employee.client?.clientId ||
+       user.id === employee.client?.userId ||
+       (employee.clientId && user.clientId && employee.client?.id === user.clientId) ||
+       (employee.clientId && user.parentClientId && employee.clientId === user.parentClientId));
 
     if (!isAdmin && !isAuthorizedClient) {
       return NextResponse.json(

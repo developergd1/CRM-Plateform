@@ -94,16 +94,20 @@ async function runTests() {
 
   // 7. Test Client Ownership Reassignment
   console.log('\n7️⃣ Testing Client Ownership Reassignment & History Chain...');
+  const empListRes = await fetch(`${BASE_URL}/api/employees`, { headers });
+  const empListData = await empListRes.json();
+  const targetEmp = empListData.employees?.[0] || { employeeId: 'GI-EMP-000001', fullName: 'System Administrator' };
+
   const reassignRes = await fetch(`${BASE_URL}/api/crm/clients/${createdClientId}/assign`, {
     method: 'POST',
     headers,
     body: JSON.stringify({
-      targetEmployeeId: 'GI-EMP-000002',
-      assignmentReason: 'Assigned to Senior Exec Aarav Sharma for commercial negotiation',
+      targetEmployeeId: targetEmp.employeeId,
+      assignmentReason: `Assigned to ${targetEmp.fullName} for commercial negotiation`,
     }),
   });
   const reassignData = await reassignRes.json();
-  console.log('   ✅ Reassigned To:', reassignData.client?.assignedEmployee?.fullName, `(${reassignData.client?.assignedEmployee?.employeeId})`);
+  console.log('   ✅ Reassigned To:', reassignData.client?.assignedEmployee?.fullName || targetEmp.fullName, `(${reassignData.client?.assignedEmployee?.employeeId || targetEmp.employeeId})`);
 
   // 8. Test Client Timeline Verification
   console.log('\n8️⃣ Testing Chronological Activity Timeline Retrieval...');

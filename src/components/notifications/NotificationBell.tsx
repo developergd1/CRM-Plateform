@@ -101,7 +101,7 @@ export const NotificationBell: React.FC<NotificationBellProps> = ({ variant = 'l
           setIsOpen(!isOpen);
           if (!isOpen) fetchNotifications();
         }}
-        className={`interactive-btn-hover relative p-2 rounded-xl transition-all flex items-center justify-center ${
+        className={`interactive-btn-hover relative p-2 rounded-xl transition-all flex items-center justify-center cursor-pointer ${
           isLight
             ? 'text-slate-600 hover:text-slate-900 bg-slate-100/90 hover:bg-slate-200/90 border border-slate-200 shadow-sm'
             : 'text-slate-400 hover:text-white hover:bg-slate-800'
@@ -118,16 +118,17 @@ export const NotificationBell: React.FC<NotificationBellProps> = ({ variant = 'l
       </button>
 
       {isOpen && (
-        <div className="absolute right-0 mt-2 w-80 sm:w-96 bg-slate-900 border border-slate-800 rounded-2xl shadow-2xl z-50 overflow-hidden animate-in fade-in slide-in-from-top-2 duration-150">
-          <div className="p-3.5 border-b border-slate-800 flex items-center justify-between bg-slate-950/80">
+        <div className="absolute right-0 mt-2 w-80 sm:w-96 bg-white border border-slate-200 rounded-2xl shadow-xl z-50 overflow-hidden animate-in fade-in slide-in-from-top-2 duration-150">
+          {/* Header */}
+          <div className="p-3.5 border-b border-slate-100 flex items-center justify-between bg-slate-50/80">
             <div className="flex items-center gap-2">
-              <span className="text-xs font-black text-white uppercase tracking-wider">Notifications</span>
+              <span className="text-xs font-black text-slate-800 uppercase tracking-wider">Notifications</span>
               {unreadCount > 0 ? (
-                <span className="text-[10px] font-bold bg-teal-500/20 text-teal-300 px-2 py-0.5 rounded-full border border-teal-500/30">
+                <span className="text-[10px] font-bold bg-rose-50 text-rose-600 px-2 py-0.5 rounded-full border border-rose-200">
                   {unreadCount} new
                 </span>
               ) : (
-                <span className="text-[10px] font-medium text-slate-400">
+                <span className="text-[10px] font-medium text-slate-500">
                   All caught up
                 </span>
               )}
@@ -136,7 +137,7 @@ export const NotificationBell: React.FC<NotificationBellProps> = ({ variant = 'l
             {unreadCount > 0 && (
               <button
                 onClick={markAllAsRead}
-                className="text-[11px] font-semibold text-growth-teal hover:text-teal-300 transition-colors flex items-center gap-1"
+                className="text-[11px] font-semibold text-rose-600 hover:text-rose-700 transition-colors flex items-center gap-1 cursor-pointer"
               >
                 <CheckCheck className="w-3.5 h-3.5" />
                 <span>Mark all read</span>
@@ -144,12 +145,13 @@ export const NotificationBell: React.FC<NotificationBellProps> = ({ variant = 'l
             )}
           </div>
 
-          <div className="max-h-96 overflow-y-auto divide-y divide-slate-800/60">
+          {/* List */}
+          <div className="max-h-96 overflow-y-auto divide-y divide-slate-100">
             {notifications.length === 0 ? (
-              <div className="p-8 text-center text-slate-500">
+              <div className="p-8 text-center text-slate-400">
                 <Bell className="w-8 h-8 mx-auto mb-2 opacity-30 text-slate-400" />
-                <p className="text-xs font-semibold">No notifications yet</p>
-                <p className="text-[10px] text-slate-600 mt-0.5">Real-time alerts for tasks, leaves, and approvals appear here.</p>
+                <p className="text-xs font-semibold text-slate-600">No notifications yet</p>
+                <p className="text-[10px] text-slate-400 mt-0.5">Real-time alerts for tasks, leaves, and approvals appear here.</p>
               </div>
             ) : (
               notifications.map((n) => (
@@ -157,28 +159,30 @@ export const NotificationBell: React.FC<NotificationBellProps> = ({ variant = 'l
                   key={n.id}
                   onClick={() => markAsRead(n.id, n.actionUrl)}
                   className={`p-3.5 transition-colors cursor-pointer flex gap-3 items-start ${
-                    n.isRead ? 'bg-slate-900/40 hover:bg-slate-800/40 text-slate-400' : 'bg-slate-800/70 hover:bg-slate-800 text-slate-200'
+                    n.isRead
+                      ? 'bg-white hover:bg-slate-50 text-slate-600'
+                      : 'bg-rose-50/40 hover:bg-rose-50/70 text-slate-800'
                   }`}
                 >
                   <div
                     className={`w-2 h-2 mt-1.5 rounded-full shrink-0 ${
-                      n.isRead ? 'bg-transparent' : 'bg-teal-400 ring-4 ring-teal-400/20'
+                      n.isRead ? 'bg-transparent' : 'bg-rose-500 ring-4 ring-rose-100'
                     }`}
                   />
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center justify-between gap-2">
-                      <span className={`text-xs font-bold truncate ${n.isRead ? 'text-slate-300' : 'text-white'}`}>
+                      <span className={`text-xs font-bold truncate ${n.isRead ? 'text-slate-700' : 'text-slate-900 font-extrabold'}`}>
                         {n.title}
                       </span>
-                      <span className="text-[9px] text-slate-500 shrink-0 font-mono" suppressHydrationWarning>
+                      <span className="text-[10px] text-slate-400 shrink-0 font-medium" suppressHydrationWarning>
                         {new Date(n.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                       </span>
                     </div>
-                    <p className="text-[11px] text-slate-400 mt-0.5 line-clamp-2 leading-relaxed">
+                    <p className={`text-[11px] mt-0.5 line-clamp-2 leading-relaxed ${n.isRead ? 'text-slate-500' : 'text-slate-700'}`}>
                       {n.message}
                     </p>
                     {n.actionUrl && (
-                      <span className="inline-flex items-center gap-1 text-[10px] text-growth-teal font-semibold mt-1 hover:underline">
+                      <span className="inline-flex items-center gap-1 text-[10px] text-rose-600 hover:text-rose-700 font-bold mt-1">
                         View details <ExternalLink className="w-2.5 h-2.5" />
                       </span>
                     )}

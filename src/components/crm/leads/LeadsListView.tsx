@@ -33,18 +33,25 @@ import {
   LeadPriority,
 } from '@/lib/constants/crm';
 import { CreateLeadModal } from './CreateLeadModal';
+import { LeadConversionModal } from './LeadConversionModal';
 
 interface LeadsListViewProps {
   onSelectLead?: (id: string) => void;
+  initialSourceFilter?: string;
+  initialClientId?: string;
 }
 
 import { clientCache } from '@/lib/client-cache';
 
-export const LeadsListView: React.FC<LeadsListViewProps> = ({ onSelectLead }) => {
+export const LeadsListView: React.FC<LeadsListViewProps> = ({
+  onSelectLead,
+  initialSourceFilter = '',
+  initialClientId,
+}) => {
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
   const [priorityFilter, setPriorityFilter] = useState('');
-  const [sourceFilter, setSourceFilter] = useState('');
+  const [sourceFilter, setSourceFilter] = useState(initialSourceFilter);
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(25);
 
@@ -58,6 +65,7 @@ export const LeadsListView: React.FC<LeadsListViewProps> = ({ onSelectLead }) =>
   const [refreshing, setRefreshing] = useState(false);
 
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [convertLead, setConvertLead] = useState<any | null>(null);
 
   // Status update modal state
   const [statusModalLead, setStatusModalLead] = useState<any | null>(null);
@@ -205,20 +213,16 @@ export const LeadsListView: React.FC<LeadsListViewProps> = ({ onSelectLead }) =>
   return (
     <div className="space-y-6 pb-12 font-sans">
       {/* Executive Command Banner */}
-      <div className="bg-gradient-to-r from-slate-950 via-growth-navy to-slate-900 rounded-3xl p-6 text-white shadow-2xl border border-slate-800/80 relative overflow-hidden hero-banner-interactive">
-        <div className="absolute -right-16 -top-16 w-72 h-72 bg-growth-teal/15 rounded-full blur-3xl pointer-events-none" />
-        <div className="absolute right-1/3 -bottom-20 w-72 h-72 bg-growth-gold/10 rounded-full blur-3xl pointer-events-none" />
-
+      <div className="bg-white rounded-2xl p-6 text-slate-900 shadow-sm border border-slate-200/80 relative overflow-hidden panel-premium">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 relative z-10">
           <div>
-            <div className="inline-flex items-center gap-2 px-3 py-1 bg-white/10 rounded-full text-xs font-semibold text-growth-gold mb-2 border border-white/10 backdrop-blur-md chip-premium-highlight cursor-pointer">
-              <Sparkles className="w-3.5 h-3.5 text-growth-gold" />
+            <div className="inline-flex items-center px-3 py-1 bg-[#0D9488]/10 rounded-full text-xs font-bold text-[#0D9488] mb-2 border border-[#0D9488]/20">
               <span>CRM • Lead Inquiries Pipeline</span>
             </div>
-            <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-white hero-title-interactive">
+            <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-slate-900">
               Corporate Leads & Inquiries
             </h1>
-            <p className="text-xs text-slate-300 mt-1 max-w-xl leading-relaxed hero-subtitle-interactive">
+            <p className="text-xs text-slate-500 mt-1 max-w-xl leading-relaxed">
               Track incoming prospect inquiries, qualify commercial readiness, and advance leads through the sales pipeline.
             </p>
           </div>
@@ -226,10 +230,9 @@ export const LeadsListView: React.FC<LeadsListViewProps> = ({ onSelectLead }) =>
           <div className="flex items-center gap-2.5">
             <button
               onClick={() => setShowCreateModal(true)}
-              className="flex items-center gap-2 px-5 py-2.5 bg-growth-teal hover:bg-growth-tealDark text-white font-bold text-xs rounded-xl shadow-md transition-all active:scale-95 interactive-btn-hover"
+              className="px-5 py-2.5 bg-growth-teal hover:bg-growth-tealDark text-white font-bold text-xs rounded-xl shadow-sm transition-all active:scale-95 cursor-pointer"
             >
-              <Plus className="w-4 h-4" />
-              <span>Create Lead</span>
+              Create Lead
             </button>
           </div>
         </div>
@@ -238,56 +241,38 @@ export const LeadsListView: React.FC<LeadsListViewProps> = ({ onSelectLead }) =>
       {/* Top Stats Ribbon */}
       <div className="grid grid-cols-2 md:grid-cols-6 gap-3.5">
         <div className="p-4 rounded-2xl bg-white border border-slate-200/80 shadow-sm interactive-box-hover group">
-          <div className="flex items-center justify-between text-slate-500">
-            <span className="text-[10px] font-black uppercase tracking-wider text-slate-500 group-hover:text-growth-teal transition-colors">Total Leads</span>
-            <Users className="w-4 h-4 text-slate-400 group-hover:text-growth-teal transition-colors" />
-          </div>
-          <p className="text-2xl font-black text-slate-900 font-mono mt-1.5 group-hover:text-growth-teal transition-colors">{pagination.total || stats.total}</p>
+          <span className="text-[10px] font-black uppercase tracking-wider text-slate-500 block">Total Leads</span>
+          <p className="text-2xl font-black text-slate-900 font-mono mt-1.5">{pagination.total || stats.total}</p>
           <span className="text-[11px] text-slate-500 font-semibold">All corporate inquiries</span>
         </div>
 
         <div className="p-4 rounded-2xl bg-white border border-slate-200/80 shadow-sm interactive-box-hover group">
-          <div className="flex items-center justify-between text-blue-600">
-            <span className="text-[10px] font-black uppercase tracking-wider text-blue-600">New</span>
-            <Sparkles className="w-4 h-4 text-blue-500" />
-          </div>
-          <p className="text-2xl font-black text-blue-600 font-mono mt-1.5">{stats.new}</p>
+          <span className="text-[10px] font-black uppercase tracking-wider text-growth-teal block">New</span>
+          <p className="text-2xl font-black text-growth-teal font-mono mt-1.5">{stats.new}</p>
           <span className="text-[11px] text-slate-500 font-semibold">Uncontacted</span>
         </div>
 
         <div className="p-4 rounded-2xl bg-white border border-slate-200/80 shadow-sm interactive-box-hover group">
-          <div className="flex items-center justify-between text-amber-600">
-            <span className="text-[10px] font-black uppercase tracking-wider text-amber-600">Contacted</span>
-            <Clock className="w-4 h-4 text-amber-500" />
-          </div>
-          <p className="text-2xl font-black text-amber-600 font-mono mt-1.5">{stats.contacted}</p>
+          <span className="text-[10px] font-black uppercase tracking-wider text-growth-orange block">Contacted</span>
+          <p className="text-2xl font-black text-growth-orange font-mono mt-1.5">{stats.contacted}</p>
           <span className="text-[11px] text-slate-500 font-semibold">In discussions</span>
         </div>
 
         <div className="p-4 rounded-2xl bg-white border border-slate-200/80 shadow-sm interactive-box-hover group">
-          <div className="flex items-center justify-between text-emerald-600">
-            <span className="text-[10px] font-black uppercase tracking-wider text-emerald-600">Qualified</span>
-            <UserCheck className="w-4 h-4 text-emerald-500" />
-          </div>
-          <p className="text-2xl font-black text-emerald-600 font-mono mt-1.5">{stats.qualified}</p>
+          <span className="text-[10px] font-black uppercase tracking-wider text-growth-teal block">Qualified</span>
+          <p className="text-2xl font-black text-growth-teal font-mono mt-1.5">{stats.qualified}</p>
           <span className="text-[11px] text-slate-500 font-semibold">High intent</span>
         </div>
 
         <div className="p-4 rounded-2xl bg-white border border-slate-200/80 shadow-sm interactive-box-hover group">
-          <div className="flex items-center justify-between text-indigo-600">
-            <span className="text-[10px] font-black uppercase tracking-wider text-indigo-600">Follow-ups Due</span>
-            <Calendar className="w-4 h-4 text-indigo-500" />
-          </div>
-          <p className="text-2xl font-black text-indigo-600 font-mono mt-1.5">{stats.followUp}</p>
+          <span className="text-[10px] font-black uppercase tracking-wider text-growth-orange block">Follow-ups Due</span>
+          <p className="text-2xl font-black text-growth-orange font-mono mt-1.5">{stats.followUp}</p>
           <span className="text-[11px] text-slate-500 font-semibold">Scheduled today</span>
         </div>
 
         <div className="p-4 rounded-2xl bg-white border border-slate-200/80 shadow-sm interactive-box-hover group">
-          <div className="flex items-center justify-between text-rose-600">
-            <span className="text-[10px] font-black uppercase tracking-wider text-rose-600">Lost / Unqual</span>
-            <AlertCircle className="w-4 h-4 text-rose-500" />
-          </div>
-          <p className="text-2xl font-black text-slate-700 font-mono mt-1.5">{stats.lost}</p>
+          <span className="text-[10px] font-black uppercase tracking-wider text-slate-600 block">Lost / Unqual</span>
+          <p className="text-2xl font-black text-slate-800 font-mono mt-1.5">{stats.lost}</p>
           <span className="text-[11px] text-slate-500 font-semibold">Closed out</span>
         </div>
       </div>
@@ -429,16 +414,16 @@ export const LeadsListView: React.FC<LeadsListViewProps> = ({ onSelectLead }) =>
                   const getStatusBadge = (status: string) => {
                     switch (status) {
                       case 'NEW':
-                        return 'bg-blue-50 text-blue-700 border-blue-200';
+                        return 'bg-teal-50 text-growth-teal border-teal-200';
                       case 'CONTACTED':
-                        return 'bg-amber-50 text-amber-700 border-amber-200';
+                        return 'bg-orange-50 text-growth-orange border-orange-200';
                       case 'QUALIFIED':
-                        return 'bg-emerald-50 text-emerald-700 border-emerald-200';
+                        return 'bg-teal-50 text-growth-teal border-teal-200 font-bold';
                       case 'CONVERTED':
-                        return 'bg-purple-50 text-purple-700 border-purple-200';
+                        return 'bg-slate-900 text-white border-slate-800';
                       case 'LOST':
                       case 'UNQUALIFIED':
-                        return 'bg-rose-50 text-rose-700 border-rose-200';
+                        return 'bg-slate-100 text-slate-700 border-slate-300';
                       default:
                         return 'bg-slate-50 text-slate-700 border-slate-200';
                     }
@@ -447,11 +432,11 @@ export const LeadsListView: React.FC<LeadsListViewProps> = ({ onSelectLead }) =>
                   const getPriorityBadge = (priority: string) => {
                     switch (priority) {
                       case 'URGENT':
-                        return 'bg-rose-50 text-rose-700 border-rose-200';
+                        return 'bg-orange-50 text-growth-orange border-orange-300 font-black';
                       case 'HIGH':
-                        return 'bg-amber-50 text-amber-700 border-amber-200';
+                        return 'bg-orange-50 text-growth-orange border-orange-200';
                       case 'MEDIUM':
-                        return 'bg-blue-50 text-blue-700 border-blue-200';
+                        return 'bg-teal-50 text-growth-teal border-teal-200';
                       default:
                         return 'bg-slate-50 text-slate-600 border-slate-200';
                     }
@@ -570,7 +555,7 @@ export const LeadsListView: React.FC<LeadsListViewProps> = ({ onSelectLead }) =>
                               title="Advance Status"
                             >
                               <option value="" disabled>
-                                ➔
+                                {'->'}
                               </option>
                               {allowedNextStatuses.map((st) => (
                                 <option key={st} value={st} className="bg-white text-slate-800">
@@ -624,13 +609,37 @@ export const LeadsListView: React.FC<LeadsListViewProps> = ({ onSelectLead }) =>
 
                       {/* Actions */}
                       <td className="py-3.5 px-4 whitespace-nowrap text-right">
-                        <Link
-                          href={`/growthIndia/crm/leads/${lead.id}`}
-                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-growth-teal hover:text-white text-slate-700 text-xs font-bold transition-all border border-slate-200 shadow-sm"
-                        >
-                          <Eye className="w-3.5 h-3.5" />
-                          <span>View 360</span>
-                        </Link>
+                        <div className="flex items-center justify-end gap-1.5">
+                          {lead.status !== 'CONVERTED' && lead.status !== 'LOST' && (
+                            <button
+                              type="button"
+                              onClick={() => setConvertLead(lead)}
+                              className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-[#0D9488]/10 hover:bg-[#0D9488] text-[#0D9488] hover:text-white text-xs font-bold transition-all border border-[#0D9488]/20 shadow-xs"
+                              title="Convert to Account & Contact"
+                            >
+                              <ArrowRightCircle className="w-3.5 h-3.5" />
+                              <span>Convert</span>
+                            </button>
+                          )}
+                          {onSelectLead ? (
+                            <button
+                              type="button"
+                              onClick={() => onSelectLead(lead.id)}
+                              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-100 hover:bg-[#0D9488] hover:text-white text-slate-700 text-xs font-bold transition-all border border-slate-200 shadow-xs"
+                            >
+                              <Eye className="w-3.5 h-3.5" />
+                              <span>View 360</span>
+                            </button>
+                          ) : (
+                            <Link
+                              href={`/growthIndia/crm/leads/${lead.id}`}
+                              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-100 hover:bg-[#0D9488] hover:text-white text-slate-700 text-xs font-bold transition-all border border-slate-200 shadow-xs"
+                            >
+                              <Eye className="w-3.5 h-3.5" />
+                              <span>View 360</span>
+                            </Link>
+                          )}
+                        </div>
                       </td>
                     </tr>
                   );
@@ -672,6 +681,7 @@ export const LeadsListView: React.FC<LeadsListViewProps> = ({ onSelectLead }) =>
       {/* Create Lead Modal */}
       <CreateLeadModal
         isOpen={showCreateModal}
+        initialClientId={initialClientId}
         onClose={() => setShowCreateModal(false)}
         onSuccess={() => {
           fetchLeads();
@@ -693,7 +703,7 @@ export const LeadsListView: React.FC<LeadsListViewProps> = ({ onSelectLead }) =>
             </p>
 
             {statusError && (
-              <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-xs text-rose-700">
+              <div className="p-3 rounded-xl bg-orange-50 border border-orange-200 text-xs text-growth-orange font-bold">
                 {statusError}
               </div>
             )}
@@ -726,12 +736,24 @@ export const LeadsListView: React.FC<LeadsListViewProps> = ({ onSelectLead }) =>
                 disabled={updatingStatus}
                 className="px-4 py-2 rounded-xl bg-growth-teal hover:bg-growth-tealDark text-xs font-bold text-white shadow-md transition-all"
               >
-                {updatingStatus ? 'Updating...' : `Confirm ➔ ${targetStatus}`}
+                {updatingStatus ? 'Updating...' : `Confirm -> ${targetStatus}`}
               </button>
             </div>
           </div>
         </div>
       )}
+
+      {/* Lead Conversion Modal */}
+      <LeadConversionModal
+        isOpen={!!convertLead}
+        lead={convertLead}
+        onClose={() => setConvertLead(null)}
+        onSuccess={() => {
+          setConvertLead(null);
+          fetchLeads();
+          fetchStats();
+        }}
+      />
     </div>
   );
 };

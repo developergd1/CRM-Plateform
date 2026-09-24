@@ -6,15 +6,15 @@ const prisma = new PrismaClient();
 async function testLifecycleFlow() {
   console.log('🚀 Testing End-to-End CRM & Workforce Connected Lifecycle Flow...');
 
-  // Clean any previous test run
+  // Clean any previous test run (preserving primary admin)
   await prisma.attendanceBreak.deleteMany({});
   await prisma.attendance.deleteMany({});
   await prisma.dealStageHistory.deleteMany({});
   await prisma.deal.deleteMany({});
   await prisma.client.deleteMany({});
   await prisma.lead.deleteMany({});
-  await prisma.employee.deleteMany({ where: { employeeId: { not: 'GI-EMP-000001' } } });
-  await prisma.user.deleteMany({ where: { email: { not: 'admin@growthindia.in' } } });
+  await prisma.employee.deleteMany({ where: { employeeId: { notIn: ['GI-EMP-000001'] } } });
+  await prisma.user.deleteMany({ where: { email: { notIn: ['admin@growthindia.co', 'admin@growthindia.in'] } } });
 
   // Step 1: Admin creates an Inbound Lead
   console.log('1️⃣ Creating Lead: Titan Infotech Solutions...');

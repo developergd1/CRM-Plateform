@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
+import { prisma, getEmployeeLookup } from '@/lib/prisma';
 import { getSessionUser } from '@/lib/auth';
 import { isManagerOrAbove } from '@/lib/rbac';
 import {
@@ -81,18 +81,21 @@ export async function POST(req: NextRequest) {
     const user = await getSessionUser(req);
     if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
+    const body = await req.json().catch(() => ({}));
+    const targetEmpId = (isManagerOrAbove(user.role) && body.employeeId) ? body.employeeId : undefined;
+
     const emp = await prisma.employee.findFirst({
-      where: {
-        OR: [
-          { userId: user.id },
-          ...(user.employeeId ? [{ employeeId: user.employeeId }] : []),
-        ],
-      },
+      where: targetEmpId
+        ? getEmployeeLookup(targetEmpId)
+        : {
+            OR: [
+              { userId: user.id },
+              ...(user.employeeId ? [{ employeeId: user.employeeId }] : []),
+            ],
+          },
       include: { client: true },
     });
     if (!emp) return NextResponse.json({ error: 'Employee record not found' }, { status: 404 });
-
-    const body = await req.json().catch(() => ({}));
     const {
       date,
       requestedCheckIn,
@@ -125,6 +128,8 @@ export async function POST(req: NextRequest) {
     });
   } catch (error: any) {
     console.error('Error submitting regularization request:', error);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    const msg = error.message || 'Internal Server Error';
+    const isValidation = msg.includes('already exists') || msg.includes('window exceeded') || msg.includes('required');
+    return NextResponse.json({ error: msg }, { status: isValidation ? 400 : 500 });
   }
 }

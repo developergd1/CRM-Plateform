@@ -245,7 +245,21 @@ export async function POST(
 
     // Get or create User
     let clientUser = await prisma.user.findUnique({ where: { email: clientEmail } });
-    if (!clientUser) {
+    if (clientUser) {
+      const linkedClient = await prisma.client.findUnique({ where: { userId: clientUser.id } });
+      if (linkedClient) {
+        const uniqueSuffix = `${clientNumMatch}.${Date.now().toString().slice(-4)}`;
+        const fallbackEmail = `client.${uniqueSuffix}@growthindia.in`;
+        clientUser = await prisma.user.create({
+          data: {
+            email: fallbackEmail,
+            passwordHash: hashedPassword,
+            roleId: clientRole.id,
+            isActive: true,
+          },
+        });
+      }
+    } else {
       clientUser = await prisma.user.create({
         data: {
           email: clientEmail,
@@ -254,6 +268,24 @@ export async function POST(
           isActive: true,
         },
       });
+    }
+
+    let safeUserId: string | null = null;
+    if (clientUser) {
+      const isTaken = await prisma.client.findUnique({ where: { userId: clientUser.id } });
+      if (!isTaken) {
+        safeUserId = clientUser.id;
+      }
+    }
+
+    // Resolve creator employee ObjectId
+    let creatorEmployeeObjectId: string | null = null;
+    if (user.employeeId) {
+      const creatorEmp = await prisma.employee.findFirst({
+        where: { employeeId: user.employeeId },
+        select: { id: true },
+      });
+      creatorEmployeeObjectId = creatorEmp?.id || null;
     }
 
     // Create Client profile
@@ -267,14 +299,15 @@ export async function POST(
         address: targetAddress,
         industry: targetIndustry,
         status: 'ACTIVE',
+        assignedModules: ['EMS'],
         dateAdded: new Date(),
-        userId: clientUser.id,
+        userId: safeUserId,
         canBlockEmployees: false,
         canDeleteEmployees: false,
         estimatedValue: deal.amount || 0,
         stage: 'ACTIVE',
         assignedEmployeeId: deal.assignedToId || null,
-        createdById: user.employeeId || null,
+        createdById: creatorEmployeeObjectId,
       },
     });
 

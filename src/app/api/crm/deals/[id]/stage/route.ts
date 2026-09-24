@@ -21,9 +21,12 @@ export async function POST(
     if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
     const body = await req.json();
-    const { toStage, reason, probability, override = false } = body;
+    const toStage = (body.toStage || body.stage || body.stageName || '').toUpperCase();
+    const reason = body.reason || body.remarks;
+    const probability = body.probability;
+    const override = body.override ?? (user.role === 'ADMIN' || user.role === 'SUPER_ADMIN');
 
-    if (!toStage || !DEAL_STAGES.includes(toStage)) {
+    if (!toStage || !DEAL_STAGES.includes(toStage as any)) {
       return NextResponse.json(
         { error: `Invalid stage: ${toStage}. Allowed stages: ${DEAL_STAGES.join(', ')}` },
         { status: 400 }
@@ -41,7 +44,7 @@ export async function POST(
     const currentStage = deal.stage as DealStage;
 
     // Check transition validity
-    if (!override && !isValidDealStageTransition(currentStage, toStage)) {
+    if (!override && !isValidDealStageTransition(currentStage, toStage as any)) {
       return NextResponse.json(
         {
           error: `Invalid transition from "${currentStage}" to "${toStage}". Please follow the standard lifecycle or provide manager override.`,
@@ -147,6 +150,29 @@ export async function POST(
       });
     }
 
+    // Auto-queue Client Handoff when Deal reaches WON
+    let handoffRecord = null;
+    if (targetStage === 'WON' && deal.accountId) {
+      const { generateHandoffReference } = await import('@/lib/id-generator');
+      const handoffReference = await generateHandoffReference();
+      handoffRecord = await prisma.clientHandoff.create({
+        data: {
+          handoffReference,
+          dealId: deal.id,
+          accountId: deal.accountId,
+          status: 'PENDING',
+          dealValue: updatedDeal.amount || 0,
+          notes: `Automated handoff triggered by Deal Won: ${deal.dealNumber} - ${deal.title}`,
+          submittedById: changerEmployeeId,
+        },
+      });
+
+      await prisma.account.update({
+        where: { id: deal.accountId },
+        data: { status: 'CUSTOMER' },
+      }).catch((err) => console.error('Account status sync error:', err));
+    }
+
     if (targetStage === 'WON') {
       await triggerAutomationEvent(
         'DEAL_WON',
@@ -169,11 +195,19 @@ export async function POST(
 
     return NextResponse.json({
       success: true,
-      data: updatedDeal,
+      data: {
+        ...updatedDeal,
+        deal: updatedDeal,
+        handoff: handoffRecord,
+      },
       stageHistory: stageHistoryRecord,
     });
   } catch (error: any) {
     console.error('Error changing deal stage:', error);
     return NextResponse.json({ error: error.message || 'Failed to change deal stage' }, { status: 500 });
   }
+}
+
+export async function PATCH(req: NextRequest, ctx: { params: { id: string } }) {
+  return POST(req, ctx);
 }

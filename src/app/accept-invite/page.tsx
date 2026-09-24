@@ -104,10 +104,10 @@ function AcceptInviteContent() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center space-y-4 text-center p-4">
+      <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center space-y-4 text-center p-4">
         <GrowthIndiaLogo size="lg" />
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-growth-teal" />
-        <p className="text-xs text-slate-400 font-medium">Verifying invitation credentials & security token...</p>
+        <div className="animate-spin rounded-full h-8 w-8 border-2 border-slate-200 border-t-growth-teal" />
+        <p className="text-xs text-slate-600 font-medium">Verifying invitation credentials & security token...</p>
       </div>
     );
   }

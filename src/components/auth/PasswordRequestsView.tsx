@@ -413,7 +413,7 @@ export const PasswordRequestsView: React.FC = () => {
                 onClick={() => setActiveTarget(null)}
                 className="text-slate-400 hover:text-slate-600 text-sm font-bold interactive-btn-hover cursor-pointer p-1"
               >
-                ✕
+                Cancel
               </button>
             </div>
 

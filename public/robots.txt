@@ -1,0 +1,9 @@
+# Growth India Robots.txt
+User-agent: *
+Allow: /
+Disallow: /api/
+Disallow: /growthIndia/
+Disallow: /admin/
+
+# Sitemap location
+Sitemap: https://growthindia.co/sitemap.xml

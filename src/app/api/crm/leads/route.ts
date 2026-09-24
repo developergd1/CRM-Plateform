@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma, resolveClientObjectId, resolveEmployeeObjectId } from '@/lib/prisma';
 import { getSessionUser } from '@/lib/auth';
 import { logAuditEvent } from '@/lib/audit';
-import { buildTenantWhereClause } from '@/lib/tenant';
+import { buildTenantWhereClause, checkModuleAccess, getTenantContext } from '@/lib/tenant';
 import { generateLeadNumber } from '@/lib/id-generator';
 import { notifyAssignment } from '@/lib/notifications';
 import { LEAD_SOURCES, LEAD_STATUSES, LEAD_PRIORITIES } from '@/lib/constants/crm';
@@ -11,6 +11,8 @@ export async function GET(req: NextRequest) {
   try {
     const user = await getSessionUser(req);
     if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    const moduleForbidden = checkModuleAccess(user, 'CRM');
+    if (moduleForbidden) return moduleForbidden;
 
     const { searchParams } = new URL(req.url);
     const search = searchParams.get('search')?.trim() || '';
@@ -101,6 +103,8 @@ export async function POST(req: NextRequest) {
   try {
     const user = await getSessionUser(req);
     if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    const moduleForbidden = checkModuleAccess(user, 'CRM');
+    if (moduleForbidden) return moduleForbidden;
 
     const body = await req.json();
     const {
@@ -149,7 +153,8 @@ export async function POST(req: NextRequest) {
     }
 
     const leadNumber = await generateLeadNumber();
-    const resolvedClientId = clientId ? await resolveClientObjectId(clientId) : null;
+    const tenantContext = await getTenantContext(req);
+    const resolvedClientId = tenantContext?.clientDocId || (clientId ? await resolveClientObjectId(clientId) : null);
     const resolvedAssignedToId = assignedToId ? await resolveEmployeeObjectId(assignedToId) : null;
 
     const newLead = await prisma.lead.create({

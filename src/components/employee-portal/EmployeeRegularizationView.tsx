@@ -88,7 +88,7 @@ export const EmployeeRegularizationView: React.FC = () => {
       {/* Header Banner */}
       <div className="panel-premium bg-white p-6 rounded-3xl border border-slate-200 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="flex items-center gap-3">
-          <div className="p-3 bg-purple-100 text-purple-700 rounded-2xl">
+          <div className="p-3 bg-teal-50 border border-teal-200 text-teal-700 rounded-2xl">
             <Clock className="w-6 h-6" />
           </div>
           <div>
@@ -223,16 +223,22 @@ export const EmployeeRegularizationView: React.FC = () => {
 
       {/* Apply Modal */}
       {showApplyModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-sm">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-sm animate-in fade-in">
           <div className="panel-premium bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-200 space-y-4">
             <div className="flex items-center justify-between pb-3 border-b border-slate-100">
-              <div className="flex items-center gap-2">
-                <Clock className="w-5 h-5 text-growth-teal" />
-                <h3 className="title-interactive-hover text-base font-bold text-slate-900">Request Punch Correction</h3>
+              <div className="flex items-center gap-2.5">
+                <div className="w-9 h-9 rounded-xl bg-teal-50 border border-teal-200 text-teal-700 flex items-center justify-center font-bold">
+                  <Clock className="w-4 h-4" />
+                </div>
+                <div>
+                  <h3 className="title-interactive-hover text-base font-bold text-slate-900">Request Punch Correction</h3>
+                  <p className="text-[11px] text-slate-500">Attendance regularization request</p>
+                </div>
               </div>
               <button
+                type="button"
                 onClick={() => setShowApplyModal(false)}
-                className="p-1 text-slate-400 hover:text-slate-600 rounded-lg"
+                className="p-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-xl transition cursor-pointer"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -246,7 +252,7 @@ export const EmployeeRegularizationView: React.FC = () => {
                   required
                   value={targetDate}
                   onChange={(e) => setTargetDate(e.target.value)}
-                  className="w-full p-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-growth-teal/20 focus:border-growth-teal"
+                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-slate-800 text-xs focus:bg-white focus:outline-none focus:ring-1 focus:ring-growth-teal"
                 />
               </div>
 
@@ -258,7 +264,7 @@ export const EmployeeRegularizationView: React.FC = () => {
                     required
                     value={proposedCheckIn}
                     onChange={(e) => setProposedCheckIn(e.target.value)}
-                    className="w-full p-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-growth-teal/20 focus:border-growth-teal"
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-slate-800 text-xs focus:bg-white focus:outline-none focus:ring-1 focus:ring-growth-teal"
                   />
                 </div>
                 <div>
@@ -268,7 +274,7 @@ export const EmployeeRegularizationView: React.FC = () => {
                     required
                     value={proposedCheckOut}
                     onChange={(e) => setProposedCheckOut(e.target.value)}
-                    className="w-full p-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-growth-teal/20 focus:border-growth-teal"
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-slate-800 text-xs focus:bg-white focus:outline-none focus:ring-1 focus:ring-growth-teal"
                   />
                 </div>
               </div>
@@ -278,7 +284,7 @@ export const EmployeeRegularizationView: React.FC = () => {
                 <select
                   value={reason}
                   onChange={(e) => setReason(e.target.value)}
-                  className="w-full p-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-growth-teal/20 focus:border-growth-teal"
+                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-slate-800 text-xs font-semibold focus:bg-white focus:outline-none focus:ring-1 focus:ring-growth-teal"
                 >
                   <option value="Biometric Reader Failure">Biometric Reader Failure</option>
                   <option value="Forgot to Punch Out">Forgot to Punch Out</option>
@@ -296,7 +302,7 @@ export const EmployeeRegularizationView: React.FC = () => {
                   value={supportingReason}
                   onChange={(e) => setSupportingReason(e.target.value)}
                   placeholder="Provide supervisor context or details..."
-                  className="w-full p-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-growth-teal/20 focus:border-growth-teal"
+                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-slate-800 text-xs focus:bg-white focus:outline-none focus:ring-1 focus:ring-growth-teal"
                 />
               </div>
 
@@ -304,14 +310,14 @@ export const EmployeeRegularizationView: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => setShowApplyModal(false)}
-                  className="px-4 py-2 text-slate-600 font-bold hover:bg-slate-100 rounded-xl"
+                  className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold rounded-xl text-xs transition cursor-pointer"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={submitting}
-                  className="px-4 py-2 bg-growth-teal hover:bg-growth-tealDark text-white font-bold rounded-xl shadow-tealGlow transition disabled:opacity-50 inline-flex items-center gap-1.5"
+                  className="px-5 py-2 bg-teal-600 hover:bg-teal-700 text-white font-bold rounded-xl text-xs shadow-xs transition disabled:opacity-50 inline-flex items-center gap-1.5 cursor-pointer"
                 >
                   <Send className="w-3.5 h-3.5" />
                   <span>{submitting ? 'Submitting...' : 'Submit Regularization'}</span>

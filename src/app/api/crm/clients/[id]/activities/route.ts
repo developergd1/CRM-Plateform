@@ -3,6 +3,28 @@ import { prisma, getClientLookup } from '@/lib/prisma';
 import { getSessionUser } from '@/lib/auth';
 import { logAuditEvent } from '@/lib/audit';
 
+export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
+  try {
+    const user = await getSessionUser(req);
+    if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+    const client = await prisma.client.findFirst({
+      where: getClientLookup(params.id),
+      include: {
+        activities: {
+          include: { actorEmployee: { select: { employeeId: true, fullName: true } } },
+          orderBy: { timestamp: 'desc' },
+        },
+      },
+    });
+    if (!client) return NextResponse.json({ error: 'Client not found' }, { status: 404 });
+
+    return NextResponse.json({ success: true, activities: client.activities });
+  } catch (error: any) {
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+}
+
 export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
   try {
     const user = await getSessionUser(req);

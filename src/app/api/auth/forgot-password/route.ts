@@ -99,7 +99,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Determine target recipient for the reset request
-    let targetRole: 'ADMIN' | 'CLIENT' = 'ADMIN';
+    let targetRole: 'ADMIN' | 'CLIENT' | 'BOTH' = 'ADMIN';
     let targetClientId: string | undefined = undefined;
     let targetName = 'Growth India HQ Admin';
 
@@ -108,11 +108,11 @@ export async function POST(req: NextRequest) {
       targetRole = 'ADMIN';
       targetName = 'Growth India System Administrator';
     } else {
-      // Employee password reset request -> goes to Client employer if linked, else Admin
+      // Employee password reset request -> goes to BOTH Client employer and Admin!
       if (employeeRecord?.clientId && employeeRecord?.client) {
-        targetRole = 'CLIENT';
+        targetRole = 'BOTH';
         targetClientId = employeeRecord.clientId;
-        targetName = `${employeeRecord.client.companyName} (${employeeRecord.client.clientId})`;
+        targetName = `${employeeRecord.client.companyName} & Growth India Admin`;
       } else {
         targetRole = 'ADMIN';
         targetName = 'Growth India System Administrator';

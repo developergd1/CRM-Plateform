@@ -29,9 +29,15 @@ import { clientCache } from '@/lib/client-cache';
 
 export interface AdminAttendanceViewProps {
   initialTab?: 'workforce' | 'logs' | 'policy';
+  initialClientId?: string;
+  hideClientFilter?: boolean;
 }
 
-export const AdminAttendanceView: React.FC<AdminAttendanceViewProps> = ({ initialTab }) => {
+export const AdminAttendanceView: React.FC<AdminAttendanceViewProps> = ({
+  initialTab,
+  initialClientId,
+  hideClientFilter = false,
+}) => {
   const [activeTab, setActiveTab] = useState<'workforce' | 'logs' | 'policy'>(initialTab || 'workforce');
 
   useEffect(() => {
@@ -42,7 +48,7 @@ export const AdminAttendanceView: React.FC<AdminAttendanceViewProps> = ({ initia
 
   const cachedClients = clientCache.get<any[]>('crm_clients_list', 15 * 60 * 1000);
   const [clients, setClients] = useState<any[]>(() => cachedClients || []);
-  const [selectedClientId, setSelectedClientId] = useState<string>('');
+  const [selectedClientId, setSelectedClientId] = useState<string>(initialClientId || '');
 
   const workforceCacheKey = `workforce_live_${selectedClientId || 'all'}`;
   const cachedWorkforce = clientCache.get<any>(workforceCacheKey, 5 * 60 * 1000);
@@ -277,37 +283,32 @@ export const AdminAttendanceView: React.FC<AdminAttendanceViewProps> = ({ initia
     switch (status) {
       case 'WORKING':
         return (
-          <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-black bg-emerald-50 text-emerald-700 border border-emerald-200 shadow-xs">
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-            <span>WORKING</span>
+          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-black bg-teal-50 text-growth-teal border border-teal-200">
+            WORKING
           </span>
         );
       case 'IDLE':
         return (
-          <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-black bg-amber-50 text-amber-700 border border-amber-200 shadow-xs">
-            <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />
-            <span>IDLE (&gt;5M)</span>
+          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-black bg-orange-50 text-growth-orange border border-orange-200">
+            IDLE (&gt;5M)
           </span>
         );
       case 'ON_BREAK':
         return (
-          <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-black bg-orange-50 text-orange-700 border border-orange-200 shadow-xs">
-            <Coffee className="w-3 h-3 text-orange-600" />
-            <span>ON BREAK</span>
+          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-black bg-orange-50 text-growth-orange border border-orange-200">
+            ON BREAK
           </span>
         );
       case 'MISSING_CHECKIN':
         return (
-          <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-black bg-rose-50 text-rose-700 border border-rose-200 animate-pulse shadow-xs">
-            <AlertCircle className="w-3 h-3 text-rose-600" />
-            <span>MISSING CHECK-IN</span>
+          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-black bg-orange-50 text-growth-orange border border-orange-200">
+            MISSING CHECK-IN
           </span>
         );
       default:
         return (
-          <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-black bg-slate-100 text-slate-600 border border-slate-200 shadow-xs">
-            <Moon className="w-3 h-3 text-slate-500" />
-            <span>OFFLINE</span>
+          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-black bg-slate-100 text-slate-600 border border-slate-200">
+            OFFLINE
           </span>
         );
     }
@@ -319,36 +320,33 @@ export const AdminAttendanceView: React.FC<AdminAttendanceViewProps> = ({ initia
       <div className="panel-premium bg-white p-6 rounded-3xl border border-slate-200 shadow-card flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-2.5">
-            <h1 className="title-interactive-hover text-2xl font-black text-slate-900 tracking-tight flex items-center gap-2 cursor-pointer">
-              <Clock className="w-6 h-6 text-growth-teal" />
-              <span>Attendance Hub</span>
+            <h1 className="title-interactive-hover text-2xl font-black text-slate-900 tracking-tight cursor-pointer">
+              Attendance Hub
             </h1>
-            <span className="chip-premium-highlight text-[10px] font-extrabold uppercase px-2.5 py-0.5 rounded-full bg-teal-50 text-growth-teal border border-growth-teal/30">
-              Unified 3-in-1 Suite
-            </span>
           </div>
           <p className="subtitle-interactive-hover text-xs text-slate-500 mt-1">
-            Centralized platform governance for Live Clock-in Telemetry, Shifts & Work Policies, and Monthly Timesheet Logs
+            Live clock-in telemetry, shift policies, and monthly timesheet logs
           </p>
         </div>
 
         {/* Client Multi-Tenant Filter */}
         <div className="flex items-center gap-2">
-          <div className="flex items-center gap-1.5 bg-white border border-slate-200 rounded-xl px-3 py-1.5 shadow-sm">
-            <Building2 className="w-4 h-4 text-slate-400" />
-            <select
-              value={selectedClientId}
-              onChange={(e) => setSelectedClientId(e.target.value)}
-              className="text-xs font-semibold text-slate-700 bg-transparent focus:outline-none"
-            >
-              <option value="">All Corporate Clients</option>
-              {clients.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.companyName} ({c.clientId})
-                </option>
-              ))}
-            </select>
-          </div>
+          {!hideClientFilter && (
+            <div className="flex items-center gap-1.5 bg-white border border-slate-200 rounded-xl px-3 py-1.5 shadow-sm">
+              <select
+                value={selectedClientId}
+                onChange={(e) => setSelectedClientId(e.target.value)}
+                className="text-xs font-semibold text-slate-700 bg-transparent focus:outline-none"
+              >
+                <option value="">All Corporate Clients</option>
+                {clients.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.companyName} ({c.clientId})
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
 
           <button
             onClick={() => {
@@ -370,24 +368,24 @@ export const AdminAttendanceView: React.FC<AdminAttendanceViewProps> = ({ initia
           <div className="text-2xl font-black text-slate-900 font-mono mt-1">{summary.totalEmployees}</div>
         </div>
 
-        <div className="card-premium interactive-box-hover bg-white p-4 rounded-2xl border border-emerald-200 shadow-sm cursor-pointer">
-          <span className="title-interactive-hover text-emerald-600 text-[10px] font-bold uppercase tracking-wider block">Working Right Now</span>
-          <div className="text-2xl font-black text-emerald-600 font-mono mt-1">{summary.workingCount}</div>
-        </div>
-
-        <div className="card-premium interactive-box-hover bg-white p-4 rounded-2xl border border-amber-200 shadow-sm cursor-pointer">
-          <span className="title-interactive-hover text-amber-600 text-[10px] font-bold uppercase tracking-wider block">Idle (&gt;5m Inactive)</span>
-          <div className="text-2xl font-black text-amber-600 font-mono mt-1">{summary.idleCount}</div>
+        <div className="card-premium interactive-box-hover bg-white p-4 rounded-2xl border border-teal-200 shadow-sm cursor-pointer">
+          <span className="title-interactive-hover text-growth-teal text-[10px] font-bold uppercase tracking-wider block">Working Right Now</span>
+          <div className="text-2xl font-black text-growth-teal font-mono mt-1">{summary.workingCount}</div>
         </div>
 
         <div className="card-premium interactive-box-hover bg-white p-4 rounded-2xl border border-orange-200 shadow-sm cursor-pointer">
-          <span className="title-interactive-hover text-orange-600 text-[10px] font-bold uppercase tracking-wider block">On Break</span>
-          <div className="text-2xl font-black text-orange-600 font-mono mt-1">{summary.onBreakCount}</div>
+          <span className="title-interactive-hover text-growth-orange text-[10px] font-bold uppercase tracking-wider block">Idle (&gt;5m Inactive)</span>
+          <div className="text-2xl font-black text-growth-orange font-mono mt-1">{summary.idleCount}</div>
         </div>
 
-        <div className="card-premium interactive-box-hover bg-white p-4 rounded-2xl border border-rose-200 shadow-sm cursor-pointer">
-          <span className="title-interactive-hover text-rose-600 text-[10px] font-bold uppercase tracking-wider block">Missing Check-In</span>
-          <div className="text-2xl font-black text-rose-600 font-mono mt-1">{summary.missingCheckinCount}</div>
+        <div className="card-premium interactive-box-hover bg-white p-4 rounded-2xl border border-orange-200 shadow-sm cursor-pointer">
+          <span className="title-interactive-hover text-growth-orange text-[10px] font-bold uppercase tracking-wider block">On Break</span>
+          <div className="text-2xl font-black text-growth-orange font-mono mt-1">{summary.onBreakCount}</div>
+        </div>
+
+        <div className="card-premium interactive-box-hover bg-white p-4 rounded-2xl border border-orange-300 shadow-sm cursor-pointer">
+          <span className="title-interactive-hover text-growth-orange text-[10px] font-bold uppercase tracking-wider block">Missing Check-In</span>
+          <div className="text-2xl font-black text-growth-orange font-mono mt-1">{summary.missingCheckinCount}</div>
         </div>
 
         <div className="card-premium interactive-box-hover bg-white p-4 rounded-2xl border border-slate-200 shadow-sm cursor-pointer">
@@ -402,13 +400,12 @@ export const AdminAttendanceView: React.FC<AdminAttendanceViewProps> = ({ initia
           onClick={() => setActiveTab('workforce')}
           className={`px-4 py-2.5 rounded-xl text-xs font-black transition-all flex items-center gap-2 interactive-btn-hover cursor-pointer ${
             activeTab === 'workforce'
-              ? 'bg-gradient-to-r from-growth-teal to-growth-tealDark text-white shadow-tealGlow border border-growth-teal'
+              ? 'bg-growth-teal text-white shadow-tealGlow border border-growth-teal'
               : 'text-slate-600 hover:text-slate-900 bg-white border border-slate-200 shadow-sm'
           }`}
         >
-          <Clock className={`w-4 h-4 ${activeTab === 'workforce' ? 'text-growth-gold' : 'text-slate-500'}`} />
           <span>Attendance & Live Telemetry</span>
-          <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-mono font-bold ${
+          <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-mono font-bold ${
             activeTab === 'workforce' ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-600'
           }`}>
             {summary.workingCount} Live
@@ -419,11 +416,10 @@ export const AdminAttendanceView: React.FC<AdminAttendanceViewProps> = ({ initia
           onClick={() => setActiveTab('policy')}
           className={`px-4 py-2.5 rounded-xl text-xs font-black transition-all flex items-center gap-2 interactive-btn-hover cursor-pointer ${
             activeTab === 'policy'
-              ? 'bg-gradient-to-r from-growth-teal to-growth-tealDark text-white shadow-tealGlow border border-growth-teal'
+              ? 'bg-growth-teal text-white shadow-tealGlow border border-growth-teal'
               : 'text-slate-600 hover:text-slate-900 bg-white border border-slate-200 shadow-sm'
           }`}
         >
-          <Sliders className={`w-4 h-4 ${activeTab === 'policy' ? 'text-growth-gold' : 'text-slate-500'}`} />
           <span>Shifts & Policies</span>
         </button>
 
@@ -431,11 +427,10 @@ export const AdminAttendanceView: React.FC<AdminAttendanceViewProps> = ({ initia
           onClick={() => setActiveTab('logs')}
           className={`px-4 py-2.5 rounded-xl text-xs font-black transition-all flex items-center gap-2 interactive-btn-hover cursor-pointer ${
             activeTab === 'logs'
-              ? 'bg-gradient-to-r from-growth-teal to-growth-tealDark text-white shadow-tealGlow border border-growth-teal'
+              ? 'bg-growth-teal text-white shadow-tealGlow border border-growth-teal'
               : 'text-slate-600 hover:text-slate-900 bg-white border border-slate-200 shadow-sm'
           }`}
         >
-          <FileText className={`w-4 h-4 ${activeTab === 'logs' ? 'text-growth-gold' : 'text-slate-500'}`} />
           <span>Timesheets & Reports</span>
         </button>
       </div>
@@ -634,8 +629,13 @@ export const AdminAttendanceView: React.FC<AdminAttendanceViewProps> = ({ initia
                       const workHrs = `${Math.floor((r.totalWorkMinutes || 0) / 60)}h ${(r.totalWorkMinutes || 0) % 60}m`;
 
                       let badgeColor = 'bg-emerald-50 text-emerald-700 border-emerald-200';
+                      let displayStatus = r.status;
                       if (r.status === 'LATE') badgeColor = 'bg-amber-50 text-amber-700 border-amber-200';
                       if (r.status === 'HALF_DAY') badgeColor = 'bg-yellow-50 text-yellow-700 border-yellow-200';
+                      if (r.status === 'ON_LEAVE') {
+                        badgeColor = 'bg-purple-50 text-purple-700 border-purple-200';
+                        displayStatus = 'ON LEAVE';
+                      }
 
                       return (
                         <tr key={r.id} className="interactive-row-hover hover:bg-teal-50/20 transition">
@@ -660,11 +660,11 @@ export const AdminAttendanceView: React.FC<AdminAttendanceViewProps> = ({ initia
                           </td>
                           <td className="py-3.5 px-4 font-mono text-slate-700">{inStr}</td>
                           <td className="py-3.5 px-4 font-mono text-slate-700">{outStr}</td>
-                          <td className="py-3.5 px-4 font-mono text-growth-teal font-bold">{workHrs}</td>
+                          <td className="py-3.5 px-4 font-mono text-growth-teal font-bold">{r.status === 'ON_LEAVE' ? '—' : workHrs}</td>
                           <td className="py-3.5 px-4 font-mono text-slate-500">{r.totalBreakMinutes || 0}m</td>
                           <td className="py-3.5 px-4">
                             <span className={`px-2 py-0.5 rounded text-[10px] font-black border uppercase tracking-wider ${badgeColor}`}>
-                              {r.status}
+                              {displayStatus}
                             </span>
                           </td>
                           <td className="py-3.5 px-4 font-mono text-amber-600 font-bold">

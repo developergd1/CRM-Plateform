@@ -139,32 +139,32 @@ Portal Login:  ${origin}
         if (e.target === e.currentTarget) onClose();
       }}
     >
-      <div className="bg-slate-900 border border-slate-800 rounded-3xl max-w-lg w-full text-white shadow-2xl my-auto flex flex-col max-h-[90vh] overflow-hidden">
+      <div className="bg-white border border-slate-200 rounded-2xl max-w-lg w-full text-slate-800 shadow-2xl my-auto flex flex-col max-h-[90vh] overflow-hidden">
         {/* Modal Header */}
-        <div className="p-5 sm:p-6 bg-slate-900 flex items-center justify-between border-b border-slate-800/80 shrink-0">
+        <div className="p-5 sm:p-6 bg-white flex items-center justify-between border-b border-slate-100 shrink-0">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-growth-teal to-teal-700 flex items-center justify-center text-white font-black shadow-lg shrink-0">
+            <div className="w-10 h-10 rounded-xl bg-teal-50 text-teal-600 flex items-center justify-center font-bold shadow-xs shrink-0">
               <KeyRound className="w-5 h-5" />
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <span className="px-2 py-0.5 rounded-md text-[10px] font-black uppercase tracking-wider bg-growth-teal/20 text-growth-teal border border-growth-teal/30">
+                <span className="px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider bg-teal-50 text-teal-700 border border-teal-200">
                   {credentials.isNewlyCreated ? 'Employee Onboarding Complete' : 'Login Credentials & Access'}
                 </span>
-                <span className="font-mono text-xs font-bold text-growth-gold">
+                <span className="font-mono text-xs font-bold text-teal-800">
                   {credentials.employeeId}
                 </span>
               </div>
-              <h3 className="text-base font-black text-white mt-0.5">Employee Login Credentials</h3>
+              <h3 className="text-base font-bold text-slate-900 mt-0.5">Employee Login Credentials</h3>
             </div>
           </div>
           <button
             type="button"
             onClick={onClose}
-            className="p-2 text-slate-400 hover:text-white rounded-xl hover:bg-slate-800 transition-colors shrink-0"
+            className="p-1.5 text-slate-400 hover:text-slate-700 rounded-xl hover:bg-slate-100 transition-colors shrink-0 cursor-pointer"
             title="Close modal (Esc)"
           >
-            <X className="w-5 h-5" />
+            <X className="w-4 h-4" />
           </button>
         </div>
 
@@ -172,155 +172,155 @@ Portal Login:  ${origin}
         <div
           ref={scrollRef}
           tabIndex={0}
-          className="flex-1 overflow-y-auto p-5 sm:p-6 space-y-4 focus:outline-none focus:ring-1 focus:ring-inset focus:ring-slate-800"
+          className="flex-1 overflow-y-auto p-5 sm:p-6 space-y-4 focus:outline-none"
         >
-        
+          <p className="text-xs text-slate-500 leading-relaxed">
+            Employee can log in to the workspace using their <strong className="text-teal-700 font-semibold">Employee ID</strong>, <strong className="text-slate-800 font-semibold">Mobile Number</strong>, or <strong className="text-slate-800 font-semibold">Email Address</strong> along with this password.
+          </p>
 
-        <p className="text-xs text-slate-400 leading-relaxed">
-          Employee can log in to the workspace using their <strong className="text-growth-teal">Employee ID</strong>, <strong className="text-growth-gold">Phone Number</strong>, or <strong className="text-white">Email Address</strong> along with this password.
-        </p>
-
-        {/* Status Alerts */}
-        {passwordSuccess && (
-          <div className="bg-emerald-950/80 border border-emerald-500/40 text-emerald-300 text-xs font-semibold px-4 py-2.5 rounded-xl flex items-center gap-2">
-            <ShieldCheck className="w-4 h-4 text-emerald-400 shrink-0" />
-            <span>{passwordSuccess}</span>
-          </div>
-        )}
-
-        {passwordError && (
-          <div className="bg-rose-950/80 border border-rose-500/40 text-rose-300 text-xs font-semibold px-4 py-2.5 rounded-xl">
-            {passwordError}
-          </div>
-        )}
-
-        {/* Credentials Card */}
-        <div className="bg-slate-950/90 rounded-2xl p-4 border border-slate-800 space-y-2.5 font-mono text-xs">
-          {/* Employee ID */}
-          <div className="flex items-center justify-between pb-2 border-b border-slate-800/80">
-            <span className="text-slate-400 font-sans font-semibold flex items-center gap-1.5">
-              <User className="w-3.5 h-3.5 text-growth-teal" />
-              <span>Employee ID (Login ID):</span>
-            </span>
-            <span className="font-bold text-growth-teal text-sm select-all">{credentials.employeeId}</span>
-          </div>
-
-          {/* Full Name */}
-          {credentials.fullName && (
-            <div className="flex items-center justify-between pb-2 border-b border-slate-800/80">
-              <span className="text-slate-400 font-sans font-semibold">Full Name:</span>
-              <span className="font-sans font-bold text-slate-200 select-all">{credentials.fullName}</span>
+          {/* Status Alerts */}
+          {passwordSuccess && (
+            <div className="p-3 bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-semibold rounded-xl flex items-center gap-2">
+              <ShieldCheck className="w-4 h-4 text-emerald-600 shrink-0" />
+              <span>{passwordSuccess}</span>
             </div>
           )}
 
-          {/* Client Company */}
-          {credentials.companyName && (
-            <div className="flex items-center justify-between pb-2 border-b border-slate-800/80">
-              <span className="text-slate-400 font-sans font-semibold flex items-center gap-1.5">
-                <Building2 className="w-3.5 h-3.5 text-growth-gold" />
-                <span>Assigned Client:</span>
+          {passwordError && (
+            <div className="p-3 bg-rose-50 border border-rose-200 text-rose-700 text-xs font-semibold rounded-xl flex items-center gap-2">
+              <X className="w-4 h-4 text-rose-600 shrink-0" />
+              <span>{passwordError}</span>
+            </div>
+          )}
+
+          {/* Credentials Card */}
+          <div className="bg-slate-50 rounded-xl p-4 border border-slate-200 space-y-2.5 font-mono text-xs">
+            {/* Employee ID */}
+            <div className="flex items-center justify-between pb-2 border-b border-slate-200">
+              <span className="text-slate-500 font-sans font-semibold flex items-center gap-1.5">
+                <User className="w-3.5 h-3.5 text-teal-600" />
+                <span>Employee ID (Login ID):</span>
               </span>
-              <span className="font-sans font-bold text-growth-gold select-all">{credentials.companyName}</span>
+              <span className="font-bold text-teal-800 text-sm select-all">{credentials.employeeId}</span>
             </div>
-          )}
 
-          {/* Mobile */}
-          {credentials.phone && (
-            <div className="flex items-center justify-between pb-2 border-b border-slate-800/80">
-              <span className="text-slate-400 font-sans font-semibold flex items-center gap-1.5">
-                <Phone className="w-3.5 h-3.5 text-slate-400" />
-                <span>Mobile (Login ID):</span>
-              </span>
-              <span className="text-slate-200 select-all font-semibold">{credentials.phone}</span>
-            </div>
-          )}
-
-          {/* Email */}
-          <div className="flex items-center justify-between pb-2 border-b border-slate-800/80">
-            <span className="text-slate-400 font-sans font-semibold flex items-center gap-1.5">
-              <Mail className="w-3.5 h-3.5 text-teal-400" />
-              <span>Login Email:</span>
-            </span>
-            <span className="text-teal-400 select-all font-semibold break-all">{credentials.email}</span>
-          </div>
-
-          {/* Password Field */}
-          <div className="flex items-center justify-between pt-1">
-            <span className="text-slate-400 font-sans font-semibold flex items-center gap-1.5">
-              <KeyRound className="w-3.5 h-3.5 text-amber-400" />
-              <span>Password:</span>
-            </span>
-
-            {hasPassword ? (
-              <div className="flex items-center gap-2">
-                <span className="text-growth-gold font-bold bg-slate-900 border border-growth-gold/30 px-3 py-1 rounded-lg select-all text-sm tracking-wider">
-                  {showPassword ? credentials.password : '••••••••••••'}
-                </span>
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="p-1.5 text-slate-400 hover:text-white rounded-lg hover:bg-slate-800 transition-colors"
-                  title={showPassword ? 'Hide Password' : 'Show Password'}
-                >
-                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                </button>
+            {/* Full Name */}
+            {credentials.fullName && (
+              <div className="flex items-center justify-between pb-2 border-b border-slate-200">
+                <span className="text-slate-500 font-sans font-semibold">Full Name:</span>
+                <span className="font-sans font-bold text-slate-900 select-all">{credentials.fullName}</span>
               </div>
-            ) : (
-              <span className="text-amber-400 text-[11px] font-sans font-semibold bg-amber-950/60 border border-amber-800/60 px-2.5 py-1 rounded-lg">
-                Encrypted in Database
-              </span>
             )}
-          </div>
-        </div>
 
-        {/* Inline Password Assign / Reset Box (Available directly in this modal) */}
-        <div className="bg-slate-950/60 border border-slate-800 rounded-2xl p-4 space-y-3">
-          <div className="flex items-center justify-between">
-            <div className="font-sans font-bold text-xs text-slate-200 flex items-center gap-1.5">
-              <KeyRound className="w-3.5 h-3.5 text-growth-teal" />
-              <span>{hasPassword ? 'Change / Re-assign Password:' : 'Assign / Set New Password:'}</span>
+            {/* Client Company */}
+            {credentials.companyName && (
+              <div className="flex items-center justify-between pb-2 border-b border-slate-200">
+                <span className="text-slate-500 font-sans font-semibold flex items-center gap-1.5">
+                  <Building2 className="w-3.5 h-3.5 text-teal-600" />
+                  <span>Assigned Client:</span>
+                </span>
+                <span className="font-sans font-bold text-slate-800 select-all">{credentials.companyName}</span>
+              </div>
+            )}
+
+            {/* Mobile */}
+            {credentials.phone && (
+              <div className="flex items-center justify-between pb-2 border-b border-slate-200">
+                <span className="text-slate-500 font-sans font-semibold flex items-center gap-1.5">
+                  <Phone className="w-3.5 h-3.5 text-slate-400" />
+                  <span>Mobile (Login ID):</span>
+                </span>
+                <span className="text-slate-800 select-all font-semibold">{credentials.phone}</span>
+              </div>
+            )}
+
+            {/* Email */}
+            <div className="flex items-center justify-between pb-2 border-b border-slate-200">
+              <span className="text-slate-500 font-sans font-semibold flex items-center gap-1.5">
+                <Mail className="w-3.5 h-3.5 text-teal-600" />
+                <span>Login Email:</span>
+              </span>
+              <span className="text-teal-700 select-all font-semibold break-all">{credentials.email}</span>
             </div>
-            <button
-              type="button"
-              onClick={handleGeneratePassword}
-              className="text-[11px] font-bold text-growth-teal hover:text-teal-300 flex items-center gap-1 transition-colors"
-            >
-              <Sparkles className="w-3.5 h-3.5 text-growth-gold" />
-              <span>Quick Generate</span>
-            </button>
+
+            {/* Password Field */}
+            <div className="flex items-center justify-between pt-1">
+              <span className="text-slate-500 font-sans font-semibold flex items-center gap-1.5">
+                <KeyRound className="w-3.5 h-3.5 text-amber-500" />
+                <span>Password:</span>
+              </span>
+
+              {hasPassword ? (
+                <div className="flex items-center gap-2">
+                  <span className="text-slate-900 font-bold bg-white border border-slate-200 px-3 py-1 rounded-lg select-all text-sm tracking-wider font-mono">
+                    {showPassword ? credentials.password : '••••••••••••'}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="p-1 text-slate-400 hover:text-slate-700 rounded-lg hover:bg-slate-200 transition-colors cursor-pointer"
+                    title={showPassword ? 'Hide Password' : 'Show Password'}
+                  >
+                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
+              ) : (
+                <span className="text-amber-800 text-[11px] font-sans font-semibold bg-amber-50 border border-amber-200 px-2.5 py-1 rounded-lg">
+                  Encrypted in Database
+                </span>
+              )}
+            </div>
           </div>
 
-          <form onSubmit={handleSaveNewPassword} className="flex gap-2">
-            <input
-              type="text"
-              placeholder="Enter new password or click Quick Generate"
-              value={newPassword}
-              onChange={(e) => setNewPassword(e.target.value)}
-              className="flex-1 px-3 py-2 bg-slate-900 border border-slate-700 rounded-xl text-xs font-mono text-white placeholder:text-slate-500 focus:outline-none focus:ring-1 focus:ring-growth-teal"
-            />
-            <button
-              type="submit"
-              disabled={isUpdatingPassword || !newPassword.trim()}
-              className="px-4 py-2 bg-growth-teal hover:bg-growth-tealDark text-white font-bold text-xs rounded-xl shadow-sm disabled:opacity-50 transition-all flex items-center gap-1.5 whitespace-nowrap"
-            >
-              {isUpdatingPassword ? (
-                <div className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-              ) : (
-                <>
-                  <Check className="w-3.5 h-3.5" />
-                  <span>Save Password</span>
-                </>
-              )}
-            </button>
-          </form>
+          {/* Inline Password Assign / Reset Box */}
+          <div className="bg-white border border-slate-200 rounded-xl p-4 space-y-3">
+            <div className="flex items-center justify-between">
+              <div className="font-sans font-semibold text-xs text-slate-800 flex items-center gap-1.5">
+                <KeyRound className="w-3.5 h-3.5 text-teal-600" />
+                <span>{hasPassword ? 'Change / Re-assign Password:' : 'Assign / Set New Password:'}</span>
+              </div>
+              <button
+                type="button"
+                onClick={handleGeneratePassword}
+                className="text-[11px] font-bold text-teal-700 hover:underline flex items-center gap-1 cursor-pointer"
+              >
+                <Sparkles className="w-3.5 h-3.5 text-amber-500" />
+                <span>Quick Generate</span>
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveNewPassword} className="flex gap-2">
+              <input
+                type="text"
+                placeholder="Enter new password or click Quick Generate"
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+                className="flex-1 px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-mono text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-teal-600"
+              />
+              <button
+                type="submit"
+                disabled={isUpdatingPassword || !newPassword.trim()}
+                className="px-4 py-2 bg-teal-600 hover:bg-teal-700 text-white font-semibold text-xs rounded-xl shadow-xs disabled:opacity-50 transition-all flex items-center gap-1.5 whitespace-nowrap cursor-pointer"
+              >
+                {isUpdatingPassword ? (
+                  <div className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                ) : (
+                  <>
+                    <Check className="w-3.5 h-3.5" />
+                    <span>Save Password</span>
+                  </>
+                )}
+              </button>
+            </form>
+          </div>
         </div>
 
         {/* Action Buttons */}
-        <div className="flex gap-3 pt-1">
+        <div className="p-4 sm:p-5 bg-slate-50/50 border-t border-slate-100 flex gap-2.5 shrink-0">
           <button
             type="button"
             onClick={handleCopy}
-            className="flex-1 flex items-center justify-center gap-2 py-3 px-4 bg-gradient-to-r from-growth-teal to-teal-600 hover:from-teal-600 hover:to-teal-700 text-white font-bold text-xs rounded-xl shadow-glow transition-all"
+            className="flex-1 flex items-center justify-center gap-2 py-2.5 px-4 bg-teal-600 hover:bg-teal-700 text-white font-semibold text-xs rounded-xl shadow-xs transition-all cursor-pointer"
           >
             {copied ? (
               <>
@@ -338,13 +338,12 @@ Portal Login:  ${origin}
           <button
             type="button"
             onClick={onClose}
-            className="px-5 py-3 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold rounded-xl transition-all"
+            className="px-5 py-2.5 bg-white hover:bg-slate-100 border border-slate-200 text-slate-700 text-xs font-semibold rounded-xl transition-all cursor-pointer"
           >
             Done
           </button>
         </div>
       </div>
     </div>
-  </div>
   );
 };

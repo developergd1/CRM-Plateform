@@ -24,7 +24,14 @@ export default function Client360Page() {
               onNavigate={(tab, id) => {
                 if (tab === 'deals' && id) router.push(`/growthIndia/crm/deals/${id}`);
                 else if (tab === 'leads' && id) router.push(`/growthIndia/crm/leads`);
-                else if (tab === 'workforce') router.push(`/growthIndia/workforce`);
+                else if (tab === 'workforce') {
+                  try {
+                    localStorage.setItem('gi_admin_selected_platform', 'CMS');
+                    localStorage.setItem('gi_cms_selected_client_id', clientId);
+                    localStorage.setItem('gi_cms_client_subtab', 'ems');
+                  } catch {}
+                  router.push('/growthIndia');
+                }
               }}
             />
           </div>

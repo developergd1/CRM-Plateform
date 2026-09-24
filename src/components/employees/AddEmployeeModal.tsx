@@ -40,10 +40,13 @@ export const AddEmployeeModal: React.FC<ModalProps> = ({
   const [permanentAddress, setPermanentAddress] = useState('');
   const [sameAsTemporary, setSameAsTemporary] = useState(false);
   const [departmentName, setDepartmentName] = useState('General Operations');
+  const [customDepartment, setCustomDepartment] = useState('');
   const [designation, setDesignation] = useState('');
   const [jobLocation, setJobLocation] = useState('Headquarters');
+  const [customJobLocation, setCustomJobLocation] = useState('');
   const [joiningDate, setJoiningDate] = useState(new Date().toISOString().split('T')[0]);
   const [employmentType, setEmploymentType] = useState('Full-Time');
+  const [customEmploymentType, setCustomEmploymentType] = useState('');
   const [shiftStartTime, setShiftStartTime] = useState('10:00');
   const [shiftEndTime, setShiftEndTime] = useState('19:00');
   const [remarks, setRemarks] = useState('');
@@ -134,6 +137,9 @@ export const AddEmployeeModal: React.FC<ModalProps> = ({
       : (temporaryAddress || permanentAddress || '');
 
     const finalGender = gender === 'Other' ? (customGender.trim() || 'Other') : gender;
+    const finalDepartment = departmentName === 'Other' ? (customDepartment.trim() || 'Other') : departmentName;
+    const finalEmploymentType = employmentType === 'Other' ? (customEmploymentType.trim() || 'Other') : employmentType;
+    const finalJobLocation = jobLocation === 'Other' ? (customJobLocation.trim() || 'Other') : jobLocation;
 
     try {
       const res = await fetch('/api/employees', {
@@ -152,11 +158,11 @@ export const AddEmployeeModal: React.FC<ModalProps> = ({
           address: finalAddress,
           temporaryAddress,
           permanentAddress,
-          departmentName,
+          departmentName: finalDepartment,
           designation,
-          jobLocation,
+          jobLocation: finalJobLocation,
           joiningDate,
-          employmentType,
+          employmentType: finalEmploymentType,
           shiftStartTime,
           shiftEndTime,
           remarks,
@@ -528,13 +534,39 @@ export const AddEmployeeModal: React.FC<ModalProps> = ({
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
               <div>
                 <label className="block font-bold text-slate-700 mb-1">Department</label>
-                <input
-                  type="text"
-                  placeholder="e.g. Sales & Business Development"
+                <select
                   value={departmentName}
-                  onChange={(e) => setDepartmentName(e.target.value)}
-                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 font-medium placeholder:text-slate-400 focus:bg-white focus:outline-none focus:ring-1 focus:ring-growth-teal"
-                />
+                  onChange={(e) => {
+                    setDepartmentName(e.target.value);
+                    if (e.target.value !== 'Other') {
+                      setCustomDepartment('');
+                    }
+                  }}
+                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 font-semibold focus:bg-white focus:outline-none focus:ring-1 focus:ring-growth-teal"
+                >
+                  <option value="General Operations">General Operations</option>
+                  <option value="Engineering">Engineering</option>
+                  <option value="Sales & Business Development">Sales & Business Development</option>
+                  <option value="Human Resources">Human Resources</option>
+                  <option value="Logistics & Supply Chain">Logistics & Supply Chain</option>
+                  <option value="Finance & Accounts">Finance & Accounts</option>
+                  <option value="Other">Other</option>
+                </select>
+                {departmentName === 'Other' && (
+                  <div className="mt-2 animate-in fade-in slide-in-from-top-1 duration-200">
+                    <label className="block text-[11px] font-bold text-slate-600 mb-1">
+                      Specify Department *
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      placeholder="e.g. Operations, Legal, Quality Assurance..."
+                      value={customDepartment}
+                      onChange={(e) => setCustomDepartment(e.target.value)}
+                      className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 text-xs font-semibold focus:bg-white focus:outline-none focus:ring-1 focus:ring-growth-teal"
+                    />
+                  </div>
+                )}
               </div>
 
               <div>
@@ -551,13 +583,38 @@ export const AddEmployeeModal: React.FC<ModalProps> = ({
 
               <div>
                 <label className="block font-bold text-slate-700 mb-1">Job Location</label>
-                <input
-                  type="text"
-                  placeholder="e.g. Headquarters / Gurugram Hub"
+                <select
                   value={jobLocation}
-                  onChange={(e) => setJobLocation(e.target.value)}
-                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 font-medium placeholder:text-slate-400 focus:bg-white focus:outline-none focus:ring-1 focus:ring-growth-teal"
-                />
+                  onChange={(e) => {
+                    setJobLocation(e.target.value);
+                    if (e.target.value !== 'Other') {
+                      setCustomJobLocation('');
+                    }
+                  }}
+                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 font-semibold focus:bg-white focus:outline-none focus:ring-1 focus:ring-growth-teal"
+                >
+                  <option value="Headquarters">Headquarters</option>
+                  <option value="Regional Branch Office">Regional Branch Office</option>
+                  <option value="Remote / Work From Home">Remote / Work From Home</option>
+                  <option value="Hybrid (Office & Remote)">Hybrid (Office & Remote)</option>
+                  <option value="Client On-site">Client On-site</option>
+                  <option value="Other">Other</option>
+                </select>
+                {jobLocation === 'Other' && (
+                  <div className="mt-2 animate-in fade-in slide-in-from-top-1 duration-200">
+                    <label className="block text-[11px] font-bold text-slate-600 mb-1">
+                      Specify Work Location *
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      placeholder="e.g. Gurugram Tech Hub, Mumbai Hub..."
+                      value={customJobLocation}
+                      onChange={(e) => setCustomJobLocation(e.target.value)}
+                      className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 text-xs font-semibold focus:bg-white focus:outline-none focus:ring-1 focus:ring-growth-teal"
+                    />
+                  </div>
+                )}
               </div>
 
               <div>
@@ -574,7 +631,12 @@ export const AddEmployeeModal: React.FC<ModalProps> = ({
                 <label className="block font-bold text-slate-700 mb-1">Employment Type</label>
                 <select
                   value={employmentType}
-                  onChange={(e) => setEmploymentType(e.target.value)}
+                  onChange={(e) => {
+                    setEmploymentType(e.target.value);
+                    if (e.target.value !== 'Other') {
+                      setCustomEmploymentType('');
+                    }
+                  }}
                   className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 font-semibold focus:bg-white focus:outline-none focus:ring-1 focus:ring-growth-teal"
                 >
                   <option value="Full-Time">Full-Time</option>
@@ -583,7 +645,23 @@ export const AddEmployeeModal: React.FC<ModalProps> = ({
                   <option value="Freelancer">Freelancer</option>
                   <option value="Internship">Internship</option>
                   <option value="Consultant">Consultant</option>
+                  <option value="Other">Other</option>
                 </select>
+                {employmentType === 'Other' && (
+                  <div className="mt-2 animate-in fade-in slide-in-from-top-1 duration-200">
+                    <label className="block text-[11px] font-bold text-slate-600 mb-1">
+                      Specify Employment Type *
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      placeholder="e.g. Probationary, Retainer, Contractual..."
+                      value={customEmploymentType}
+                      onChange={(e) => setCustomEmploymentType(e.target.value)}
+                      className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 text-xs font-semibold focus:bg-white focus:outline-none focus:ring-1 focus:ring-growth-teal"
+                    />
+                  </div>
+                )}
               </div>
 
               <div>
@@ -673,7 +751,7 @@ export const AddEmployeeModal: React.FC<ModalProps> = ({
                       : 'bg-teal-950/60 text-teal-300 border border-teal-800/60 hover:bg-teal-900/60'
                   }`}
                 >
-                  {shiftStartTime === 'FLEXIBLE' ? '✓ Flexible Hours' : 'Set Flexible (No Late)'}
+                  {shiftStartTime === 'FLEXIBLE' ? 'Flexible Hours' : 'Set Flexible (No Late)'}
                 </button>
               </div>
             </div>

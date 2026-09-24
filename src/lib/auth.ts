@@ -92,7 +92,8 @@ export async function getSessionUser(req?: NextRequest): Promise<AuthUser | null
       !user.isActive ||
       user.employeeProfile?.status === 'BLOCKED' ||
       user.employeeProfile?.isBlocked ||
-      user.employeeProfile?.status === 'SUSPENDED';
+      user.employeeProfile?.status === 'SUSPENDED' ||
+      (user.employeeProfile?.client && user.employeeProfile.client.status === 'INACTIVE');
 
     if (isBlocked) {
       return null;
@@ -143,6 +144,11 @@ export async function getSessionUser(req?: NextRequest): Promise<AuthUser | null
       });
 
       if (clientProfile) {
+        // Enforce inactive client blockage
+        if (clientProfile.status === 'INACTIVE') {
+          return null;
+        }
+
         const clientUser: AuthUser = {
           id: user.id,
           email: user.email,
@@ -150,6 +156,7 @@ export async function getSessionUser(req?: NextRequest): Promise<AuthUser | null
           roleDisplayName: user.isDelegated ? 'Shared Team Member' : 'Corporate Client',
           clientId: clientProfile.clientId,
           companyName: clientProfile.companyName,
+          assignedModules: (clientProfile as any).assignedModules || ['EMS'],
           canBlockEmployees: user.isDelegated
             ? delegatedPerms.includes('canBlockEmployees')
             : clientProfile.canBlockEmployees,

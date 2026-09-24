@@ -27,7 +27,11 @@ import {
 import { CreateContactModal } from './CreateContactModal';
 import { clientCache } from '@/lib/client-cache';
 
-export const ContactsListView: React.FC = () => {
+interface ContactsListViewProps {
+  initialClientId?: string;
+}
+
+export const ContactsListView: React.FC<ContactsListViewProps> = ({ initialClientId }) => {
   const [search, setSearch] = useState('');
   const [isDecisionMaker, setIsDecisionMaker] = useState('');
   const [isPrimary, setIsPrimary] = useState('');
@@ -108,20 +112,17 @@ export const ContactsListView: React.FC = () => {
   return (
     <div className="space-y-6 pb-12 font-sans">
       {/* Executive Command Banner */}
-      <div className="bg-gradient-to-r from-slate-950 via-growth-navy to-slate-900 rounded-3xl p-6 text-white shadow-2xl border border-slate-800/80 relative overflow-hidden hero-banner-interactive">
-        <div className="absolute -right-16 -top-16 w-72 h-72 bg-growth-teal/15 rounded-full blur-3xl pointer-events-none" />
-        <div className="absolute right-1/3 -bottom-20 w-72 h-72 bg-growth-gold/10 rounded-full blur-3xl pointer-events-none" />
-
+      <div className="bg-white rounded-2xl p-6 text-slate-900 shadow-sm border border-slate-200/80 relative overflow-hidden panel-premium">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 relative z-10">
           <div>
-            <div className="inline-flex items-center gap-2 px-3 py-1 bg-white/10 rounded-full text-xs font-semibold text-growth-gold mb-2 border border-white/10 backdrop-blur-md chip-premium-highlight cursor-pointer">
-              <Sparkles className="w-3.5 h-3.5 text-growth-gold" />
+            <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-[#0D9488]/10 rounded-full text-xs font-bold text-[#0D9488] mb-2 border border-[#0D9488]/20">
+              <Sparkles className="w-3.5 h-3.5 text-[#0D9488]" />
               <span>CRM • Stakeholder & Directory</span>
             </div>
-            <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-white hero-title-interactive">
+            <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-slate-900">
               Corporate Contacts Directory
             </h1>
-            <p className="text-xs text-slate-300 mt-1 max-w-xl leading-relaxed hero-subtitle-interactive">
+            <p className="text-xs text-slate-500 mt-1 max-w-xl leading-relaxed">
               Unified directory of corporate decision-makers, procurement officers, and primary business points of contact.
             </p>
           </div>
@@ -129,7 +130,7 @@ export const ContactsListView: React.FC = () => {
           <div className="flex items-center gap-2.5">
             <button
               onClick={() => setShowCreateModal(true)}
-              className="flex items-center gap-2 px-5 py-2.5 bg-growth-teal hover:bg-growth-tealDark text-white font-bold text-xs rounded-xl shadow-md transition-all active:scale-95 interactive-btn-hover"
+              className="flex items-center gap-2 px-5 py-2.5 bg-growth-teal hover:bg-growth-tealDark text-white font-bold text-xs rounded-xl shadow-sm transition-all active:scale-95 cursor-pointer"
             >
               <Plus className="w-4 h-4" />
               <span>Add Contact</span>
@@ -575,6 +576,7 @@ export const ContactsListView: React.FC = () => {
 
       <CreateContactModal
         isOpen={showCreateModal}
+        preselectedClientId={initialClientId}
         onClose={() => setShowCreateModal(false)}
         onSuccess={() => fetchContacts()}
       />

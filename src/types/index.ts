@@ -17,6 +17,7 @@ export interface AuthUser {
   };
   clientId?: string;
   companyName?: string;
+  assignedModules?: string[];
   canBlockEmployees?: boolean;
   canDeleteEmployees?: boolean;
   fullName: string;
@@ -63,6 +64,12 @@ export interface ClientItem {
   contactPerson: string;
   mobile: string;
   email?: string | null;
+  companyType?: string | null;
+  gst?: string | null;
+  remarks?: string | null;
+  assignedModules?: string[];
+  subscriptionPlan?: string | null;
+  subscriptionStatus?: string | null;
   gstNumber?: string | null;
   panNumber?: string | null;
   aadharNumber?: string | null;

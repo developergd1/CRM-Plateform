@@ -28,9 +28,16 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Invitation link does not exist or is invalid.' }, { status: 404 });
     }
 
+    if (invitation.status === 'ACCEPTED') {
+      return NextResponse.json(
+        { error: 'This invitation has already been accepted. Tokens are single-use only.' },
+        { status: 410 }
+      );
+    }
+
     if (invitation.status === 'REVOKED') {
       return NextResponse.json(
-        { error: '🔒 Access Denied: This invitation has been deactivated/revoked by the administrator.' },
+        { error: 'Access Denied: This invitation has been deactivated/revoked by the administrator.' },
         { status: 403 }
       );
     }

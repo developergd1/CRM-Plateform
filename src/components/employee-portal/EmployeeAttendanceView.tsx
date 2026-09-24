@@ -259,7 +259,7 @@ export const EmployeeAttendanceView: React.FC = () => {
             </p>
             <button
               onClick={dismissIdleWarning}
-              className="w-full py-3 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-black text-sm rounded-xl transition shadow-md cursor-pointer"
+              className="w-full py-3 bg-amber-600 hover:bg-amber-700 text-white font-bold text-sm rounded-xl transition shadow-sm cursor-pointer"
             >
               I&apos;m Back (Resume Active Tracking)
             </button>
@@ -269,50 +269,50 @@ export const EmployeeAttendanceView: React.FC = () => {
 
       {/* DYNAMIC ATTENDANCE STATUS HERO BANNER (RED = Not Checked In, GREEN = Working, AMBER = Break, SLATE = Day Done) */}
       {isNotCheckedIn ? (
-        <div className="rounded-3xl p-6 bg-gradient-to-r from-rose-600 via-red-600 to-rose-700 text-white shadow-xl shadow-rose-900/20 border-2 border-rose-400 flex flex-col md:flex-row items-start md:items-center justify-between gap-6 animate-in fade-in duration-300">
+        <div className="rounded-3xl p-6 bg-gradient-to-r from-rose-50 via-rose-50/70 to-red-50/40 border border-rose-200 flex flex-col md:flex-row items-start md:items-center justify-between gap-6 shadow-xs animate-in fade-in duration-300">
           <div className="space-y-2">
-            <div className="inline-flex items-center gap-2 px-3 py-1 bg-white/20 backdrop-blur-md rounded-full text-xs font-black text-white border border-white/30">
-              <span className="w-2.5 h-2.5 rounded-full bg-white animate-ping" />
-              <span>🔴 NOT CHECKED IN (WORK NOT STARTED)</span>
+            <div className="inline-flex items-center gap-2 px-3 py-1 bg-rose-100 rounded-full text-xs font-bold text-rose-800 border border-rose-200">
+              <span className="w-2 h-2 rounded-full bg-rose-600 animate-pulse" />
+              <span>NOT CHECKED IN • WORK NOT COUNTING</span>
             </div>
-            <h2 className="text-2xl font-black text-white tracking-tight">
+            <h2 className="text-xl md:text-2xl font-bold text-slate-900 tracking-tight">
               You haven&apos;t Checked In yet today!
             </h2>
-            <p className="text-xs text-rose-100 max-w-xl leading-relaxed font-medium">
-              You are logged into the system ({loginTimestamp ? `Login Time: ${formatClockTime(loginTimestamp)}` : 'Active Session'}), but your official working hours are <strong>NOT counting</strong> until you click the Check-In button below.
+            <p className="text-xs text-slate-600 max-w-xl leading-relaxed">
+              You are logged into the system ({loginTimestamp ? `Login Time: ${formatClockTime(loginTimestamp)}` : 'Active Session'}), but your official working hours are <strong className="text-rose-700">NOT counting</strong> until you punch in.
             </p>
           </div>
 
           <button
             disabled={actionLoading}
             onClick={handleCheckIn}
-            className="interactive-btn-hover shrink-0 flex items-center gap-3 px-8 py-4 bg-white text-rose-700 hover:bg-rose-50 rounded-2xl font-black text-sm shadow-2xl transition-all transform active:scale-95 cursor-pointer"
+            className="interactive-btn-hover shrink-0 flex items-center gap-2.5 px-6 py-3.5 bg-rose-600 hover:bg-rose-700 text-white rounded-2xl font-bold text-sm shadow-md transition-all transform active:scale-95 cursor-pointer"
           >
             {actionLoading ? (
-              <Loader2 className="w-5 h-5 animate-spin" />
+              <Loader2 className="w-4 h-4 animate-spin text-white" />
             ) : (
-              <Play className="w-5 h-5 fill-rose-700 text-rose-700" />
+              <Play className="w-4 h-4 fill-white text-white" />
             )}
             <span>PUNCH IN / START WORK NOW</span>
           </button>
         </div>
       ) : isCheckedIn ? (
-        <div className="rounded-3xl p-6 bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-700 text-white shadow-xl shadow-emerald-900/20 border-2 border-emerald-400 flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6 animate-in fade-in duration-300">
+        <div className="rounded-3xl p-6 bg-gradient-to-r from-teal-50 via-emerald-50/60 to-teal-50/40 border border-teal-200 flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6 shadow-xs animate-in fade-in duration-300">
           <div className="space-y-2">
-            <div className="inline-flex items-center gap-2 px-3 py-1 bg-white/20 backdrop-blur-md rounded-full text-xs font-black text-white border border-white/30">
-              <span className="w-2.5 h-2.5 rounded-full bg-emerald-300 animate-pulse" />
-              <span>🟢 ON DUTY & WORKING (ACTIVE TRACKING)</span>
+            <div className="inline-flex items-center gap-2 px-3 py-1 bg-emerald-100 rounded-full text-xs font-bold text-emerald-800 border border-emerald-200">
+              <span className="w-2 h-2 rounded-full bg-emerald-600 animate-pulse" />
+              <span>ON DUTY & WORKING • ACTIVE TRACKING</span>
             </div>
             <div className="flex items-baseline gap-3 flex-wrap">
-              <h2 className="text-3xl font-black text-white font-mono tracking-tight">
+              <h2 className="text-3xl font-bold text-slate-900 font-mono tracking-tight">
                 ⏱️ {formatSecondsToClock(liveElapsedSeconds)}
               </h2>
-              <span className="text-xs text-emerald-100 font-semibold bg-white/10 px-2.5 py-1 rounded-lg">
+              <span className="text-xs text-teal-800 font-semibold bg-white border border-teal-200 px-2.5 py-1 rounded-lg shadow-xs">
                 Checked in at {formatClockTime(attendance.checkInTime)}
               </span>
             </div>
-            <p className="text-xs text-emerald-100 max-w-xl font-medium">
-              Your work time is counting live every second. Stay active to log your input hours.
+            <p className="text-xs text-slate-600 max-w-xl">
+              Your working hours are actively logging. Stay engaged to register continuous productivity.
             </p>
           </div>
 
@@ -320,32 +320,32 @@ export const EmployeeAttendanceView: React.FC = () => {
             <button
               disabled={actionLoading}
               onClick={handleStartBreak}
-              className="interactive-btn-hover flex items-center gap-2 px-4 py-3 bg-emerald-700/80 hover:bg-emerald-800 text-white rounded-xl font-bold text-xs border border-white/20 transition cursor-pointer"
+              className="interactive-btn-hover flex items-center gap-2 px-4 py-2.5 bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 rounded-xl font-bold text-xs transition shadow-xs cursor-pointer"
             >
-              <Coffee className="w-4 h-4 text-amber-300" />
+              <Coffee className="w-4 h-4 text-amber-600" />
               <span>Take Break</span>
             </button>
             <button
               disabled={actionLoading}
               onClick={handleCheckOut}
-              className="interactive-btn-hover flex items-center gap-2 px-6 py-3 bg-white text-rose-700 hover:bg-rose-50 rounded-xl font-black text-xs shadow-lg transition transform active:scale-95 cursor-pointer"
+              className="interactive-btn-hover flex items-center gap-2 px-5 py-2.5 bg-rose-600 hover:bg-rose-700 text-white rounded-xl font-bold text-xs shadow-xs transition transform active:scale-95 cursor-pointer"
             >
-              <Square className="w-4 h-4 fill-rose-700" />
+              <Square className="w-4 h-4 fill-white" />
               <span>Check Out (End Day)</span>
             </button>
           </div>
         </div>
       ) : activeBreak ? (
-        <div className="rounded-3xl p-6 bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 text-white shadow-xl shadow-amber-900/20 border-2 border-amber-300 flex flex-col md:flex-row items-start md:items-center justify-between gap-6 animate-in fade-in duration-300">
+        <div className="rounded-3xl p-6 bg-gradient-to-r from-amber-50 via-orange-50/50 to-amber-50/40 border border-amber-200 flex flex-col md:flex-row items-start md:items-center justify-between gap-6 shadow-xs animate-in fade-in duration-300">
           <div className="space-y-2">
-            <div className="inline-flex items-center gap-2 px-3 py-1 bg-white/20 backdrop-blur-md rounded-full text-xs font-black text-white border border-white/30 animate-pulse">
+            <div className="inline-flex items-center gap-2 px-3 py-1 bg-amber-100 rounded-full text-xs font-bold text-amber-800 border border-amber-200 animate-pulse">
               <Coffee className="w-4 h-4" />
-              <span>☕ ON BREAK ({activeBreak.breakType})</span>
+              <span>ON BREAK ({activeBreak.breakType})</span>
             </div>
-            <h2 className="text-2xl font-black text-white tracking-tight">
+            <h2 className="text-xl md:text-2xl font-bold text-slate-900 tracking-tight">
               Work Tracking Paused
             </h2>
-            <p className="text-xs text-amber-100 max-w-xl font-medium">
+            <p className="text-xs text-slate-600 max-w-xl">
               Break started at {formatClockTime(activeBreak.breakStartTime)}. Click below when you return to resume active work time.
             </p>
           </div>
@@ -353,31 +353,31 @@ export const EmployeeAttendanceView: React.FC = () => {
           <button
             disabled={actionLoading}
             onClick={handleEndBreak}
-            className="interactive-btn-hover shrink-0 flex items-center gap-2 px-8 py-4 bg-white text-amber-700 hover:bg-amber-50 rounded-2xl font-black text-sm shadow-2xl transition transform active:scale-95 cursor-pointer"
+            className="interactive-btn-hover shrink-0 flex items-center gap-2 px-6 py-3.5 bg-amber-600 hover:bg-amber-700 text-white rounded-2xl font-bold text-sm shadow-xs transition transform active:scale-95 cursor-pointer"
           >
-            <Play className="w-5 h-5 fill-amber-700" />
+            <Play className="w-4 h-4 fill-white" />
             <span>RESUME WORK (END BREAK)</span>
           </button>
         </div>
       ) : (
-        <div className="rounded-3xl p-6 bg-gradient-to-r from-slate-900 via-slate-800 to-teal-950 text-white shadow-xl border-2 border-slate-700 flex flex-col md:flex-row items-start md:items-center justify-between gap-6 animate-in fade-in duration-300">
+        <div className="rounded-3xl p-6 bg-gradient-to-r from-teal-50/60 via-slate-50 to-emerald-50/40 border border-slate-200 flex flex-col md:flex-row items-start md:items-center justify-between gap-6 shadow-xs animate-in fade-in duration-300">
           <div className="space-y-2">
-            <div className="inline-flex items-center gap-2 px-3 py-1 bg-white/10 rounded-full text-xs font-black text-teal-300 border border-teal-500/30">
-              <CheckCircle2 className="w-4 h-4 text-teal-400" />
-              <span>🏁 WORK COMPLETED FOR TODAY</span>
+            <div className="inline-flex items-center gap-2 px-3 py-1 bg-teal-100 rounded-full text-xs font-bold text-teal-800 border border-teal-200">
+              <CheckCircle2 className="w-4 h-4 text-teal-700" />
+              <span>WORK COMPLETED FOR TODAY</span>
             </div>
-            <h2 className="text-2xl font-black text-white tracking-tight">
+            <h2 className="text-xl md:text-2xl font-bold text-slate-900 tracking-tight">
               You have checked out for the day
             </h2>
-            <p className="text-xs text-slate-300 max-w-xl font-medium">
-              Checked In at <strong>{formatClockTime(attendance.checkInTime)}</strong> • Checked Out at <strong>{formatClockTime(attendance.checkOutTime)}</strong>
+            <p className="text-xs text-slate-600 max-w-xl">
+              Checked In at <strong className="text-slate-900">{formatClockTime(attendance.checkInTime)}</strong> • Checked Out at <strong className="text-slate-900">{formatClockTime(attendance.checkOutTime)}</strong>
             </p>
           </div>
 
           <button
             disabled={actionLoading}
             onClick={handleCheckIn}
-            className="interactive-btn-hover shrink-0 flex items-center gap-2 px-6 py-3.5 bg-growth-teal hover:bg-growth-tealDark text-white rounded-xl font-black text-xs shadow-lg transition transform active:scale-95 cursor-pointer"
+            className="interactive-btn-hover shrink-0 flex items-center gap-2 px-5 py-3 bg-teal-600 hover:bg-teal-700 text-white rounded-xl font-bold text-xs shadow-xs transition transform active:scale-95 cursor-pointer"
           >
             <Play className="w-4 h-4 fill-white" />
             <span>Punch In Again / Resume Work</span>
@@ -404,7 +404,7 @@ export const EmployeeAttendanceView: React.FC = () => {
                 activeBreak ? 'bg-amber-100 text-amber-800 border-amber-300' :
                 'bg-slate-100 text-slate-800 border-slate-300'
               }`}>
-                {isNotCheckedIn ? '🔴 NOT CHECKED IN' : isCheckedIn ? '🟢 ACTIVE WORKING' : activeBreak ? '☕ ON BREAK' : '🏁 COMPLETED'}
+                {isNotCheckedIn ? 'NOT CHECKED IN' : isCheckedIn ? 'ACTIVE WORKING' : activeBreak ? 'ON BREAK' : 'COMPLETED'}
               </span>
               <span className="text-xs text-slate-800 font-mono font-bold flex items-center gap-1 bg-slate-50 px-2.5 py-0.5 rounded-full border border-slate-200">
                 <Clock className="w-3 h-3 text-growth-teal" />
@@ -444,7 +444,7 @@ export const EmployeeAttendanceView: React.FC = () => {
             }`}>
               <span className="block text-[10px] font-bold">Work Check-In</span>
               <span className="font-mono font-black text-xs">
-                {attendance?.checkInTime ? formatClockTime(attendance.checkInTime) : '🔴 Not Checked In'}
+                {attendance?.checkInTime ? formatClockTime(attendance.checkInTime) : 'Not Checked In'}
               </span>
             </div>
           </div>
@@ -476,10 +476,10 @@ export const EmployeeAttendanceView: React.FC = () => {
           <button
             disabled={actionLoading || (isCheckedIn && !isCheckedOut)}
             onClick={handleCheckIn}
-            className={`interactive-btn-hover flex items-center justify-center gap-2 py-4 px-4 rounded-2xl font-black text-xs transition-all shadow-md cursor-pointer ${
+            className={`interactive-btn-hover flex items-center justify-center gap-2 py-4 px-4 rounded-2xl font-bold text-xs transition-all shadow-xs cursor-pointer ${
               isCheckedIn && !isCheckedOut
-                ? 'bg-emerald-50 text-emerald-700 border-2 border-emerald-300'
-                : 'bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white shadow-emerald-600/30'
+                ? 'bg-emerald-50 text-emerald-800 border border-emerald-300'
+                : 'bg-teal-600 hover:bg-teal-700 text-white'
             }`}
           >
             {actionLoading ? (
@@ -507,7 +507,7 @@ export const EmployeeAttendanceView: React.FC = () => {
             <button
               disabled={actionLoading}
               onClick={handleEndBreak}
-              className="interactive-btn-hover flex items-center justify-center gap-2 py-4 px-4 rounded-2xl font-black text-xs bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-500 text-white shadow-md transition-all animate-pulse cursor-pointer"
+              className="interactive-btn-hover flex items-center justify-center gap-2 py-4 px-4 rounded-2xl font-bold text-xs bg-amber-600 hover:bg-amber-700 text-white shadow-xs transition-all animate-pulse cursor-pointer"
             >
               <Coffee className="w-4 h-4" />
               <span>End {activeBreak.breakType} Break</span>
@@ -518,7 +518,7 @@ export const EmployeeAttendanceView: React.FC = () => {
                 disabled={!isCheckedIn || isCheckedOut || actionLoading}
                 value={selectedBreakType}
                 onChange={(e) => setSelectedBreakType(e.target.value)}
-                className="bg-slate-50 border border-slate-200 text-xs rounded-xl px-2 text-slate-800 focus:outline-none focus:border-teal-500 disabled:opacity-50"
+                className="bg-slate-50 border border-slate-200 text-xs rounded-xl px-2.5 text-slate-800 font-semibold focus:outline-none focus:border-teal-500 disabled:opacity-50"
               >
                 <option value="TEA">Tea (15m)</option>
                 <option value="LUNCH">Lunch (45m)</option>
@@ -528,7 +528,7 @@ export const EmployeeAttendanceView: React.FC = () => {
               <button
                 disabled={!isCheckedIn || isCheckedOut || actionLoading}
                 onClick={handleStartBreak}
-                className="interactive-btn-hover flex-1 flex items-center justify-center gap-2 py-4 px-3 rounded-2xl font-black text-xs bg-slate-50 hover:bg-slate-100 text-slate-700 border border-slate-200 disabled:opacity-50 disabled:cursor-not-allowed transition shadow-sm cursor-pointer"
+                className="interactive-btn-hover flex-1 flex items-center justify-center gap-2 py-4 px-3 rounded-2xl font-bold text-xs bg-slate-50 hover:bg-slate-100 text-slate-700 border border-slate-200 disabled:opacity-50 disabled:cursor-not-allowed transition shadow-xs cursor-pointer"
               >
                 <Coffee className="w-4 h-4 text-amber-600" />
                 <span>Take Break</span>
@@ -540,12 +540,12 @@ export const EmployeeAttendanceView: React.FC = () => {
           <button
             disabled={!isCheckedIn || isCheckedOut || actionLoading}
             onClick={handleCheckOut}
-            className={`interactive-btn-hover flex items-center justify-center gap-2 py-4 px-4 rounded-2xl font-black text-xs transition-all shadow-sm ${
+            className={`interactive-btn-hover flex items-center justify-center gap-2 py-4 px-4 rounded-2xl font-bold text-xs transition-all shadow-xs ${
               isCheckedOut
                 ? 'bg-slate-100 text-slate-600 border border-slate-200'
                 : !isCheckedIn
                 ? 'bg-slate-50 text-slate-400 border border-slate-200 cursor-not-allowed'
-                : 'bg-gradient-to-r from-rose-600 to-red-600 hover:from-rose-500 hover:to-red-500 text-white shadow-rose-600/30 cursor-pointer'
+                : 'bg-rose-600 hover:bg-rose-700 text-white cursor-pointer'
             }`}
           >
             {isCheckedOut ? (
@@ -556,7 +556,7 @@ export const EmployeeAttendanceView: React.FC = () => {
             ) : (
               <>
                 <Square className="w-4 h-4 fill-white" />
-                <span>End Work (Check-Out)</span>
+                <span>Check Out (End Day)</span>
               </>
             )}
           </button>
@@ -676,7 +676,7 @@ export const EmployeeAttendanceView: React.FC = () => {
 
         {/* Monthly KPI Cards */}
         {historyData?.summary && (
-          <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
+          <div className="grid grid-cols-2 sm:grid-cols-6 gap-3">
             <div className="card-premium interactive-box-hover cursor-pointer bg-slate-50 p-3.5 rounded-2xl border border-slate-200">
               <span className="text-slate-700 text-[10px] uppercase font-bold block">Present Days</span>
               <span className="text-2xl font-black text-slate-900 font-mono mt-1 block">{historyData.summary.presentCount}</span>
@@ -688,6 +688,10 @@ export const EmployeeAttendanceView: React.FC = () => {
             <div className="card-premium interactive-box-hover cursor-pointer bg-slate-50 p-3.5 rounded-2xl border border-slate-200">
               <span className="text-yellow-600 text-[10px] uppercase font-bold block">Half Days</span>
               <span className="text-2xl font-black text-yellow-600 font-mono mt-1 block">{historyData.summary.halfDayCount}</span>
+            </div>
+            <div className="card-premium interactive-box-hover cursor-pointer bg-purple-50/50 p-3.5 rounded-2xl border border-purple-200">
+              <span className="text-purple-700 text-[10px] uppercase font-bold block">On Leave</span>
+              <span className="text-2xl font-black text-purple-700 font-mono mt-1 block">{historyData.summary.onLeaveCount || 0}</span>
             </div>
             <div className="card-premium interactive-box-hover cursor-pointer bg-slate-50 p-3.5 rounded-2xl border border-slate-200">
               <span className="text-teal-700 text-[10px] uppercase font-bold block">Total Work Hours</span>
@@ -722,9 +726,14 @@ export const EmployeeAttendanceView: React.FC = () => {
                   const workHrs = `${Math.floor((rec.totalWorkMinutes || 0) / 60)}h ${(rec.totalWorkMinutes || 0) % 60}m`;
 
                   let badgeColor = 'bg-emerald-50 text-emerald-700 border-emerald-200';
+                  let displayStatus = rec.status;
                   if (rec.status === 'LATE') badgeColor = 'bg-amber-50 text-amber-700 border-amber-200';
                   if (rec.status === 'HALF_DAY') badgeColor = 'bg-yellow-50 text-yellow-800 border-yellow-200';
                   if (rec.status === 'ABSENT') badgeColor = 'bg-rose-50 text-rose-700 border-rose-200';
+                  if (rec.status === 'ON_LEAVE') {
+                    badgeColor = 'bg-purple-50 text-purple-700 border-purple-200';
+                    displayStatus = 'ON LEAVE';
+                  }
 
                   return (
                     <tr key={rec.id} className="interactive-row-hover hover:bg-teal-50/20 transition cursor-pointer">
@@ -733,11 +742,11 @@ export const EmployeeAttendanceView: React.FC = () => {
                       </td>
                       <td className="py-3 px-4 font-mono text-slate-800">{inTime}</td>
                       <td className="py-3 px-4 font-mono text-slate-800">{outTime}</td>
-                      <td className="py-3 px-4 font-mono text-teal-700 font-bold">{workHrs}</td>
+                      <td className="py-3 px-4 font-mono text-teal-700 font-bold">{rec.status === 'ON_LEAVE' ? '—' : workHrs}</td>
                       <td className="py-3 px-4 font-mono text-slate-700">{rec.totalBreakMinutes || 0}m</td>
                       <td className="py-3 px-4">
                         <span className={`px-2 py-0.5 rounded text-[10px] font-black border uppercase tracking-wider ${badgeColor}`}>
-                          {rec.status}
+                          {displayStatus}
                         </span>
                       </td>
                       <td className="py-3 px-4 font-mono text-amber-700 font-semibold">

@@ -30,11 +30,13 @@ import { clientCache } from '@/lib/client-cache';
 interface OpportunitiesListViewProps {
   onSelectOpportunity?: (id: string) => void;
   onCreateDealFromOpp?: (opp: OpportunityItem) => void;
+  initialClientId?: string;
 }
 
 export const OpportunitiesListView: React.FC<OpportunitiesListViewProps> = ({
   onSelectOpportunity,
   onCreateDealFromOpp,
+  initialClientId,
 }) => {
   const cachedOpps = clientCache.get<OpportunityItem[]>('crm_opportunities_list', 15 * 60 * 1000);
   const cachedLeads = clientCache.get<any[]>('crm_leads_dropdown', 15 * 60 * 1000);
@@ -59,7 +61,7 @@ export const OpportunitiesListView: React.FC<OpportunitiesListViewProps> = ({
     competitor: '',
     expectedCloseDate: '',
     leadId: '',
-    clientId: '',
+    clientId: initialClientId || '',
     assignedToId: '',
   });
 
@@ -218,20 +220,17 @@ export const OpportunitiesListView: React.FC<OpportunitiesListViewProps> = ({
   return (
     <div className="space-y-6 pb-12 font-sans">
       {/* Executive Command Banner */}
-      <div className="bg-gradient-to-r from-slate-950 via-growth-navy to-slate-900 rounded-3xl p-6 text-white shadow-2xl border border-slate-800/80 relative overflow-hidden hero-banner-interactive">
-        <div className="absolute -right-16 -top-16 w-72 h-72 bg-growth-teal/15 rounded-full blur-3xl pointer-events-none" />
-        <div className="absolute right-1/3 -bottom-20 w-72 h-72 bg-growth-gold/10 rounded-full blur-3xl pointer-events-none" />
-
+      <div className="bg-white rounded-2xl p-6 text-slate-900 shadow-sm border border-slate-200/80 relative overflow-hidden panel-premium">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 relative z-10">
           <div>
-            <div className="inline-flex items-center gap-2 px-3 py-1 bg-white/10 rounded-full text-xs font-semibold text-growth-gold mb-2 border border-white/10 backdrop-blur-md chip-premium-highlight cursor-pointer">
-              <Sparkles className="w-3.5 h-3.5 text-growth-gold" />
+            <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-[#0D9488]/10 rounded-full text-xs font-bold text-[#0D9488] mb-2 border border-[#0D9488]/20">
+              <Sparkles className="w-3.5 h-3.5 text-[#0D9488]" />
               <span>CRM • Sales Exploration & Proposals</span>
             </div>
-            <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-white hero-title-interactive">
+            <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-slate-900">
               Enterprise Opportunities
             </h1>
-            <p className="text-xs text-slate-300 mt-1 max-w-xl leading-relaxed hero-subtitle-interactive">
+            <p className="text-xs text-slate-500 mt-1 max-w-xl leading-relaxed">
               Track qualified leads moving through discovery, pitch proposals, commercial preparation, and closed business.
             </p>
           </div>
@@ -239,14 +238,14 @@ export const OpportunitiesListView: React.FC<OpportunitiesListViewProps> = ({
           <div className="flex items-center gap-2.5">
             <button
               onClick={() => setRefreshKey((k) => k + 1)}
-              className="p-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 transition-colors border border-slate-700 interactive-btn-hover"
+              className="p-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-600 transition-colors border border-slate-200 cursor-pointer"
               title="Refresh"
             >
               <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin text-growth-teal' : ''}`} />
             </button>
             <button
               onClick={() => setIsCreateModalOpen(true)}
-              className="flex items-center gap-2 px-5 py-2.5 bg-growth-teal hover:bg-growth-tealDark text-white font-bold text-xs rounded-xl shadow-md transition-all active:scale-95 interactive-btn-hover"
+              className="flex items-center gap-2 px-5 py-2.5 bg-growth-teal hover:bg-growth-tealDark text-white font-bold text-xs rounded-xl shadow-sm transition-all active:scale-95 cursor-pointer"
             >
               <Plus className="w-4 h-4" />
               <span>New Opportunity</span>
@@ -359,9 +358,9 @@ export const OpportunitiesListView: React.FC<OpportunitiesListViewProps> = ({
                       case 'PROPOSAL':
                         return 'bg-amber-50 text-amber-700 border-amber-200';
                       case 'NEGOTIATION':
-                        return 'bg-purple-50 text-purple-700 border-purple-200';
+                        return 'bg-teal-50 text-teal-800 border-teal-200';
                       default:
-                        return 'bg-blue-50 text-blue-700 border-blue-200';
+                        return 'bg-slate-100 text-slate-700 border-slate-200';
                     }
                   };
 
@@ -455,36 +454,28 @@ export const OpportunitiesListView: React.FC<OpportunitiesListViewProps> = ({
 
       {/* CREATE OPPORTUNITY MODAL */}
       {isCreateModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
-          <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 max-w-xl w-full shadow-2xl space-y-4 max-h-[90vh] overflow-y-auto">
-            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
-              <div className="flex items-center gap-2.5">
-                <div className="w-9 h-9 rounded-xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-center text-blue-400">
-                  <Sparkles className="w-5 h-5" />
-                </div>
-                <div>
-                  <h3 className="text-base font-bold text-white">Create New Opportunity</h3>
-                  <p className="text-xs text-slate-400">Add sales prospecting or pitch opportunity</p>
-                </div>
-              </div>
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs">
+          <div className="bg-white border border-slate-200 rounded-2xl p-6 max-w-xl w-full shadow-2xl space-y-4 max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+              <h3 className="text-base font-bold text-slate-900">Create New Opportunity</h3>
               <button
                 onClick={() => setIsCreateModalOpen(false)}
-                className="p-1 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800"
+                className="p-1 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
             {errorMsg && (
-              <div className="p-3 rounded-lg bg-rose-500/10 border border-rose-500/20 text-rose-400 text-xs">
+              <div className="p-3 rounded-lg bg-rose-50 border border-rose-200 text-rose-700 text-xs">
                 {errorMsg}
               </div>
             )}
 
             <form onSubmit={handleCreateSubmit} className="space-y-3.5">
               <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1">
-                  Opportunity Title <span className="text-rose-400">*</span>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">
+                  Opportunity Title <span className="text-rose-500">*</span>
                 </label>
                 <input
                   type="text"
@@ -492,19 +483,19 @@ export const OpportunitiesListView: React.FC<OpportunitiesListViewProps> = ({
                   placeholder="e.g. FY26 Staffing Expansion - 50 Associates"
                   value={formData.title}
                   onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                  className="w-full text-xs bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-slate-200 focus:outline-none focus:border-blue-500"
+                  className="w-full text-xs bg-slate-50 border border-slate-200 rounded-lg p-2.5 text-slate-900 focus:outline-none focus:bg-white focus:border-blue-600 transition-colors"
                 />
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-semibold text-slate-300 mb-1">
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">
                     Link to Qualified Lead
                   </label>
                   <select
                     value={formData.leadId}
                     onChange={(e) => setFormData({ ...formData, leadId: e.target.value, clientId: '' })}
-                    className="w-full text-xs bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-slate-200 focus:outline-none focus:border-blue-500"
+                    className="w-full text-xs bg-slate-50 border border-slate-200 rounded-lg p-2.5 text-slate-900 focus:outline-none focus:bg-white focus:border-blue-600 transition-colors"
                   >
                     <option value="">None / Select Lead</option>
                     {leads.map((l) => (
@@ -516,13 +507,13 @@ export const OpportunitiesListView: React.FC<OpportunitiesListViewProps> = ({
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-slate-300 mb-1">
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">
                     Or Link to Existing Client
                   </label>
                   <select
                     value={formData.clientId}
                     onChange={(e) => setFormData({ ...formData, clientId: e.target.value, leadId: '' })}
-                    className="w-full text-xs bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-slate-200 focus:outline-none focus:border-blue-500"
+                    className="w-full text-xs bg-slate-50 border border-slate-200 rounded-lg p-2.5 text-slate-900 focus:outline-none focus:bg-white focus:border-blue-600 transition-colors"
                   >
                     <option value="">None / Select Client</option>
                     {clients.map((c) => (
@@ -536,8 +527,8 @@ export const OpportunitiesListView: React.FC<OpportunitiesListViewProps> = ({
 
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <div>
-                  <label className="block text-xs font-semibold text-slate-300 mb-1">
-                    Estimated Value (₹) <span className="text-rose-400">*</span>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">
+                    Estimated Value (₹) <span className="text-rose-500">*</span>
                   </label>
                   <input
                     type="number"
@@ -545,12 +536,12 @@ export const OpportunitiesListView: React.FC<OpportunitiesListViewProps> = ({
                     placeholder="500000"
                     value={formData.value}
                     onChange={(e) => setFormData({ ...formData, value: e.target.value })}
-                    className="w-full text-xs bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-slate-200 focus:outline-none focus:border-blue-500"
+                    className="w-full text-xs bg-slate-50 border border-slate-200 rounded-lg p-2.5 text-slate-900 focus:outline-none focus:bg-white focus:border-blue-600 transition-colors"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-slate-300 mb-1">Stage</label>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">Stage</label>
                   <select
                     value={formData.stage}
                     onChange={(e) => {
@@ -558,7 +549,7 @@ export const OpportunitiesListView: React.FC<OpportunitiesListViewProps> = ({
                       const defProb = OPPORTUNITY_STAGE_CONFIG[st]?.defaultProbability ?? 20;
                       setFormData({ ...formData, stage: st, probability: String(defProb) });
                     }}
-                    className="w-full text-xs bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-slate-200 focus:outline-none focus:border-blue-500"
+                    className="w-full text-xs bg-slate-50 border border-slate-200 rounded-lg p-2.5 text-slate-900 focus:outline-none focus:bg-white focus:border-blue-600 transition-colors"
                   >
                     {OPPORTUNITY_STAGES.map((s) => (
                       <option key={s} value={s}>
@@ -569,59 +560,59 @@ export const OpportunitiesListView: React.FC<OpportunitiesListViewProps> = ({
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-slate-300 mb-1">Win Probability (%)</label>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">Win Probability (%)</label>
                   <input
                     type="number"
                     min={0}
                     max={100}
                     value={formData.probability}
                     onChange={(e) => setFormData({ ...formData, probability: e.target.value })}
-                    className="w-full text-xs bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-slate-200 focus:outline-none focus:border-blue-500"
+                    className="w-full text-xs bg-slate-50 border border-slate-200 rounded-lg p-2.5 text-slate-900 focus:outline-none focus:bg-white focus:border-blue-600 transition-colors"
                   />
                 </div>
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-semibold text-slate-300 mb-1">Product / Service</label>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">Product / Service</label>
                   <input
                     type="text"
                     placeholder="e.g. Manpower Staffing / Payroll Outsourcing"
                     value={formData.productService}
                     onChange={(e) => setFormData({ ...formData, productService: e.target.value })}
-                    className="w-full text-xs bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-slate-200 focus:outline-none focus:border-blue-500"
+                    className="w-full text-xs bg-slate-50 border border-slate-200 rounded-lg p-2.5 text-slate-900 focus:outline-none focus:bg-white focus:border-blue-600 transition-colors"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-slate-300 mb-1">Key Competitor</label>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">Key Competitor</label>
                   <input
                     type="text"
                     placeholder="e.g. TeamLease / Quess"
                     value={formData.competitor}
                     onChange={(e) => setFormData({ ...formData, competitor: e.target.value })}
-                    className="w-full text-xs bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-slate-200 focus:outline-none focus:border-blue-500"
+                    className="w-full text-xs bg-slate-50 border border-slate-200 rounded-lg p-2.5 text-slate-900 focus:outline-none focus:bg-white focus:border-blue-600 transition-colors"
                   />
                 </div>
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-semibold text-slate-300 mb-1">Expected Close Date</label>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">Expected Close Date</label>
                   <input
                     type="date"
                     value={formData.expectedCloseDate}
                     onChange={(e) => setFormData({ ...formData, expectedCloseDate: e.target.value })}
-                    className="w-full text-xs bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-slate-200 focus:outline-none focus:border-blue-500"
+                    className="w-full text-xs bg-slate-50 border border-slate-200 rounded-lg p-2.5 text-slate-900 focus:outline-none focus:bg-white focus:border-blue-600 transition-colors"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-slate-300 mb-1">Assigned Sales Owner</label>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">Assigned Sales Owner</label>
                   <select
                     value={formData.assignedToId}
                     onChange={(e) => setFormData({ ...formData, assignedToId: e.target.value })}
-                    className="w-full text-xs bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-slate-200 focus:outline-none focus:border-blue-500"
+                    className="w-full text-xs bg-slate-50 border border-slate-200 rounded-lg p-2.5 text-slate-900 focus:outline-none focus:bg-white focus:border-blue-600 transition-colors"
                   >
                     <option value="">Select Employee</option>
                     {employees.map((emp) => (
@@ -634,28 +625,28 @@ export const OpportunitiesListView: React.FC<OpportunitiesListViewProps> = ({
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1">Scope Description</label>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">Scope Description</label>
                 <textarea
                   rows={2}
                   placeholder="Notes on client requirements, initial discussion points..."
                   value={formData.description}
                   onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                  className="w-full text-xs bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-slate-200 focus:outline-none focus:border-blue-500"
+                  className="w-full text-xs bg-slate-50 border border-slate-200 rounded-lg p-2.5 text-slate-900 focus:outline-none focus:bg-white focus:border-blue-600 transition-colors"
                 />
               </div>
 
-              <div className="flex items-center justify-end gap-3 pt-3 border-t border-slate-800">
+              <div className="flex items-center justify-end gap-3 pt-3 border-t border-slate-100">
                 <button
                   type="button"
                   onClick={() => setIsCreateModalOpen(false)}
-                  className="px-4 py-2 text-xs font-semibold text-slate-400 hover:text-white"
+                  className="px-4 py-2 text-xs font-semibold text-slate-600 hover:text-slate-900"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={submitting}
-                  className="px-4 py-2 text-xs font-bold rounded-lg bg-blue-600 hover:bg-blue-500 text-white transition-all disabled:opacity-50"
+                  className="px-4 py-2 text-xs font-bold rounded-lg bg-teal-600 hover:bg-teal-700 text-white transition-all disabled:opacity-50"
                 >
                   {submitting ? 'Creating...' : 'Create Opportunity'}
                 </button>

@@ -516,7 +516,7 @@ export const InvitedMember360Modal: React.FC<InvitedMember360ModalProps> = ({
                         : 'bg-white text-slate-600 border border-slate-200 hover:bg-emerald-50 hover:text-emerald-700 hover:border-emerald-200'
                     }`}
                   >
-                    ➕ Created ({stats.createdCount})
+                    Created ({stats.createdCount})
                   </button>
                   <button
                     onClick={() => setActiveFilter('UPDATE')}
@@ -526,7 +526,7 @@ export const InvitedMember360Modal: React.FC<InvitedMember360ModalProps> = ({
                         : 'bg-white text-slate-600 border border-slate-200 hover:bg-sky-50 hover:text-sky-700 hover:border-sky-200'
                     }`}
                   >
-                    ✏️ Edited ({stats.updatedCount})
+                    Edited ({stats.updatedCount})
                   </button>
                   <button
                     onClick={() => setActiveFilter('DELETE')}
@@ -536,7 +536,7 @@ export const InvitedMember360Modal: React.FC<InvitedMember360ModalProps> = ({
                         : 'bg-white text-slate-600 border border-slate-200 hover:bg-rose-50 hover:text-rose-700 hover:border-rose-200'
                     }`}
                   >
-                    🗑️ Deleted ({stats.deletedCount})
+                    Deleted ({stats.deletedCount})
                   </button>
                   <button
                     onClick={() => setActiveFilter('AUTH')}
@@ -546,7 +546,7 @@ export const InvitedMember360Modal: React.FC<InvitedMember360ModalProps> = ({
                         : 'bg-white text-slate-600 border border-slate-200 hover:bg-amber-50 hover:text-amber-700 hover:border-amber-200'
                     }`}
                   >
-                    🔐 Logins / Auth ({stats.authCount})
+                    Logins / Auth ({stats.authCount})
                   </button>
                 </div>
 

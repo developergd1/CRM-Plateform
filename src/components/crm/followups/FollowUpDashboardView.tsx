@@ -16,6 +16,7 @@ import {
   ChevronLeft,
   ChevronRight,
   MoreVertical,
+  X,
 } from 'lucide-react';
 
 import { clientCache } from '@/lib/client-cache';
@@ -159,18 +160,18 @@ export const FollowUpDashboardView: React.FC = () => {
   return (
     <div className="space-y-6">
       {/* 1. Top Executive Banner */}
-      <div className="hero-banner-interactive flex flex-col md:flex-row md:items-center justify-between gap-4 bg-gradient-to-r from-slate-900 via-slate-800 to-teal-950 rounded-2xl p-6 text-white border border-slate-700/60 shadow-lg">
+      <div className="bg-white rounded-2xl p-6 text-slate-900 border border-slate-200/80 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4 panel-premium">
         <div>
           <div className="flex items-center gap-2 mb-2">
-            <span className="chip-premium-highlight px-2.5 py-0.5 rounded-full text-xs font-bold bg-teal-500/10 text-teal-300 border border-teal-500/30 tracking-wide uppercase">
+            <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-teal-50 text-[#0D9488] border border-teal-200 tracking-wide uppercase">
               CRM TASK FORCE
             </span>
-            <span className="text-xs text-slate-300 font-medium">Customer Engagement & SLAs</span>
+            <span className="text-xs text-slate-500 font-medium">Customer Engagement & SLAs</span>
           </div>
-          <h1 className="hero-title-interactive text-2xl lg:text-3xl font-black text-white tracking-tight">
+          <h1 className="text-2xl lg:text-3xl font-black text-slate-900 tracking-tight">
             Tasks & Follow-ups Queue
           </h1>
-          <p className="hero-subtitle-interactive text-xs sm:text-sm text-slate-300 mt-1 max-w-2xl leading-relaxed">
+          <p className="text-xs sm:text-sm text-slate-500 mt-1 max-w-2xl leading-relaxed">
             Monitor time-sensitive interactions, schedule client check-ins, and ensure zero SLA breaches across your accounts.
           </p>
         </div>
@@ -181,10 +182,10 @@ export const FollowUpDashboardView: React.FC = () => {
               setRefreshing(true);
               fetchFollowUps();
             }}
-            className="interactive-btn-hover p-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 transition-colors shadow-sm cursor-pointer"
+            className="p-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-600 border border-slate-200 transition-colors shadow-xs cursor-pointer"
             title="Refresh Follow-ups"
           >
-            <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin text-teal-400' : ''}`} />
+            <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin text-teal-600' : ''}`} />
           </button>
 
           <button
@@ -192,7 +193,7 @@ export const FollowUpDashboardView: React.FC = () => {
               loadModalData();
               setShowScheduleModal(true);
             }}
-            className="interactive-btn-hover flex items-center gap-2 px-5 py-2.5 rounded-xl font-bold text-xs sm:text-sm bg-gradient-to-r from-[#0E8388] to-teal-500 hover:from-teal-600 hover:to-teal-400 text-white shadow-lg shadow-teal-900/30 transition-all transform active:scale-95 cursor-pointer"
+            className="flex items-center gap-2 px-5 py-2.5 rounded-xl font-bold text-xs sm:text-sm bg-gradient-to-r from-[#0E8388] to-teal-500 hover:from-teal-600 hover:to-teal-400 text-white shadow-sm transition-all transform active:scale-95 cursor-pointer"
           >
             <Plus className="w-4 h-4" />
             Schedule Follow-up
@@ -467,41 +468,50 @@ export const FollowUpDashboardView: React.FC = () => {
 
       {/* Schedule Follow-up Modal */}
       {showScheduleModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
-          <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 max-w-md w-full shadow-2xl space-y-4">
-            <h3 className="text-lg font-bold text-white">Schedule New Follow-up</h3>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-xs p-4">
+          <div className="bg-white border border-slate-200 rounded-2xl p-6 max-w-md w-full shadow-2xl space-y-4">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+              <h3 className="text-base font-bold text-slate-900">Schedule New Follow-up</h3>
+              <button
+                type="button"
+                onClick={() => setShowScheduleModal(false)}
+                className="p-1 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
 
             <div>
-              <label className="block text-xs font-medium text-slate-300 mb-1">
-                Title / Action Item <span className="text-rose-400">*</span>
+              <label className="block text-xs font-semibold text-slate-700 mb-1">
+                Title / Action Item <span className="text-rose-500">*</span>
               </label>
               <input
                 type="text"
                 value={newTitle}
                 onChange={(e) => setNewTitle(e.target.value)}
                 placeholder="e.g. Discuss revised manpower pricing"
-                className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-xl text-xs text-white focus:outline-none focus:border-teal-500"
+                className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-900 focus:outline-none focus:bg-white focus:border-teal-600 transition-colors"
               />
             </div>
 
             <div>
-              <label className="block text-xs font-medium text-slate-300 mb-1">
-                Date & Time <span className="text-rose-400">*</span>
+              <label className="block text-xs font-semibold text-slate-700 mb-1">
+                Date & Time <span className="text-rose-500">*</span>
               </label>
               <input
                 type="datetime-local"
                 value={newDate}
                 onChange={(e) => setNewDate(e.target.value)}
-                className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-xl text-xs text-white focus:outline-none focus:border-teal-500 [color-scheme:dark]"
+                className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-900 focus:outline-none focus:bg-white focus:border-teal-600 transition-colors"
               />
             </div>
 
             <div>
-              <label className="block text-xs font-medium text-slate-300 mb-1">Associated Lead</label>
+              <label className="block text-xs font-semibold text-slate-700 mb-1">Associated Lead</label>
               <select
                 value={newLeadId}
                 onChange={(e) => setNewLeadId(e.target.value)}
-                className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-xl text-xs text-white focus:outline-none focus:border-teal-500"
+                className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-900 focus:outline-none focus:bg-white focus:border-teal-600 transition-colors"
               >
                 <option value="">-- Standalone Follow-up --</option>
                 {leads.map((l) => (
@@ -513,11 +523,11 @@ export const FollowUpDashboardView: React.FC = () => {
             </div>
 
             <div>
-              <label className="block text-xs font-medium text-slate-300 mb-1">Priority</label>
+              <label className="block text-xs font-semibold text-slate-700 mb-1">Priority</label>
               <select
                 value={newPriority}
                 onChange={(e) => setNewPriority(e.target.value)}
-                className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-xl text-xs text-white focus:outline-none focus:border-teal-500"
+                className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-900 focus:outline-none focus:bg-white focus:border-teal-600 transition-colors"
               >
                 <option value="LOW">Low</option>
                 <option value="MEDIUM">Medium</option>
@@ -527,22 +537,22 @@ export const FollowUpDashboardView: React.FC = () => {
             </div>
 
             <div>
-              <label className="block text-xs font-medium text-slate-300 mb-1">Remarks</label>
+              <label className="block text-xs font-semibold text-slate-700 mb-1">Remarks</label>
               <textarea
                 value={newRemarks}
                 onChange={(e) => setNewRemarks(e.target.value)}
                 rows={2}
                 placeholder="Key talking points or deliverables..."
-                className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-xl text-xs text-white focus:outline-none focus:border-teal-500 resize-none"
+                className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-900 focus:outline-none focus:bg-white focus:border-teal-600 transition-colors resize-none"
               />
             </div>
 
-            <div className="flex items-center justify-end gap-2 pt-2">
+            <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-100">
               <button
                 type="button"
                 onClick={() => setShowScheduleModal(false)}
                 disabled={submitting}
-                className="px-4 py-2 rounded-xl border border-slate-700 text-xs font-medium text-slate-300 hover:bg-slate-800"
+                className="px-4 py-2 rounded-xl text-xs font-semibold text-slate-600 hover:text-slate-900"
               >
                 Cancel
               </button>
@@ -550,7 +560,7 @@ export const FollowUpDashboardView: React.FC = () => {
                 type="button"
                 onClick={handleCreate}
                 disabled={submitting || !newTitle.trim() || !newDate}
-                className="px-4 py-2 rounded-xl bg-teal-600 hover:bg-teal-500 text-xs font-semibold text-white shadow-lg shadow-teal-500/20 disabled:opacity-50"
+                className="px-4 py-2 rounded-xl bg-teal-600 hover:bg-teal-700 text-xs font-semibold text-white shadow-xs disabled:opacity-50"
               >
                 {submitting ? 'Scheduling...' : 'Schedule Follow-up'}
               </button>

@@ -450,7 +450,7 @@ export const ClientRequestsView: React.FC = () => {
                 onClick={() => setActiveTarget(null)}
                 className="text-slate-400 hover:text-slate-600 p-1 rounded-xl cursor-pointer"
               >
-                ✕
+                Cancel
               </button>
             </div>
 

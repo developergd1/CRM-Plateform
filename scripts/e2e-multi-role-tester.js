@@ -74,7 +74,7 @@ async function runE2ETests() {
   const adminLoginRes = await apiRequest('/api/auth/login', {
     method: 'POST',
     body: {
-      email: 'admin@growthindia.in',
+      email: 'admin@growthindia.co',
       password: 'Admin@123',
       portalType: 'ADMIN',
     },
@@ -90,7 +90,7 @@ async function runE2ETests() {
   // Verify Admin Session via /api/auth/me
   const adminMeRes = await apiRequest('/api/auth/me', { token: adminToken });
   assert(adminMeRes.status === 200, 'Admin /api/auth/me returns 200');
-  assert(adminMeRes.data.user.email === 'admin@growthindia.in', 'Admin session identity verified');
+  assert(adminMeRes.data.user.email === 'admin@growthindia.co', 'Admin session identity verified');
 
   // -------------------------------------------------------------------------
   // PHASE 2: ADMIN CREATES 2 CORPORATE CLIENTS

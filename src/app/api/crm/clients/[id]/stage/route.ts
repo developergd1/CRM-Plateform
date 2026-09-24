@@ -56,7 +56,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
         clientId: client.id,
         actorEmployeeId: currentEmp.id,
         activityType: 'STAGE_CHANGED',
-        title: `Pipeline Stage Moved: ${fromStage} ➔ ${toStage}`,
+        title: `Pipeline Stage Moved: ${fromStage} -> ${toStage}`,
         description: remarks || `Stage advanced by ${user.fullName} (${user.employeeId})`,
         previousValue: fromStage,
         newValue: toStage,

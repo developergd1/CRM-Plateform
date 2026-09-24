@@ -20,6 +20,9 @@ import {
   ArrowRight,
   KeyRound,
   Sparkles,
+  Briefcase,
+  Copy,
+  Check,
 } from 'lucide-react';
 import { isAdminOrHR } from '@/lib/rbac';
 import { EditEmployeeModal } from './EditEmployeeModal';
@@ -67,6 +70,14 @@ export const EmployeeDetailDrawer: React.FC<DrawerProps> = ({
 
   const [actionLoading, setActionLoading] = useState(false);
   const [actionNotice, setActionNotice] = useState<string | null>(null);
+  const [copiedField, setCopiedField] = useState<string | null>(null);
+
+  const copyToClipboard = (text: string, fieldName: string) => {
+    if (!text) return;
+    navigator.clipboard.writeText(text);
+    setCopiedField(fieldName);
+    setTimeout(() => setCopiedField(null), 2000);
+  };
 
   const fetchEmployeeDetails = async () => {
     if (!employeeId) return;
@@ -148,7 +159,7 @@ export const EmployeeDetailDrawer: React.FC<DrawerProps> = ({
       if (res.ok) {
         setShowBlockModal(false);
         setBlockRemarks('');
-        setActionNotice(`🔒 ${employee.fullName} (${employee.employeeId}) has been BLOCKED.`);
+        setActionNotice(`${employee.fullName} (${employee.employeeId}) has been BLOCKED.`);
         await fetchEmployeeDetails();
         onRefresh();
         setTimeout(() => setActionNotice(null), 4000);
@@ -179,7 +190,7 @@ export const EmployeeDetailDrawer: React.FC<DrawerProps> = ({
       if (res.ok) {
         setShowUnblockModal(false);
         setUnblockRemarks('');
-        setActionNotice(`✅ ${employee.fullName} (${employee.employeeId}) is now UNBLOCKED & ACTIVE.`);
+        setActionNotice(`${employee.fullName} (${employee.employeeId}) is now UNBLOCKED & ACTIVE.`);
         await fetchEmployeeDetails();
         onRefresh();
         setTimeout(() => setActionNotice(null), 4000);
@@ -197,68 +208,92 @@ export const EmployeeDetailDrawer: React.FC<DrawerProps> = ({
 
   return (
     <div className="fixed inset-0 z-50 overflow-hidden bg-slate-950/60 backdrop-blur-sm flex justify-end animate-in fade-in">
-      <div className="w-full max-w-2xl bg-white h-full shadow-2xl flex flex-col justify-between overflow-hidden animate-in slide-in-from-right duration-300">
+      <div className="w-full max-w-3xl bg-slate-50/70 h-full shadow-2xl flex flex-col justify-between overflow-hidden animate-in slide-in-from-right duration-300">
         {loading ? (
           <div className="flex-1 flex items-center justify-center">
-            <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-growth-teal" />
+            <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-teal-600" />
           </div>
         ) : !employee ? (
           <div className="p-8 text-center text-slate-500">Employee profile not found.</div>
         ) : (
           <>
             {/* Drawer Header */}
-            <div className="p-6 bg-slate-900 text-white flex items-start justify-between border-b border-slate-800 panel-premium">
-              <div className="flex items-center gap-4">
-                <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-growth-teal to-growth-gold flex items-center justify-center font-black text-xl text-white shadow-md">
-                  {employee.fullName.charAt(0)}
-                </div>
-                <div>
-                  <div className="flex items-center gap-2">
-                    <span className="font-mono text-xs font-bold text-growth-gold bg-amber-950/80 px-2.5 py-0.5 rounded border border-growth-gold/30">
-                      {employee.employeeId}
-                    </span>
-                    <span
-                      className={`text-[10px] font-extrabold uppercase px-2.5 py-0.5 rounded-full ${
-                        isBlocked
-                          ? 'bg-rose-500/20 text-rose-300 border border-rose-500/40'
-                          : employee.status === 'ACTIVE'
-                          ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40'
-                          : 'bg-slate-500/20 text-slate-300 border border-slate-500/40'
-                      }`}
-                    >
-                      {employee.status}
-                    </span>
+            <div className="p-6 bg-white border-b border-slate-200 shrink-0">
+              <div className="flex items-start justify-between gap-4">
+                <div className="flex items-center gap-4 min-w-0">
+                  <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-teal-500 to-teal-700 flex items-center justify-center font-black text-2xl text-white shadow-md shrink-0 ring-4 ring-teal-50">
+                    {employee.fullName.charAt(0).toUpperCase()}
                   </div>
-                  <h2 className="text-xl font-black mt-1 text-white tracking-tight title-interactive-hover">
-                    {employee.fullName}
-                  </h2>
-                  <p className="text-xs text-slate-400 subtitle-interactive-hover">
-                    {employee.designation} • {employee.departmentName || employee.department?.name || 'General'}
-                  </p>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="font-mono text-xs font-bold text-teal-800 bg-teal-50 px-2.5 py-0.5 rounded-lg border border-teal-200 select-all">
+                        {employee.employeeId}
+                      </span>
+                      <span
+                        className={`text-[10px] font-extrabold uppercase px-2.5 py-0.5 rounded-md flex items-center gap-1.5 ${
+                          isBlocked
+                            ? 'bg-rose-50 text-rose-700 border border-rose-200'
+                            : employee.status === 'ACTIVE'
+                            ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                            : 'bg-slate-100 text-slate-700 border border-slate-200'
+                        }`}
+                      >
+                        <span className={`w-1.5 h-1.5 rounded-full ${isBlocked ? 'bg-rose-500' : employee.status === 'ACTIVE' ? 'bg-emerald-500 animate-pulse' : 'bg-slate-400'}`} />
+                        <span>{employee.status}</span>
+                      </span>
+                      {employee.client && (
+                        <span className="text-[11px] font-semibold text-slate-600 bg-slate-50 border border-slate-200 px-2 py-0.5 rounded-md flex items-center gap-1">
+                          <Building2 className="w-3 h-3 text-teal-600" />
+                          <span className="truncate max-w-[150px]">{employee.client.companyName}</span>
+                        </span>
+                      )}
+                    </div>
+                    <h2 className="text-xl font-bold text-slate-900 tracking-tight mt-1 truncate">
+                      {employee.fullName}
+                    </h2>
+                    <div className="text-xs text-slate-500 flex items-center gap-2 mt-0.5 truncate">
+                      <span className="font-medium text-slate-700 flex items-center gap-1">
+                        <Briefcase className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                        <span>{employee.designation}</span>
+                      </span>
+                      <span className="text-slate-300">•</span>
+                      <span className="flex items-center gap-1 truncate">
+                        <Building2 className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                        <span>{employee.departmentName || employee.department?.name || 'General Operations'}</span>
+                      </span>
+                    </div>
+                  </div>
                 </div>
-              </div>
 
-              <button onClick={onClose} className="p-2 text-slate-400 hover:text-white rounded-xl interactive-btn-hover cursor-pointer">
-                <X className="w-5 h-5" />
-              </button>
+                <button
+                  type="button"
+                  onClick={onClose}
+                  className="p-2 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-xl transition-colors cursor-pointer shrink-0"
+                  title="Close (Esc)"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
             </div>
 
-            {/* Action Bar: Edit, Reset Password & Block/Unblock Button */}
-            <div className="bg-slate-50 px-6 py-2.5 border-b border-slate-200 flex items-center justify-between flex-wrap gap-2">
+            {/* Action Bar: Edit, Reset Password & Block/Unblock */}
+            <div className="bg-slate-50/80 px-6 py-2.5 border-b border-slate-200 flex items-center justify-between flex-wrap gap-2 shrink-0">
               <div className="flex items-center gap-2">
                 <button
+                  type="button"
                   onClick={() => setShowEditModal(true)}
-                  className="px-3 py-1.5 bg-white border border-slate-200 hover:border-slate-300 text-slate-700 rounded-xl font-bold text-xs flex items-center gap-1.5 transition-all shadow-sm interactive-btn-hover cursor-pointer"
+                  className="px-3.5 py-1.5 bg-white border border-slate-200 hover:border-slate-300 hover:bg-slate-50 text-slate-700 rounded-xl font-semibold text-xs flex items-center gap-1.5 transition-all shadow-xs cursor-pointer"
                 >
-                  <Edit className="w-3.5 h-3.5 text-growth-teal" />
+                  <Edit className="w-3.5 h-3.5 text-teal-600" />
                   <span>Edit Profile</span>
                 </button>
 
                 <button
+                  type="button"
                   onClick={() => setShowResetPasswordModal(true)}
-                  className="px-3 py-1.5 bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-200/80 rounded-xl font-bold text-xs flex items-center gap-1.5 transition-all shadow-sm interactive-btn-hover cursor-pointer"
+                  className="px-3.5 py-1.5 bg-teal-50 hover:bg-teal-100/80 text-teal-800 border border-teal-200 rounded-xl font-semibold text-xs flex items-center gap-1.5 transition-all shadow-xs cursor-pointer"
                 >
-                  <KeyRound className="w-3.5 h-3.5 text-amber-600" />
+                  <KeyRound className="w-3.5 h-3.5 text-teal-600" />
                   <span>Assign / Reset Password</span>
                 </button>
               </div>
@@ -276,15 +311,16 @@ export const EmployeeDetailDrawer: React.FC<DrawerProps> = ({
                   <div>
                     {isBlocked ? (
                       <button
+                        type="button"
                         onClick={() => setShowUnblockModal(true)}
-                        className="px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold text-xs flex items-center gap-1.5 transition-all shadow-sm interactive-btn-hover cursor-pointer"
+                        className="px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-semibold text-xs flex items-center gap-1.5 transition-all shadow-xs cursor-pointer"
                       >
                         <ShieldCheck className="w-3.5 h-3.5" />
                         <span>Unblock Employee</span>
                       </button>
                     ) : (employee.employeeId === 'GI-EMP-000001' || employee.user?.role?.name === 'SUPER_ADMIN' || employee.employeeId === user?.employeeId) ? (
                       <span
-                        className="px-3 py-1.5 bg-slate-100 text-slate-400 border border-slate-200 rounded-xl font-bold text-xs flex items-center gap-1.5 select-none cursor-default"
+                        className="px-3 py-1.5 bg-slate-100 text-slate-400 border border-slate-200 rounded-xl font-semibold text-xs flex items-center gap-1.5 select-none cursor-default"
                         title="Super Admin and active user sessions cannot be blocked"
                       >
                         <ShieldCheck className="w-3.5 h-3.5 text-slate-400" />
@@ -292,8 +328,9 @@ export const EmployeeDetailDrawer: React.FC<DrawerProps> = ({
                       </span>
                     ) : (
                       <button
+                        type="button"
                         onClick={() => setShowBlockModal(true)}
-                        className="px-3.5 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 rounded-xl font-bold text-xs flex items-center gap-1.5 transition-all shadow-sm interactive-btn-hover cursor-pointer"
+                        className="px-3.5 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 rounded-xl font-semibold text-xs flex items-center gap-1.5 transition-all shadow-xs cursor-pointer"
                       >
                         <ShieldAlert className="w-3.5 h-3.5 text-rose-600" />
                         <span>Block Employee</span>
@@ -313,47 +350,56 @@ export const EmployeeDetailDrawer: React.FC<DrawerProps> = ({
             )}
 
             {/* Navigation Tabs */}
-            <div className="flex border-b border-slate-200 px-6 pt-3 bg-white overflow-x-auto">
+            <div className="flex border-b border-slate-200 px-6 pt-3 bg-white overflow-x-auto gap-4 shrink-0">
               <button
+                type="button"
                 onClick={() => setActiveTab('profile')}
-                className={`pb-2.5 px-3 text-xs font-bold border-b-2 transition-all whitespace-nowrap ${
+                className={`pb-2.5 px-1 text-xs font-bold border-b-2 transition-all flex items-center gap-1.5 whitespace-nowrap cursor-pointer ${
                   activeTab === 'profile'
-                    ? 'border-growth-teal text-growth-teal'
-                    : 'border-transparent text-slate-400 hover:text-slate-700'
+                    ? 'border-teal-600 text-teal-800'
+                    : 'border-transparent text-slate-500 hover:text-slate-800'
                 }`}
               >
-                Personal Details
+                <User className="w-3.5 h-3.5" />
+                <span>Personal Details</span>
               </button>
 
               <button
+                type="button"
                 onClick={() => setActiveTab('job')}
-                className={`pb-2.5 px-3 text-xs font-bold border-b-2 transition-all whitespace-nowrap ${
+                className={`pb-2.5 px-1 text-xs font-bold border-b-2 transition-all flex items-center gap-1.5 whitespace-nowrap cursor-pointer ${
                   activeTab === 'job'
-                    ? 'border-growth-teal text-growth-teal'
-                    : 'border-transparent text-slate-400 hover:text-slate-700'
+                    ? 'border-teal-600 text-teal-800'
+                    : 'border-transparent text-slate-500 hover:text-slate-800'
                 }`}
               >
-                Client & Job Details
+                <Briefcase className="w-3.5 h-3.5" />
+                <span>Client & Job Details</span>
               </button>
 
               <button
+                type="button"
                 onClick={() => setActiveTab('blockHistory')}
-                className={`pb-2.5 px-3 text-xs font-bold border-b-2 transition-all flex items-center gap-1.5 whitespace-nowrap ${
+                className={`pb-2.5 px-1 text-xs font-bold border-b-2 transition-all flex items-center gap-1.5 whitespace-nowrap cursor-pointer ${
                   activeTab === 'blockHistory'
                     ? 'border-rose-600 text-rose-600'
-                    : 'border-transparent text-slate-400 hover:text-slate-700'
+                    : 'border-transparent text-slate-500 hover:text-slate-800'
                 }`}
               >
                 <History className="w-3.5 h-3.5" />
-                <span>Block/Unblock History ({employee.blockHistories?.length || 0})</span>
+                <span>Block/Unblock History</span>
+                <span className="px-1.5 py-0.5 rounded-full text-[10px] bg-slate-100 text-slate-600 font-semibold">
+                  {employee.blockHistories?.length || 0}
+                </span>
               </button>
 
               <button
+                type="button"
                 onClick={() => setActiveTab('audit')}
-                className={`pb-2.5 px-3 text-xs font-bold border-b-2 transition-all flex items-center gap-1.5 whitespace-nowrap ${
+                className={`pb-2.5 px-1 text-xs font-bold border-b-2 transition-all flex items-center gap-1.5 whitespace-nowrap cursor-pointer ${
                   activeTab === 'audit'
-                    ? 'border-growth-teal text-growth-teal'
-                    : 'border-transparent text-slate-400 hover:text-slate-700'
+                    ? 'border-teal-600 text-teal-800'
+                    : 'border-transparent text-slate-500 hover:text-slate-800'
                 }`}
               >
                 <FileText className="w-3.5 h-3.5" />
@@ -361,127 +407,293 @@ export const EmployeeDetailDrawer: React.FC<DrawerProps> = ({
               </button>
             </div>
 
-            {/* Body */}
-            <div className="flex-1 overflow-y-auto p-6 space-y-6">
+            {/* Scrollable Body Content */}
+            <div className="flex-1 overflow-y-auto p-6 space-y-5">
               {/* Tab 1: Personal Details */}
               {activeTab === 'profile' && (
-                <div className="space-y-4 text-xs">
-                  {/* Workspace Login Credentials & Password Management */}
-                  <div className="p-4 bg-gradient-to-br from-slate-900 via-slate-900 to-slate-950 text-white rounded-2xl border border-slate-800 space-y-3 shadow-lg panel-premium interactive-box-hover">
+                <div className="space-y-4">
+                  {/* Workspace Login Credentials & Password Management Card */}
+                  <div className="bg-gradient-to-r from-teal-50/70 via-slate-50 to-emerald-50/40 rounded-2xl border border-teal-200/70 p-5 space-y-3.5 shadow-xs">
                     <div className="flex items-center justify-between flex-wrap gap-2">
-                      <div className="flex items-center gap-2.5">
-                        <div className="w-8 h-8 rounded-xl bg-growth-teal/20 border border-growth-teal/30 text-growth-teal flex items-center justify-center">
+                      <div className="flex items-center gap-3">
+                        <div className="w-9 h-9 rounded-xl bg-teal-600 text-white flex items-center justify-center shadow-xs">
                           <KeyRound className="w-4 h-4" />
                         </div>
                         <div>
-                          <div className="font-bold text-white text-xs flex items-center gap-1.5">
-                            <span className="title-interactive-hover">Workspace Login Credentials</span>
-                            <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
-                              Active
+                          <div className="font-bold text-slate-900 text-xs flex items-center gap-2">
+                            <span>Workspace Login Access</span>
+                            <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-200">
+                              Active Access
                             </span>
                           </div>
-                          <div className="text-[10px] text-slate-400 subtitle-interactive-hover">
-                            Employee can sign in using their Email, Mobile, or Employee ID
+                          <div className="text-[11px] text-slate-500 mt-0.5">
+                            Employee signs in using Employee ID, Phone, or Email
                           </div>
                         </div>
                       </div>
 
                       <button
+                        type="button"
                         onClick={() => setShowResetPasswordModal(true)}
-                        className="px-3 py-1.5 bg-growth-teal hover:bg-growth-tealDark text-white font-bold text-xs rounded-xl shadow-glow transition-all flex items-center gap-1.5 interactive-btn-hover cursor-pointer"
+                        className="px-3 py-1.5 bg-white hover:bg-slate-50 text-teal-800 border border-teal-200 rounded-xl font-semibold text-xs shadow-xs transition flex items-center gap-1.5 cursor-pointer"
                       >
-                        <KeyRound className="w-3.5 h-3.5" />
-                        <span>Assign / Reset Password</span>
+                        <KeyRound className="w-3.5 h-3.5 text-teal-600" />
+                        <span>Manage Password</span>
                       </button>
                     </div>
 
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 pt-1 text-[11px] font-mono">
-                      <div className="bg-slate-950/80 p-2.5 rounded-xl border border-slate-800 interactive-box-hover">
-                        <span className="text-[10px] text-slate-400 font-sans block font-semibold title-interactive-hover">Login Email:</span>
-                        <span className="text-teal-400 font-bold break-all select-all">
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-1">
+                      <div className="bg-white p-3 rounded-xl border border-slate-200/80 shadow-xs relative group">
+                        <div className="flex items-center justify-between mb-1">
+                          <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                            Employee ID (Login)
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => copyToClipboard(employee.employeeId, 'empId')}
+                            className="text-slate-400 hover:text-teal-700 transition p-0.5 cursor-pointer"
+                            title="Copy Employee ID"
+                          >
+                            {copiedField === 'empId' ? (
+                              <Check className="w-3 h-3 text-emerald-600" />
+                            ) : (
+                              <Copy className="w-3 h-3" />
+                            )}
+                          </button>
+                        </div>
+                        <span className="text-teal-800 font-mono font-bold text-xs select-all">
+                          {employee.employeeId}
+                        </span>
+                      </div>
+
+                      <div className="bg-white p-3 rounded-xl border border-slate-200/80 shadow-xs relative group">
+                        <div className="flex items-center justify-between mb-1">
+                          <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                            Login Phone
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => copyToClipboard(employee.phone, 'phone')}
+                            className="text-slate-400 hover:text-teal-700 transition p-0.5 cursor-pointer"
+                            title="Copy Phone"
+                          >
+                            {copiedField === 'phone' ? (
+                              <Check className="w-3 h-3 text-emerald-600" />
+                            ) : (
+                              <Copy className="w-3 h-3" />
+                            )}
+                          </button>
+                        </div>
+                        <span className="text-slate-800 font-mono font-semibold text-xs select-all">
+                          {employee.phone || 'N/A'}
+                        </span>
+                      </div>
+
+                      <div className="bg-white p-3 rounded-xl border border-slate-200/80 shadow-xs relative group">
+                        <div className="flex items-center justify-between mb-1">
+                          <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                            Login Email
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => copyToClipboard(employee.personalEmail || employee.user?.email || '', 'email')}
+                            className="text-slate-400 hover:text-teal-700 transition p-0.5 cursor-pointer"
+                            title="Copy Email"
+                          >
+                            {copiedField === 'email' ? (
+                              <Check className="w-3 h-3 text-emerald-600" />
+                            ) : (
+                              <Copy className="w-3 h-3" />
+                            )}
+                          </button>
+                        </div>
+                        <span className="text-slate-800 font-mono font-semibold text-xs select-all break-all">
                           {employee.personalEmail || employee.user?.email || 'N/A'}
                         </span>
                       </div>
-                      <div className="bg-slate-950/80 p-2.5 rounded-xl border border-slate-800 interactive-box-hover">
-                        <span className="text-[10px] text-slate-400 font-sans block font-semibold title-interactive-hover">Employee ID:</span>
-                        <span className="text-growth-gold font-bold select-all">{employee.employeeId}</span>
+                    </div>
+                  </div>
+
+                  {/* Personal Information Grid */}
+                  <div className="bg-white rounded-2xl border border-slate-200 p-5 space-y-4 shadow-xs">
+                    <div className="flex items-center gap-2 pb-3 border-b border-slate-100">
+                      <User className="w-4 h-4 text-teal-600" />
+                      <h3 className="font-bold text-slate-900 text-xs uppercase tracking-wider">
+                        Personal & Contact Information
+                      </h3>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-y-4 gap-x-6">
+                      <div className="space-y-1">
+                        <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 block">
+                          Full Legal Name
+                        </span>
+                        <span className="font-bold text-slate-900 text-sm block">
+                          {employee.fullName}
+                        </span>
                       </div>
-                      <div className="bg-slate-950/80 p-2.5 rounded-xl border border-slate-800 interactive-box-hover">
-                        <span className="text-[10px] text-slate-400 font-sans block font-semibold title-interactive-hover">Login Mobile:</span>
-                        <span className="text-slate-200 font-bold select-all">{employee.phone}</span>
+
+                      <div className="space-y-1">
+                        <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 block">
+                          Parent / Guardian Name
+                        </span>
+                        <span className="font-semibold text-slate-800 text-xs block">
+                          {employee.fatherMotherName || 'Not Provided'}
+                        </span>
+                      </div>
+
+                      <div className="space-y-1">
+                        <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 block">
+                          Date of Birth
+                        </span>
+                        <span className="font-semibold text-slate-800 text-xs block">
+                          {employee.dob
+                            ? new Date(employee.dob).toLocaleDateString('en-US', {
+                                year: 'numeric',
+                                month: 'short',
+                                day: 'numeric',
+                              })
+                            : 'Not Provided'}
+                        </span>
+                      </div>
+
+                      <div className="space-y-1">
+                        <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 block">
+                          Gender / Identity
+                        </span>
+                        <span className="font-semibold text-slate-800 text-xs block">
+                          {employee.gender || 'Not Specified'}
+                        </span>
+                      </div>
+
+                      <div className="space-y-1">
+                        <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 block">
+                          Contact Phone
+                        </span>
+                        <span className="font-semibold font-mono text-slate-800 text-xs block">
+                          {employee.phone}
+                        </span>
+                      </div>
+
+                      <div className="space-y-1">
+                        <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 block">
+                          Personal Email
+                        </span>
+                        <span className="font-semibold text-slate-800 text-xs block break-all">
+                          {employee.personalEmail || employee.user?.email || 'Not Provided'}
+                        </span>
                       </div>
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-4 p-4 bg-slate-50 rounded-2xl border border-slate-200 panel-premium interactive-box-hover">
-                    <div>
-                      <span className="text-slate-400 font-bold uppercase text-[10px] block title-interactive-hover">Full Legal Name</span>
-                      <span className="font-bold text-slate-900 text-sm">{employee.fullName}</span>
+                  {/* Statutory & KYC Compliance Reference */}
+                  <div className="bg-white rounded-2xl border border-slate-200 p-5 space-y-4 shadow-xs">
+                    <div className="flex items-center gap-2 pb-3 border-b border-slate-100">
+                      <ShieldCheck className="w-4 h-4 text-teal-600" />
+                      <h3 className="font-bold text-slate-900 text-xs uppercase tracking-wider">
+                        Statutory KYC & Compliance Reference
+                      </h3>
                     </div>
 
-                    <div>
-                      <span className="text-slate-400 font-bold uppercase text-[10px] block title-interactive-hover">Father&apos;s / Mother&apos;s Name</span>
-                      <span className="font-semibold text-slate-800">{employee.fatherMotherName || 'Not Provided'}</span>
-                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200 space-y-1">
+                        <div className="flex items-center justify-between">
+                          <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
+                            Permanent Account Number (PAN)
+                          </span>
+                          {employee.panNumber && (
+                            <button
+                              type="button"
+                              onClick={() => copyToClipboard(employee.panNumber, 'pan')}
+                              className="text-slate-400 hover:text-teal-700 transition cursor-pointer"
+                              title="Copy PAN"
+                            >
+                              {copiedField === 'pan' ? (
+                                <Check className="w-3 h-3 text-emerald-600" />
+                              ) : (
+                                <Copy className="w-3 h-3" />
+                              )}
+                            </button>
+                          )}
+                        </div>
+                        <span className="font-mono font-bold text-slate-900 text-xs block select-all">
+                          {employee.panMasked || employee.panNumber || 'Not Provided'}
+                        </span>
+                        <span className="text-[10px] text-slate-400 block">Masked for statutory data security</span>
+                      </div>
 
-                    <div>
-                      <span className="text-slate-400 font-bold uppercase text-[10px] block">Date of Birth</span>
-                      <span className="font-semibold text-slate-800">
-                        {employee.dob ? new Date(employee.dob).toLocaleDateString() : 'Not Provided'}
-                      </span>
-                    </div>
-
-                    <div>
-                      <span className="text-slate-400 font-bold uppercase text-[10px] block">Gender</span>
-                      <span className="font-semibold text-slate-800">{employee.gender || 'Not Specified'}</span>
-                    </div>
-
-                    <div>
-                      <span className="text-slate-400 font-bold uppercase text-[10px] block">Phone Number</span>
-                      <span className="font-semibold text-slate-800">{employee.phone}</span>
-                    </div>
-
-                    <div>
-                      <span className="text-slate-400 font-bold uppercase text-[10px] block">Email</span>
-                      <span className="font-semibold text-slate-800">{employee.personalEmail || employee.user?.email || 'N/A'}</span>
-                    </div>
-
-                    <div>
-                      <span className="text-slate-400 font-bold uppercase text-[10px] block">PAN Reference</span>
-                      <span className="font-mono font-bold text-slate-800">{employee.panMasked || employee.panNumber || 'Not Provided'}</span>
-                    </div>
-
-                    <div>
-                      <span className="text-slate-400 font-bold uppercase text-[10px] block">Aadhar Reference</span>
-                      <span className="font-mono font-bold text-slate-800">{employee.aadhaarMasked || employee.aadharNumber || 'Not Provided'}</span>
-                    </div>
-
-                    <div>
-                      <span className="text-slate-400 font-bold uppercase text-[10px] block">Account Status</span>
-                      <span className="font-bold text-slate-900">{employee.status}</span>
+                      <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200 space-y-1">
+                        <div className="flex items-center justify-between">
+                          <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
+                            Aadhaar Reference (UIDAI)
+                          </span>
+                          {employee.aadharNumber && (
+                            <button
+                              type="button"
+                              onClick={() => copyToClipboard(employee.aadharNumber, 'aadhar')}
+                              className="text-slate-400 hover:text-teal-700 transition cursor-pointer"
+                              title="Copy Aadhaar"
+                            >
+                              {copiedField === 'aadhar' ? (
+                                <Check className="w-3 h-3 text-emerald-600" />
+                              ) : (
+                                <Copy className="w-3 h-3" />
+                              )}
+                            </button>
+                          )}
+                        </div>
+                        <span className="font-mono font-bold text-slate-900 text-xs block select-all">
+                          {employee.aadhaarMasked || employee.aadharNumber || 'Not Provided'}
+                        </span>
+                        <span className="text-[10px] text-slate-400 block">Stored in compliant encrypted registry</span>
+                      </div>
                     </div>
                   </div>
 
-                  <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200 space-y-3">
-                    {employee.address && (employee.address.includes('Temporary:') || employee.address.includes('Permanent:')) ? (
-                      <div className="space-y-2">
+                  {/* Residential Address Information */}
+                  <div className="bg-white rounded-2xl border border-slate-200 p-5 space-y-3.5 shadow-xs">
+                    <div className="flex items-center gap-2 pb-3 border-b border-slate-100">
+                      <MapPin className="w-4 h-4 text-teal-600" />
+                      <h3 className="font-bold text-slate-900 text-xs uppercase tracking-wider">
+                        Residential Address Information
+                      </h3>
+                    </div>
+
+                    {employee.address &&
+                    (employee.address.includes('Temporary:') || employee.address.includes('Permanent:')) ? (
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
                         {employee.address.split('\n').map((line: string, idx: number) => {
                           const isTemp = line.startsWith('Temporary:');
                           const isPerm = line.startsWith('Permanent:');
-                          const label = isTemp ? 'Temporary Address' : isPerm ? 'Permanent Address' : 'Address';
+                          const label = isTemp
+                            ? 'Temporary Address'
+                            : isPerm
+                            ? 'Permanent Address'
+                            : 'Address';
                           const val = line.replace(/^(Temporary|Permanent):\s*/, '');
                           return (
-                            <div key={idx} className="border-b border-slate-200/60 last:border-b-0 pb-1.5 last:pb-0">
-                              <span className="text-slate-400 font-bold uppercase text-[10px] block">{label}</span>
-                              <span className="font-medium text-slate-800 leading-relaxed">{val}</span>
+                            <div
+                              key={idx}
+                              className="p-3.5 rounded-xl bg-slate-50 border border-slate-200 space-y-1"
+                            >
+                              <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 block">
+                                {label}
+                              </span>
+                              <span className="font-medium text-slate-800 text-xs leading-relaxed block">
+                                {val}
+                              </span>
                             </div>
                           );
                         })}
                       </div>
                     ) : (
-                      <div>
-                        <span className="text-slate-400 font-bold uppercase text-[10px] block mb-1">Address</span>
-                        <span className="font-medium text-slate-800 leading-relaxed">{employee.address || 'No physical address registered'}</span>
+                      <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200 space-y-1">
+                        <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 block">
+                          Registered Physical Address
+                        </span>
+                        <span className="font-medium text-slate-800 text-xs leading-relaxed block">
+                          {employee.address || 'No physical address registered'}
+                        </span>
                       </div>
                     )}
                   </div>
@@ -490,66 +702,98 @@ export const EmployeeDetailDrawer: React.FC<DrawerProps> = ({
 
               {/* Tab 2: Job & Client Details */}
               {activeTab === 'job' && (
-                <div className="space-y-4 text-xs">
-                  {/* Working Hours & Shift Timing Timeline */}
-                  <div className="p-4 bg-slate-900 text-white rounded-2xl border border-slate-800 space-y-3 shadow-lg">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2 font-bold text-xs text-teal-400">
-                        <Clock className="w-4 h-4 text-growth-teal" />
-                        <span>Working Hours & Shift Timeline</span>
+                <div className="space-y-4">
+                  {/* Assigned Client Mapping Card */}
+                  <div className="p-5 bg-gradient-to-r from-teal-50/70 via-slate-50 to-emerald-50/30 rounded-2xl border border-teal-200 space-y-2.5 shadow-xs">
+                    <span className="text-teal-700 font-bold uppercase tracking-wider text-[11px] block">
+                      Assigned Corporate Client / Entity
+                    </span>
+                    {employee.client ? (
+                      <div className="flex items-center justify-between flex-wrap gap-3">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 rounded-xl bg-teal-600 text-white flex items-center justify-center font-bold shadow-xs">
+                            <Building2 className="w-5 h-5" />
+                          </div>
+                          <div>
+                            <div className="font-bold text-slate-900 text-sm">
+                              {employee.client.companyName}
+                            </div>
+                            <div className="text-xs text-slate-500 mt-0.5">
+                              Contact: {employee.client.contactPerson} • {employee.client.mobile}
+                            </div>
+                          </div>
+                        </div>
+                        <span className="font-mono text-xs font-bold text-teal-800 bg-white px-3 py-1 rounded-xl border border-teal-200 shadow-xs">
+                          {employee.client.clientId}
+                        </span>
                       </div>
-                      <span className="text-[10px] font-mono uppercase bg-slate-800 text-teal-300 px-2.5 py-0.5 rounded-full border border-slate-700 font-bold">
+                    ) : (
+                      <div className="flex items-center gap-2 text-slate-700 font-semibold text-xs">
+                        <Building2 className="w-4 h-4 text-teal-600" />
+                        <span>Growth India Internal Corporate Account (HQ Staff)</span>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Working Hours & Shift Timing Timeline (Light Modern Theme!) */}
+                  <div className="p-5 bg-white rounded-2xl border border-slate-200 space-y-4 shadow-xs">
+                    <div className="flex items-center justify-between flex-wrap gap-2 pb-3 border-b border-slate-100">
+                      <div className="flex items-center gap-2 font-bold text-xs text-slate-900">
+                        <Clock className="w-4 h-4 text-teal-600" />
+                        <span>Working Shift & Punctuality Timeline</span>
+                      </div>
+                      <span className="text-[11px] font-mono uppercase bg-teal-50 text-teal-800 px-3 py-1 rounded-lg border border-teal-200 font-bold">
                         {employee.shiftStartTime === 'FLEXIBLE'
-                          ? 'Flexible Hours (No Late Penalty)'
+                          ? 'Flexible Hours (No Late Mark)'
                           : `${formatTo12Hour(employee.shiftStartTime || '10:00')} - ${formatTo12Hour(employee.shiftEndTime || '19:00')}`}
                       </span>
                     </div>
 
                     {/* Timeline visualization */}
-                    <div className="bg-slate-950/90 p-3 rounded-xl border border-slate-800 space-y-2">
+                    <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-3">
                       <div className="flex items-center justify-between font-mono text-xs">
                         <div>
-                          <span className="text-[10px] text-slate-400 block font-sans">Check-In Window</span>
-                          <span className="font-bold text-emerald-400">
+                          <span className="text-[10px] text-slate-400 block font-sans font-bold uppercase">Expected Check-In</span>
+                          <span className="font-bold text-emerald-700 text-sm">
                             {employee.shiftStartTime === 'FLEXIBLE' ? 'Anytime' : formatTo12Hour(employee.shiftStartTime || '10:00')}
                           </span>
                         </div>
-                        <div className="text-center font-sans text-[11px] text-slate-300 font-bold">
+                        <div className="text-center font-sans text-xs text-slate-600 font-bold">
                           {employee.shiftStartTime === 'FLEXIBLE'
                             ? 'Self-Paced / Flexible'
-                            : 'Daily Scheduled Window'}
+                            : 'Daily Working Window'}
                         </div>
                         <div className="text-right">
-                          <span className="text-[10px] text-slate-400 block font-sans">Check-Out Expected</span>
-                          <span className="font-bold text-teal-400">
+                          <span className="text-[10px] text-slate-400 block font-sans font-bold uppercase">Expected Check-Out</span>
+                          <span className="font-bold text-teal-700 text-sm">
                             {employee.shiftEndTime === 'FLEXIBLE' ? 'Anytime' : formatTo12Hour(employee.shiftEndTime || '19:00')}
                           </span>
                         </div>
                       </div>
-                      <div className="w-full bg-slate-800 h-2 rounded-full overflow-hidden flex">
-                        <div className="bg-gradient-to-r from-emerald-500 via-teal-400 to-cyan-500 h-full w-full rounded-full" />
+                      <div className="w-full bg-slate-200 h-2 rounded-full overflow-hidden flex">
+                        <div className="bg-gradient-to-r from-emerald-500 via-teal-500 to-teal-600 h-full w-full rounded-full" />
                       </div>
                     </div>
 
                     {/* Configure Shift Controls */}
                     {!editingShift ? (
-                      <div className="flex items-center justify-between pt-1 border-t border-slate-800/80">
-                        <span className="text-[11px] text-slate-400">
-                          Configure or adjust working hours for this employee
+                      <div className="flex items-center justify-between pt-1">
+                        <span className="text-xs text-slate-500">
+                          Adjust shift schedule or working hours for this employee
                         </span>
                         <button
                           type="button"
                           onClick={() => setEditingShift(true)}
-                          className="px-3 py-1.5 bg-growth-teal hover:bg-teal-400 text-slate-950 font-bold text-xs rounded-xl transition shadow-sm"
+                          className="px-3.5 py-1.5 bg-teal-600 hover:bg-teal-700 text-white font-semibold text-xs rounded-xl transition shadow-xs cursor-pointer"
                         >
-                          Decide Shift Timing
+                          Modify Shift Hours
                         </button>
                       </div>
                     ) : (
-                      <div className="p-3 bg-slate-950 rounded-xl border border-teal-800/50 space-y-3 animate-in fade-in">
+                      <div className="p-4 bg-slate-50 rounded-xl border border-teal-200 space-y-3 animate-in fade-in">
                         <div className="grid grid-cols-2 gap-3">
                           <div>
-                            <label className="block text-[11px] font-bold text-slate-300 mb-1">
+                            <label className="block text-xs font-bold text-slate-700 mb-1">
                               Shift Start (Check-In)
                             </label>
                             <TimePicker12
@@ -559,7 +803,7 @@ export const EmployeeDetailDrawer: React.FC<DrawerProps> = ({
                             />
                           </div>
                           <div>
-                            <label className="block text-[11px] font-bold text-slate-300 mb-1">
+                            <label className="block text-xs font-bold text-slate-700 mb-1">
                               Shift End (Check-Out)
                             </label>
                             <TimePicker12
@@ -571,31 +815,31 @@ export const EmployeeDetailDrawer: React.FC<DrawerProps> = ({
                         </div>
 
                         {/* Quick Presets */}
-                        <div className="flex items-center gap-1.5 flex-wrap text-[10px]">
-                          <span className="text-slate-400 font-semibold">Presets:</span>
+                        <div className="flex items-center gap-1.5 flex-wrap text-xs pt-1">
+                          <span className="text-slate-500 font-semibold">Presets:</span>
                           <button
                             type="button"
                             onClick={() => { setDrawerShiftStart('09:30'); setDrawerShiftEnd('18:30'); }}
-                            className="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg font-mono transition flex items-center gap-1"
+                            className="px-2.5 py-1 bg-white hover:bg-slate-100 border border-slate-200 text-slate-700 rounded-lg font-mono transition flex items-center gap-1 cursor-pointer"
                           >
                             <span>09:30 AM - 06:30 PM</span>
-                            <span className="text-teal-400 text-[9px]">(9h)</span>
+                            <span className="text-teal-600 font-bold">(9h)</span>
                           </button>
                           <button
                             type="button"
                             onClick={() => { setDrawerShiftStart('10:00'); setDrawerShiftEnd('19:00'); }}
-                            className="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg font-mono transition flex items-center gap-1"
+                            className="px-2.5 py-1 bg-white hover:bg-slate-100 border border-slate-200 text-slate-700 rounded-lg font-mono transition flex items-center gap-1 cursor-pointer"
                           >
                             <span>10:00 AM - 07:00 PM</span>
-                            <span className="text-teal-400 text-[9px]">(9h)</span>
+                            <span className="text-teal-600 font-bold">(9h)</span>
                           </button>
                           <button
                             type="button"
                             onClick={() => { setDrawerShiftStart('11:00'); setDrawerShiftEnd('20:00'); }}
-                            className="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg font-mono transition flex items-center gap-1"
+                            className="px-2.5 py-1 bg-white hover:bg-slate-100 border border-slate-200 text-slate-700 rounded-lg font-mono transition flex items-center gap-1 cursor-pointer"
                           >
                             <span>11:00 AM - 08:00 PM</span>
-                            <span className="text-teal-400 text-[9px]">(9h)</span>
+                            <span className="text-teal-600 font-bold">(9h)</span>
                           </button>
                           <button
                             type="button"
@@ -608,21 +852,21 @@ export const EmployeeDetailDrawer: React.FC<DrawerProps> = ({
                                 setDrawerShiftEnd('FLEXIBLE');
                               }
                             }}
-                            className={`px-2.5 py-1 rounded-lg font-bold transition ${
+                            className={`px-2.5 py-1 rounded-lg font-semibold transition cursor-pointer ${
                               drawerShiftStart === 'FLEXIBLE'
-                                ? 'bg-growth-teal text-slate-950 shadow-sm'
-                                : 'bg-teal-950/60 text-teal-300 border border-teal-800/60 hover:bg-teal-900/60'
+                                ? 'bg-teal-600 text-white shadow-xs'
+                                : 'bg-teal-50 text-teal-800 border border-teal-200 hover:bg-teal-100'
                             }`}
                           >
-                            {drawerShiftStart === 'FLEXIBLE' ? '✓ Flexible Hours' : 'Set Flexible (No Late)'}
+                            {drawerShiftStart === 'FLEXIBLE' ? 'Flexible Hours' : 'Set Flexible'}
                           </button>
                         </div>
 
-                        <div className="flex justify-end gap-2 pt-1 border-t border-slate-800">
+                        <div className="flex justify-end gap-2 pt-2 border-t border-slate-200">
                           <button
                             type="button"
                             onClick={() => setEditingShift(false)}
-                            className="px-3 py-1 bg-slate-800 text-slate-300 rounded-lg text-xs font-semibold hover:bg-slate-700"
+                            className="px-3.5 py-1.5 bg-white hover:bg-slate-100 border border-slate-200 text-slate-700 rounded-xl text-xs font-semibold cursor-pointer"
                           >
                             Cancel
                           </button>
@@ -630,69 +874,61 @@ export const EmployeeDetailDrawer: React.FC<DrawerProps> = ({
                             type="button"
                             disabled={savingShift}
                             onClick={handleSaveShift}
-                            className="px-4 py-1 bg-growth-teal text-slate-950 rounded-lg text-xs font-bold hover:bg-teal-400 transition"
+                            className="px-4 py-1.5 bg-teal-600 hover:bg-teal-700 text-white rounded-xl text-xs font-semibold shadow-xs transition cursor-pointer"
                           >
-                            {savingShift ? 'Saving...' : 'Save Shift Timeline'}
+                            {savingShift ? 'Saving...' : 'Save Shift Hours'}
                           </button>
                         </div>
                       </div>
                     )}
                   </div>
 
-                  {/* Client Mapping */}
-                  <div className="p-4 bg-teal-50/60 rounded-2xl border border-teal-200">
-                    <span className="text-teal-700 font-bold uppercase text-[10px] block mb-1">Assigned Client / Company</span>
-                    {employee.client ? (
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <div className="font-extrabold text-slate-900 text-sm">{employee.client.companyName}</div>
-                          <div className="text-[11px] text-slate-500">Contact: {employee.client.contactPerson} • {employee.client.mobile}</div>
-                        </div>
-                        <span className="font-mono text-xs font-bold text-growth-teal bg-white px-2.5 py-1 rounded-xl border border-teal-200">
-                          {employee.client.clientId}
-                        </span>
+                  {/* Employment Details Grid */}
+                  <div className="bg-white rounded-2xl border border-slate-200 p-5 space-y-4 shadow-xs">
+                    <div className="flex items-center gap-2 pb-3 border-b border-slate-100">
+                      <Briefcase className="w-4 h-4 text-teal-600" />
+                      <h3 className="font-bold text-slate-900 text-xs uppercase tracking-wider">
+                        Employment Terms & Deployment
+                      </h3>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-y-4 gap-x-6">
+                      <div className="space-y-1">
+                        <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 block">Department</span>
+                        <span className="font-semibold text-slate-900 text-xs block">{employee.departmentName || employee.department?.name || 'General Operations'}</span>
                       </div>
-                    ) : (
-                      <span className="font-semibold text-slate-700">Growth India Internal Corporate Account</span>
-                    )}
-                  </div>
 
-                  <div className="grid grid-cols-2 gap-4 p-4 bg-slate-50 rounded-2xl border border-slate-200">
-                    <div>
-                      <span className="text-slate-400 font-bold uppercase text-[10px] block">Department</span>
-                      <span className="font-semibold text-slate-800">{employee.departmentName || employee.department?.name || 'General'}</span>
-                    </div>
+                      <div className="space-y-1">
+                        <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 block">Job Designation</span>
+                        <span className="font-semibold text-slate-900 text-xs block">{employee.designation}</span>
+                      </div>
 
-                    <div>
-                      <span className="text-slate-400 font-bold uppercase text-[10px] block">Designation</span>
-                      <span className="font-semibold text-slate-800">{employee.designation}</span>
-                    </div>
+                      <div className="space-y-1">
+                        <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 block">Work Location</span>
+                        <span className="font-semibold text-slate-900 text-xs block">{employee.jobLocation || employee.location || 'Headquarters'}</span>
+                      </div>
 
-                    <div>
-                      <span className="text-slate-400 font-bold uppercase text-[10px] block">Job Location</span>
-                      <span className="font-semibold text-slate-800">{employee.jobLocation || employee.location || 'Headquarters'}</span>
-                    </div>
+                      <div className="space-y-1">
+                        <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 block">Official Joining Date</span>
+                        <span className="font-semibold text-slate-900 text-xs block">{new Date(employee.joiningDate).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}</span>
+                      </div>
 
-                    <div>
-                      <span className="text-slate-400 font-bold uppercase text-[10px] block">Date of Joining</span>
-                      <span className="font-semibold text-slate-800">{new Date(employee.joiningDate).toLocaleDateString()}</span>
-                    </div>
+                      <div className="space-y-1">
+                        <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 block">Employment Type</span>
+                        <span className="font-semibold text-slate-900 text-xs block">{employee.employmentType}</span>
+                      </div>
 
-                    <div>
-                      <span className="text-slate-400 font-bold uppercase text-[10px] block">Employment Type</span>
-                      <span className="font-semibold text-slate-800">{employee.employmentType}</span>
-                    </div>
-
-                    <div>
-                      <span className="text-slate-400 font-bold uppercase text-[10px] block">System Created Date</span>
-                      <span className="font-semibold text-slate-800">{new Date(employee.createdAt).toLocaleDateString()}</span>
+                      <div className="space-y-1">
+                        <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 block">System Enrollment Date</span>
+                        <span className="font-semibold text-slate-900 text-xs block">{new Date(employee.createdAt).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}</span>
+                      </div>
                     </div>
                   </div>
 
                   {employee.remarks && (
-                    <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200">
-                      <span className="text-slate-400 font-bold uppercase text-[10px] block mb-1">Remarks & Notes</span>
-                      <span className="font-medium text-slate-800">{employee.remarks}</span>
+                    <div className="bg-white rounded-2xl border border-slate-200 p-5 space-y-2 shadow-xs">
+                      <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 block">Remarks & Special Notes</span>
+                      <p className="font-medium text-slate-800 text-xs leading-relaxed">{employee.remarks}</p>
                     </div>
                   )}
                 </div>

@@ -2,6 +2,46 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getSessionUser } from '@/lib/auth';
 
+export async function GET(req: NextRequest) {
+  try {
+    const user = await getSessionUser(req);
+    if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+    const searchParams = req.nextUrl.searchParams;
+    const phone = searchParams.get('phone')?.trim() || '';
+    const email = searchParams.get('email')?.toLowerCase().trim() || '';
+    const companyName = searchParams.get('company')?.trim() || '';
+    const name = searchParams.get('name')?.trim() || '';
+
+    const matchConditions: any[] = [];
+    if (phone) {
+      matchConditions.push({ phone: { contains: phone } });
+    }
+    if (email) {
+      matchConditions.push({ email: { equals: email, mode: 'insensitive' } });
+    }
+    if (companyName) {
+      matchConditions.push({ companyName: { contains: companyName, mode: 'insensitive' } });
+    }
+
+    if (matchConditions.length === 0) {
+      return NextResponse.json({ isDuplicate: false, duplicates: [] });
+    }
+
+    const duplicates = await prisma.lead.findMany({
+      where: { isArchived: false, OR: matchConditions },
+      take: 5,
+    });
+
+    return NextResponse.json({
+      isDuplicate: duplicates.length > 0,
+      duplicates,
+    });
+  } catch (error: any) {
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+}
+
 export async function POST(req: NextRequest) {
   try {
     const user = await getSessionUser(req);

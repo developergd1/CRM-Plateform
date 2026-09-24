@@ -4,11 +4,19 @@ import { prisma, getClientLookup } from '@/lib/prisma';
 import { getSessionUser } from '@/lib/auth';
 import { isAdminOrHR } from '@/lib/rbac';
 import { logAuditEvent } from '@/lib/audit';
+import { verifyClientOrganizationAccess } from '@/lib/tenant';
 
 export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
   try {
     const user = await getSessionUser(req);
     if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+    if (user.role === 'CLIENT') {
+      const { hasAccess } = await verifyClientOrganizationAccess(user, params.id);
+      if (!hasAccess) {
+        return NextResponse.json({ error: 'Permission denied. You can only view your own organization.' }, { status: 403 });
+      }
+    }
 
     const client = await prisma.client.findFirst({
       where: getClientLookup(params.id),
@@ -66,15 +74,42 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
       return NextResponse.json({ error: 'Client not found' }, { status: 404 });
     }
 
-    let gstNumber = '';
+    // Role-based boundary enforcement:
+    if (user.role === 'CLIENT') {
+      const isOwner =
+        user.clientId === client.clientId ||
+        user.id === client.userId ||
+        user.parentClientId === client.id;
+      if (!isOwner) {
+        return NextResponse.json({ error: 'Permission denied. You can only view your own client organization.' }, { status: 403 });
+      }
+    } else if (user.role === 'EMPLOYEE') {
+      const isAssigned =
+        client.assignedEmployeeId === user.employeeProfileId ||
+        client.createdById === user.employeeProfileId ||
+        client.employees.some((e) => e.employeeId === user.employeeId || e.id === user.employeeProfileId);
+      if (!isAssigned) {
+        return NextResponse.json({ error: 'Permission denied. You are not assigned to this client organization.' }, { status: 403 });
+      }
+    }
+
+    let gstNumber = client.gst || '';
     let panNumber = '';
     let aadharNumber = '';
+    let companyType = client.companyType || 'Private Limited';
+    let remarks = client.remarks || '';
+    let assignedModules = Array.isArray(client.assignedModules) && client.assignedModules.length > 0 ? client.assignedModules : ['EMS'];
     try {
       if (client.tags && client.tags.startsWith('{')) {
         const parsed = JSON.parse(client.tags);
-        gstNumber = parsed.gstNumber || '';
+        if (!gstNumber) gstNumber = parsed.gstNumber || '';
         panNumber = parsed.panNumber || '';
         aadharNumber = parsed.aadharNumber || '';
+        if (parsed.companyType) companyType = parsed.companyType;
+        if (parsed.remarks) remarks = parsed.remarks;
+        if ((!client.assignedModules || client.assignedModules.length === 0) && Array.isArray(parsed.assignedModules)) {
+          assignedModules = parsed.assignedModules;
+        }
       }
     } catch (e) {}
 
@@ -85,6 +120,9 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
         gstNumber,
         panNumber,
         aadharNumber,
+        companyType,
+        remarks,
+        assignedModules,
       },
     });
   } catch (error: any) {
@@ -116,6 +154,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
       contactPerson,
       mobile,
       email,
+      gst,
       gstNumber,
       panNumber,
       aadharNumber,
@@ -123,6 +162,11 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
       temporaryAddress,
       permanentAddress,
       industry,
+      companyType,
+      remarks,
+      assignedModules,
+      subscriptionPlan,
+      subscriptionStatus,
       legalName,
       alternatePhone,
       website,
@@ -144,6 +188,8 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
         ? (temporaryAddress === permanentAddress ? temporaryAddress : `Temporary: ${temporaryAddress}\nPermanent: ${permanentAddress}`)
         : (temporaryAddress || permanentAddress || null);
     }
+
+    const resolvedGst = gst !== undefined ? (gst ? gst.trim().toUpperCase() : null) : (gstNumber !== undefined ? (gstNumber ? gstNumber.trim().toUpperCase() : null) : undefined);
 
     let updatedTags: string | undefined = undefined;
     if (gstNumber !== undefined || panNumber !== undefined || aadharNumber !== undefined) {
@@ -232,18 +278,39 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
         ...(computedAddress !== undefined ? { address: computedAddress ? computedAddress.trim() : null } : {}),
         ...(permanentAddress !== undefined ? { location: permanentAddress ? permanentAddress.trim() : null } : {}),
         ...(industry !== undefined ? { industry: industry ? industry.trim() : null } : {}),
+        ...(companyType !== undefined ? { companyType: companyType ? companyType.trim() : 'Private Limited' } : {}),
+        ...(resolvedGst !== undefined ? { gst: resolvedGst } : {}),
+        ...(remarks !== undefined ? { remarks: remarks ? remarks.trim() : null } : {}),
+        ...(assignedModules !== undefined && Array.isArray(assignedModules)
+          ? { assignedModules: assignedModules.filter((m: string) => ['EMS', 'CRM', 'HRM'].includes(m.toUpperCase())) }
+          : {}),
+        ...(subscriptionPlan !== undefined ? { subscriptionPlan } : {}),
+        ...(subscriptionStatus !== undefined ? { subscriptionStatus } : {}),
         ...(status !== undefined ? { status: status ? status.trim().toUpperCase() : existing.status } : {}),
         ...(salesOwnerId !== undefined ? { salesOwnerId: salesOwnerId || null } : {}),
         ...(accountOwnerId !== undefined ? { accountOwnerId: accountOwnerId || null, assignedEmployeeId: accountOwnerId || null } : {}),
         ...(onboardingDate ? { onboardingDate: new Date(onboardingDate) } : {}),
         ...(canBlockEmployees !== undefined ? { canBlockEmployees: !!canBlockEmployees } : {}),
         ...(canDeleteEmployees !== undefined ? { canDeleteEmployees: !!canDeleteEmployees } : {}),
+        updatedById: user.employeeProfileId || user.id,
         ...(updatedTags !== undefined ? { tags: updatedTags } : {}),
       },
       include: {
         user: true,
       },
     });
+
+    // Inactive status synchronization: If client is deactivated, disable portal user login
+    if (status !== undefined && existing.userId) {
+      const isClientActive = status.toUpperCase() === 'ACTIVE';
+      await prisma.user.update({
+        where: { id: existing.userId },
+        data: {
+          isActive: isClientActive,
+          isSuspended: !isClientActive,
+        },
+      });
+    }
 
     const ip = req.headers.get('x-forwarded-for') || '127.0.0.1';
     await logAuditEvent({

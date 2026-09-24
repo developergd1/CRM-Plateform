@@ -1,4 +1,4 @@
-import { NextRequest } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { prisma, resolveClientObjectId, isValidObjectId, getEmployeeLookup } from './prisma';
 import { getSessionUser } from './auth';
 import { AuthUser } from '@/types';
@@ -27,11 +27,46 @@ export async function getTenantContext(req: NextRequest): Promise<TenantContext 
           { userId: user.id },
           ...(user.clientId ? [{ clientId: user.clientId }] : []),
           ...(isValidObjectId(user.clientId) ? [{ id: user.clientId }] : []),
+          ...(user.parentClientId ? [{ id: user.parentClientId }, { clientId: user.parentClientId }] : []),
         ],
       },
       select: { id: true },
     });
     clientDocId = clientRecord?.id || null;
+    if (!clientDocId && user.parentClientId) {
+      clientDocId = await resolveClientObjectId(user.parentClientId);
+    }
+    if (!clientDocId && user.clientId) {
+      clientDocId = await resolveClientObjectId(user.clientId);
+    }
+  } else if (user.role === 'EMPLOYEE') {
+    // Check if employee belongs to client organization
+    if (user.parentClientId) {
+      clientDocId = await resolveClientObjectId(user.parentClientId);
+    }
+    if (!clientDocId && user.employeeId) {
+      const emp = await prisma.employee.findFirst({
+        where: getEmployeeLookup(user.employeeId),
+        select: { clientId: true },
+      });
+      if (emp?.clientId) {
+        clientDocId = emp.clientId;
+      }
+    }
+    if (!clientDocId && user.clientId) {
+      clientDocId = await resolveClientObjectId(user.clientId);
+    }
+  } else if (isAdmin(user.role)) {
+    // If admin explicitly specifies ?clientId=... or ?tenantId=... in URL, scope to that client
+    try {
+      const { searchParams } = new URL(req.url);
+      const qClientId = searchParams.get('clientId') || searchParams.get('tenantId');
+      if (qClientId && qClientId !== 'ALL' && qClientId !== 'ten-growth-india' && !qClientId.startsWith('ten-')) {
+        clientDocId = await resolveClientObjectId(qClientId);
+      }
+    } catch {
+      // URL parsing fallback
+    }
   }
 
   return {
@@ -108,6 +143,30 @@ export async function verifyClientOrganizationAccess(
 }
 
 /**
+ * Verifies whether a user has permission to access a specific module (e.g. 'CRM', 'HRM', 'EMS').
+ * Returns null if allowed, or a 403 NextResponse if forbidden.
+ */
+export function checkModuleAccess(user: AuthUser, moduleName: string): NextResponse | null {
+  if (isAdmin(user.role)) return null;
+
+  if (user.role === 'CLIENT') {
+    const assigned = (user.assignedModules || []).map((m) => m.toUpperCase());
+    const normalizedMod = moduleName.toUpperCase();
+    if (!assigned.includes(normalizedMod) && !assigned.includes('ALL')) {
+      return NextResponse.json(
+        {
+          error: `Module '${moduleName}' is not assigned to your organization. Access Forbidden.`,
+          code: 'MODULE_ACCESS_DENIED',
+        },
+        { status: 403 }
+      );
+    }
+  }
+
+  return null;
+}
+
+/**
  * Builds Prisma `where` clause for tenant-scoped CRM entities (Lead, Contact, Opportunity, Deal, Task).
  */
 export async function buildTenantWhereClause(
@@ -123,31 +182,60 @@ export async function buildTenantWhereClause(
   }
 
   if (user.role === 'CLIENT') {
+    const assigned = (user.assignedModules || []).map((m) => m.toUpperCase());
+    if (!assigned.includes('CRM') && !assigned.includes('ALL')) {
+      return { clientId: '__FORBIDDEN_NO_CRM_ACCESS__' };
+    }
+
     const clientRecord = await prisma.client.findFirst({
       where: {
         OR: [
           { userId: user.id },
           ...(user.clientId ? [{ clientId: user.clientId }] : []),
           ...(isValidObjectId(user.clientId) ? [{ id: user.clientId }] : []),
+          ...(user.parentClientId ? [{ id: user.parentClientId }, { clientId: user.parentClientId }] : []),
         ],
       },
       select: { id: true },
     });
-    return clientRecord ? { clientId: clientRecord.id } : { clientId: '__NONE__' };
+    let cId = clientRecord?.id || null;
+    if (!cId && user.parentClientId) {
+      cId = await resolveClientObjectId(user.parentClientId);
+    }
+    if (!cId && user.clientId) {
+      cId = await resolveClientObjectId(user.clientId);
+    }
+    return cId ? { clientId: cId } : { clientId: '__NONE__' };
   }
 
   // Employee: if client-affiliated, scope to client
   if (user.employeeId) {
+    let clientDocId: string | null = null;
+    if (user.parentClientId) {
+      clientDocId = await resolveClientObjectId(user.parentClientId);
+    }
+    if (!clientDocId) {
+      const emp = await prisma.employee.findFirst({
+        where: getEmployeeLookup(user.employeeId),
+        select: { id: true, clientId: true },
+      });
+      if (emp?.clientId) {
+        clientDocId = emp.clientId;
+      }
+    }
+    if (!clientDocId && user.clientId) {
+      clientDocId = await resolveClientObjectId(user.clientId);
+    }
+
+    if (clientDocId) {
+      return { clientId: clientDocId };
+    }
+
+    // Internal employee: scope to assigned entities or global
     const emp = await prisma.employee.findFirst({
       where: getEmployeeLookup(user.employeeId),
       select: { id: true, clientId: true },
     });
-
-    if (emp?.clientId) {
-      return { clientId: emp.clientId };
-    }
-
-    // Internal employee: scope to assigned entities or global
     if (emp?.id) {
       return {
         OR: [

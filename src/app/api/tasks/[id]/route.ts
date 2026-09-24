@@ -15,7 +15,7 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
         assignedTo: { select: { id: true, fullName: true, employeeId: true, phone: true } },
         createdBy: { select: { id: true, fullName: true, employeeId: true } },
         reviewedBy: { select: { id: true, fullName: true, employeeId: true } },
-        client: { select: { id: true, companyName: true, clientId: true } },
+        client: { select: { id: true, companyName: true, clientId: true, userId: true } },
         lead: { select: { id: true, companyName: true, contactPerson: true } },
         deal: { select: { id: true, title: true, dealNumber: true } },
         comments: {
@@ -35,6 +35,27 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
 
     if (!task) {
       return NextResponse.json({ error: 'Task not found' }, { status: 404 });
+    }
+
+    // Permission check - protect against cross-tenant IDOR
+    const isInternalAdmin = isAdminOrHR(user.role) || isManagerOrAbove(user.role);
+    const isOwnerClient = user.role === 'CLIENT' && (
+      task.clientId === user.clientId ||
+      task.clientId === user.parentClientId ||
+      task.client?.clientId === user.clientId ||
+      task.client?.id === user.parentClientId ||
+      task.client?.userId === user.id
+    );
+    const isAssignee =
+      user.employeeProfile?.id === task.assignedToId ||
+      user.employeeProfileId === task.assignedToId ||
+      user.employeeId === task.assignedTo?.employeeId;
+
+    if (!isInternalAdmin && !isOwnerClient && !isAssignee) {
+      return NextResponse.json(
+        { error: 'Permission denied. You can only view tasks belonging to your organization or assigned to you.' },
+        { status: 403 }
+      );
     }
 
     const enrichedComments = task.comments?.map((c: any) => {
@@ -73,7 +94,10 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
 
     const task = await prisma.task.findUnique({
       where: { id: params.id },
-      include: { client: true },
+      include: {
+        client: true,
+        assignedTo: { select: { id: true, fullName: true, employeeId: true } },
+      },
     });
 
     if (!task) {
@@ -82,8 +106,17 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
 
     // Permission check
     const isInternalAdmin = isAdminOrHR(user.role) || isManagerOrAbove(user.role);
-    const isOwnerClient = user.role === 'CLIENT' && (task.clientId === user.clientId || task.client?.clientId === user.clientId || task.client?.userId === user.id);
-    const isAssignee = user.employeeProfile?.id === task.assignedToId;
+    const isOwnerClient = user.role === 'CLIENT' && (
+      task.clientId === user.clientId ||
+      task.clientId === user.parentClientId ||
+      task.client?.clientId === user.clientId ||
+      task.client?.id === user.parentClientId ||
+      task.client?.userId === user.id
+    );
+    const isAssignee =
+      user.employeeProfile?.id === task.assignedToId ||
+      user.employeeProfileId === task.assignedToId ||
+      user.employeeId === task.assignedTo?.employeeId;
 
     if (!isInternalAdmin && !isOwnerClient && !isAssignee) {
       return NextResponse.json({ error: 'Permission denied to modify this task.' }, { status: 403 });
@@ -134,7 +167,13 @@ export async function DELETE(req: NextRequest, { params }: { params: { id: strin
     }
 
     const isInternalAdmin = isAdminOrHR(user.role) || isManagerOrAbove(user.role);
-    const isOwnerClient = user.role === 'CLIENT' && (task.clientId === user.clientId || task.client?.clientId === user.clientId || task.client?.userId === user.id);
+    const isOwnerClient = user.role === 'CLIENT' && (
+      task.clientId === user.clientId ||
+      task.clientId === user.parentClientId ||
+      task.client?.clientId === user.clientId ||
+      task.client?.id === user.parentClientId ||
+      task.client?.userId === user.id
+    );
 
     if (!isInternalAdmin && !isOwnerClient) {
       return NextResponse.json({ error: 'Permission denied to delete this task.' }, { status: 403 });

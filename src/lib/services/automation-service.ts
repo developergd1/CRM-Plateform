@@ -259,7 +259,7 @@ export async function triggerAutomationEvent(
         const subject = followUp.lead?.companyName || followUp.deal?.title || 'CRM Prospect';
         await sendNotification({
           recipientId: followUp.assignedToId,
-          title: `⚠️ OVERDUE Follow-up: ${subject}`,
+          title: `OVERDUE Follow-up: ${subject}`,
           message: `Follow-up "${followUp.title}" scheduled for ${new Date(followUp.scheduledAt).toLocaleDateString()} is past due. Please update immediately.`,
           category: 'CRM',
           entityType: 'FOLLOW_UP',
@@ -328,7 +328,7 @@ export async function triggerAutomationEvent(
         if (deal.assignedToId) {
           await sendNotification({
             recipientId: deal.assignedToId,
-            title: `🎉 Deal WON: ${deal.title}`,
+            title: `Deal WON: ${deal.title}`,
             message: `Congratulations! Deal of ₹${(deal.amount || 0).toLocaleString()} was marked WON. Client account is operational.`,
             category: 'CRM',
             entityType: 'DEAL',
@@ -395,7 +395,7 @@ export async function triggerAutomationEvent(
         if (att.employee.reportingManagerId) {
           await sendNotification({
             recipientId: att.employee.reportingManagerId,
-            title: `⏱️ Late Arrival Alert: ${att.employee.fullName}`,
+            title: `⏱Late Arrival Alert: ${att.employee.fullName}`,
             message: `${att.employee.fullName} (${att.employee.employeeId}) punched in late today (${att.date}).`,
             category: 'ATTENDANCE',
             entityType: 'EMPLOYEE',
@@ -424,7 +424,7 @@ export async function triggerAutomationEvent(
         if (emp.reportingManagerId) {
           await sendNotification({
             recipientId: emp.reportingManagerId,
-            title: `⚠️ Unplanned Absence: ${emp.fullName}`,
+            title: `Unplanned Absence: ${emp.fullName}`,
             message: `No punch-in recorded for ${emp.fullName} today.`,
             category: 'ATTENDANCE',
             entityType: 'EMPLOYEE',

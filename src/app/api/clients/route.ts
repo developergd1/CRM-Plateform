@@ -19,8 +19,32 @@ export async function GET(req: NextRequest) {
     const where: any = {};
 
     // Role-based scoping: If user is CLIENT, only return their own client profile
-    if (user.role === 'CLIENT' && user.clientId) {
-      where.clientId = user.clientId;
+    if (user.role === 'CLIENT') {
+      if (user.clientId) {
+        where.OR = [
+          { clientId: user.clientId },
+          { id: user.clientId },
+          { userId: user.id },
+        ];
+      } else {
+        where.userId = user.id;
+      }
+    } else if (user.role === 'EMPLOYEE') {
+      const currentEmp = await prisma.employee.findFirst({
+        where: {
+          OR: [
+            { userId: user.id },
+            ...(user.employeeId ? [{ employeeId: user.employeeId }] : []),
+          ],
+        },
+      });
+      if (currentEmp) {
+        where.OR = [
+          ...(currentEmp.clientId ? [{ id: currentEmp.clientId }] : []),
+          { assignedEmployeeId: currentEmp.id },
+          { createdById: currentEmp.id },
+        ];
+      }
     } else {
       if (status) where.status = status;
       if (industry) where.industry = industry;
@@ -58,15 +82,23 @@ export async function GET(req: NextRequest) {
     });
 
     const mapped = clients.map((c) => {
-      let gstNumber = '';
+      let gstNumber = c.gst || '';
       let panNumber = '';
       let aadharNumber = '';
+      let companyType = c.companyType || 'Private Limited';
+      let remarks = c.remarks || '';
+      let assignedModules = Array.isArray(c.assignedModules) && c.assignedModules.length > 0 ? c.assignedModules : ['EMS'];
       try {
         if (c.tags && c.tags.startsWith('{')) {
           const parsed = JSON.parse(c.tags);
-          gstNumber = parsed.gstNumber || '';
+          if (!gstNumber) gstNumber = parsed.gstNumber || '';
           panNumber = parsed.panNumber || '';
           aadharNumber = parsed.aadharNumber || '';
+          if (parsed.companyType) companyType = parsed.companyType;
+          if (parsed.remarks) remarks = parsed.remarks;
+          if ((!c.assignedModules || c.assignedModules.length === 0) && Array.isArray(parsed.assignedModules)) {
+            assignedModules = parsed.assignedModules;
+          }
         }
       } catch (e) {}
       return {
@@ -74,6 +106,9 @@ export async function GET(req: NextRequest) {
         gstNumber,
         panNumber,
         aadharNumber,
+        companyType,
+        remarks,
+        assignedModules,
       };
     });
 
@@ -98,6 +133,7 @@ export async function POST(req: NextRequest) {
       contactPerson,
       mobile,
       email,
+      gst,
       gstNumber,
       panNumber,
       aadharNumber,
@@ -105,20 +141,50 @@ export async function POST(req: NextRequest) {
       temporaryAddress,
       permanentAddress,
       industry = 'IT & Software Services',
+      companyType = 'Private Limited',
+      remarks,
       status = 'ACTIVE',
+      assignedModules = ['EMS'],
+      subscriptionPlan = 'STANDARD',
       canBlockEmployees = false,
       canDeleteEmployees = false,
       customPassword,
+      password,
     } = data;
 
     const finalAddress = address || (temporaryAddress && permanentAddress
       ? (temporaryAddress === permanentAddress ? temporaryAddress : `Temporary: ${temporaryAddress}\nPermanent: ${permanentAddress}`)
       : (temporaryAddress || permanentAddress || null));
 
+    const finalGst = (gst || gstNumber || '').trim().toUpperCase();
+
     if (!companyName || !contactPerson || !mobile) {
       return NextResponse.json(
         { error: 'Company Name, Contact Person, and Mobile Number are required.' },
         { status: 400 }
+      );
+    }
+
+    // Duplicate detection: reject if company name, phone, or email already registered
+    const cleanMobile = mobile.replace(/\D/g, '').slice(-10);
+    const duplicateClient = await prisma.client.findFirst({
+      where: {
+        OR: [
+          { companyName: { equals: companyName.trim(), mode: 'insensitive' as const } },
+          ...(cleanMobile.length >= 10 ? [{ mobile: { contains: cleanMobile } }] : []),
+          ...(email ? [{ email: { equals: email.toLowerCase().trim(), mode: 'insensitive' as const } }] : []),
+        ],
+      },
+    });
+
+    if (duplicateClient) {
+      return NextResponse.json(
+        {
+          error: `Client organization already exists (${duplicateClient.clientId}: ${duplicateClient.companyName}). Duplicate registration rejected.`,
+          code: 'DUPLICATE_CLIENT',
+          existingClientId: duplicateClient.clientId,
+        },
+        { status: 409 }
       );
     }
 
@@ -132,7 +198,7 @@ export async function POST(req: NextRequest) {
       : `client.${numPart}@growthindia.in`;
 
     // Auto-generate client password
-    const generatedPassword = customPassword || `Client#${Math.floor(1000 + Math.random() * 9000)}`;
+    const generatedPassword = customPassword || password || `Client#${Math.floor(1000 + Math.random() * 9000)}`;
     const hashedPassword = await bcrypt.hash(generatedPassword, 10);
 
     // Get or create CLIENT role
@@ -150,10 +216,27 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    // Create User record for the client
+    // Create User record for the client safely
     const existingUser = await prisma.user.findUnique({ where: { email: clientEmail } });
     let clientUser = existingUser;
-    if (!existingUser) {
+    if (existingUser) {
+      // Check if existing user is already linked to another client
+      const linkedClient = await prisma.client.findUnique({ where: { userId: existingUser.id } });
+      if (linkedClient) {
+        // Generate dedicated unique user for this new client
+        const uniqueSuffix = `${numPart}.${Date.now().toString().slice(-4)}`;
+        const fallbackEmail = `client.${uniqueSuffix}@growthindia.in`;
+        clientUser = await prisma.user.create({
+          data: {
+            email: fallbackEmail,
+            passwordHash: hashedPassword,
+            roleId: clientRole.id,
+            isActive: true,
+            isSuspended: false,
+          },
+        });
+      }
+    } else {
       clientUser = await prisma.user.create({
         data: {
           email: clientEmail,
@@ -165,24 +248,46 @@ export async function POST(req: NextRequest) {
       });
     }
 
+    let safeUserId: string | null = null;
+    if (clientUser) {
+      const isTaken = await prisma.client.findUnique({ where: { userId: clientUser.id } });
+      if (!isTaken) {
+        safeUserId = clientUser.id;
+      }
+    }
+
+    const cleanModules = Array.isArray(assignedModules) && assignedModules.length > 0
+      ? assignedModules.filter((m: string) => ['EMS', 'CRM', 'HRM'].includes(m.toUpperCase()))
+      : ['EMS'];
+
     const newClient = await prisma.client.create({
       data: {
         clientId,
-        userId: clientUser?.id || null,
+        userId: safeUserId,
         companyName: companyName.trim(),
         contactPerson: contactPerson.trim(),
         mobile: mobile.trim(),
         email: clientEmail,
         address: finalAddress ? finalAddress.trim() : null,
         industry: industry ? industry.trim() : null,
+        companyType: companyType ? companyType.trim() : 'Private Limited',
+        gst: finalGst || null,
+        remarks: remarks ? remarks.trim() : null,
         status: status === 'INACTIVE' ? 'INACTIVE' : 'ACTIVE',
+        assignedModules: cleanModules.length > 0 ? cleanModules : ['EMS'],
+        subscriptionPlan: subscriptionPlan || 'STANDARD',
+        subscriptionStatus: 'ACTIVE',
         canBlockEmployees: !!canBlockEmployees,
         canDeleteEmployees: !!canDeleteEmployees,
         dateAdded: new Date(),
+        createdById: user.employeeProfileId || null,
         tags: JSON.stringify({
-          gstNumber: gstNumber ? gstNumber.trim().toUpperCase() : '',
+          gstNumber: finalGst,
           panNumber: panNumber ? panNumber.trim().toUpperCase() : '',
           aadharNumber: aadharNumber ? aadharNumber.trim() : '',
+          companyType,
+          remarks,
+          assignedModules: cleanModules,
         }),
         // Backwards compatibility sync
         name: contactPerson.trim(),
@@ -223,7 +328,7 @@ export async function POST(req: NextRequest) {
         password: generatedPassword,
       },
       message: `Client ${newClient.clientId} created successfully!`,
-    });
+    }, { status: 201 });
   } catch (error: any) {
     console.error('Error creating client:', error);
     return NextResponse.json({ error: error.message }, { status: 500 });

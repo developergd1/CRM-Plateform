@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma, resolveClientObjectId } from '@/lib/prisma';
 import { getSessionUser } from '@/lib/auth';
 import { logAuditEvent } from '@/lib/audit';
-import { buildTenantWhereClause } from '@/lib/tenant';
+import { buildTenantWhereClause, getTenantContext } from '@/lib/tenant';
 import { generateActivityNumber } from '@/lib/id-generator';
 
 export async function GET(req: NextRequest) {
@@ -82,7 +82,8 @@ export async function POST(req: NextRequest) {
     }
 
     const activityNumber = await generateActivityNumber();
-    const resolvedClientId = clientId ? await resolveClientObjectId(clientId) : null;
+    const tenantContext = await getTenantContext(req);
+    const resolvedClientId = tenantContext?.clientDocId || (clientId ? await resolveClientObjectId(clientId) : null);
 
     // Find performing employee ID
     let performerEmployeeId: string | null = null;

@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma, resolveClientObjectId, isValidObjectId } from '@/lib/prisma';
 import { getSessionUser } from '@/lib/auth';
 import { logAuditEvent } from '@/lib/audit';
-import { buildTenantWhereClause } from '@/lib/tenant';
+import { buildTenantWhereClause, getTenantContext } from '@/lib/tenant';
 import { generateContactNumber } from '@/lib/id-generator';
 
 export async function GET(req: NextRequest) {
@@ -131,7 +131,8 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    let resolvedClientId = clientId ? await resolveClientObjectId(clientId) : null;
+    const tenantContext = await getTenantContext(req);
+    let resolvedClientId = tenantContext?.clientDocId || (clientId ? await resolveClientObjectId(clientId) : null);
     let resolvedLeadId: string | null = null;
 
     if (leadId) {

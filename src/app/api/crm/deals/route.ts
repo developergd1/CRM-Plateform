@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma, getEmployeeLookup } from '@/lib/prisma';
 import { getSessionUser } from '@/lib/auth';
 import { logAuditEvent } from '@/lib/audit';
-import { buildTenantWhereClause, verifyClientOrganizationAccess } from '@/lib/tenant';
+import { buildTenantWhereClause, verifyClientOrganizationAccess, checkModuleAccess, getTenantContext } from '@/lib/tenant';
 import { generateDealNumber } from '@/lib/id-generator';
 import { notifyAssignment } from '@/lib/notifications';
 import { DEAL_STAGE_DEFAULT_PROBABILITIES, DealStage } from '@/lib/constants/crm';
@@ -11,6 +11,8 @@ export async function GET(req: NextRequest) {
   try {
     const user = await getSessionUser(req);
     if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    const moduleForbidden = checkModuleAccess(user, 'CRM');
+    if (moduleForbidden) return moduleForbidden;
 
     const { searchParams } = new URL(req.url);
     const search = searchParams.get('search')?.trim() || '';
@@ -141,6 +143,8 @@ export async function POST(req: NextRequest) {
   try {
     const user = await getSessionUser(req);
     if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    const moduleForbidden = checkModuleAccess(user, 'CRM');
+    if (moduleForbidden) return moduleForbidden;
 
     const body = await req.json();
     const {
@@ -157,21 +161,25 @@ export async function POST(req: NextRequest) {
       expectedCloseDate,
       closingDate,
       clientId,
+      accountId,
       leadId,
       opportunityId,
       primaryContactId,
       assignedToId,
     } = body;
 
-    if (!title || (!clientId && !leadId && !opportunityId)) {
+    if (!title) {
       return NextResponse.json(
-        { error: 'Title and either Client, Lead, or Opportunity association is required.' },
+        { error: 'Title is required to create a deal.' },
         { status: 400 }
       );
     }
 
+    const tenantContext = await getTenantContext(req);
     let resolvedClientId: string | null = null;
-    if (clientId) {
+    if (tenantContext?.clientDocId) {
+      resolvedClientId = tenantContext.clientDocId;
+    } else if (clientId) {
       const { hasAccess, resolvedClientId: verifiedId } = await verifyClientOrganizationAccess(user, clientId);
       if (!hasAccess || !verifiedId) {
         return NextResponse.json({ error: 'Permission denied or invalid organization ID.' }, { status: 403 });
@@ -219,6 +227,7 @@ export async function POST(req: NextRequest) {
         expectedCloseDate: expectedCloseDate ? new Date(expectedCloseDate) : closingDate ? new Date(closingDate) : null,
         closingDate: closingDate ? new Date(closingDate) : null,
         clientId: resolvedClientId,
+        accountId: accountId || null,
         leadId: leadId || null,
         opportunityId: opportunityId || null,
         primaryContactId: primaryContactId || null,

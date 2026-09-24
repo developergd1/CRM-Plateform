@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma, resolveClientObjectId } from '@/lib/prisma';
 import { getSessionUser } from '@/lib/auth';
 import { logAuditEvent } from '@/lib/audit';
-import { buildTenantWhereClause } from '@/lib/tenant';
+import { buildTenantWhereClause, getTenantContext } from '@/lib/tenant';
 import { generateCrmTaskNumber } from '@/lib/id-generator';
 import { notifyAssignment } from '@/lib/notifications';
 
@@ -94,7 +94,8 @@ export async function POST(req: NextRequest) {
     }
 
     const taskNumber = await generateCrmTaskNumber();
-    const resolvedClientId = clientId ? await resolveClientObjectId(clientId) : null;
+    const tenantContext = await getTenantContext(req);
+    const resolvedClientId = tenantContext?.clientDocId || (clientId ? await resolveClientObjectId(clientId) : null);
 
     let creatorEmployeeId: string | null = null;
     if (user.employeeId) {

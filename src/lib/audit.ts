@@ -21,7 +21,14 @@ interface LogAuditParams {
     | 'ACTIVITY'
     | 'NOTE'
     | 'FOLLOW_UP'
-    | 'PERMISSION';
+    | 'PERMISSION'
+    | 'ACCOUNT'
+    | 'QUOTE'
+    | 'CONTRACT'
+    | 'RENEWAL'
+    | 'CLIENT_HANDOFF'
+    | 'WORKFLOW'
+    | (string & {});
   entityId?: string | null;
   previousData?: any;
   newData?: any;
@@ -52,7 +59,7 @@ export async function logAuditEvent(params: LogAuditParams) {
       },
     });
   } catch (error) {
-    console.error('⚠️ Critical: Failed to record audit log:', error);
+    console.error('Critical: Failed to record audit log:', error);
     return null;
   }
 }

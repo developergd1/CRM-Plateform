@@ -21,12 +21,23 @@ export async function GET(req: NextRequest) {
       );
     }
 
+    if (invitation.status === 'ACCEPTED') {
+      return NextResponse.json(
+        {
+          valid: false,
+          isAccepted: true,
+          error: 'This invitation has already been accepted. Tokens are single-use only.',
+        },
+        { status: 410 }
+      );
+    }
+
     if (invitation.status === 'REVOKED') {
       return NextResponse.json(
         {
           valid: false,
           isRevoked: true,
-          error: '🔒 Access Denied: This invitation link has been deactivated/revoked by the account administrator.',
+          error: 'Access Denied: This invitation link has been deactivated/revoked by the account administrator.',
         },
         { status: 403 }
       );

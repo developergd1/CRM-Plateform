@@ -44,10 +44,11 @@ export async function GET(req: NextRequest) {
 
       filtered = requests.filter(
         (r) =>
-          r.targetRole === 'CLIENT' &&
+          (r.targetRole === 'CLIENT' || r.targetRole === 'BOTH') &&
           (r.targetClientId === client?.id || r.targetClientId === client?.clientId || r.targetClientId === user.clientId)
       );
     }
+    // Admin sees ALL requests (both client reset requests and employee reset requests)
 
     return NextResponse.json({
       success: true,
@@ -111,7 +112,7 @@ export async function POST(req: NextRequest) {
       });
 
       const matchesClient =
-        targetReq.targetRole === 'CLIENT' &&
+        (targetReq.targetRole === 'CLIENT' || targetReq.targetRole === 'BOTH') &&
         (targetReq.targetClientId === client?.id ||
           targetReq.targetClientId === client?.clientId ||
           targetReq.targetClientId === user.clientId);

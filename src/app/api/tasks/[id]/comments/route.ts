@@ -2,11 +2,41 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getSessionUser } from '@/lib/auth';
 import { notifyTaskComment } from '@/lib/notifications';
+import { isAdminOrHR, isManagerOrAbove } from '@/lib/rbac';
 
 export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
   try {
     const user = await getSessionUser(req);
     if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+    const task = await prisma.task.findUnique({
+      where: { id: params.id },
+      include: {
+        client: { select: { id: true, clientId: true, userId: true } },
+        assignedTo: { select: { id: true, employeeId: true } }
+      }
+    });
+
+    if (!task) {
+      return NextResponse.json({ error: 'Task not found' }, { status: 404 });
+    }
+
+    const isInternalAdmin = isAdminOrHR(user.role) || isManagerOrAbove(user.role);
+    const isOwnerClient = user.role === 'CLIENT' && (
+      task.clientId === user.clientId ||
+      task.clientId === user.parentClientId ||
+      task.client?.clientId === user.clientId ||
+      task.client?.id === user.parentClientId ||
+      task.client?.userId === user.id
+    );
+    const isAssignee =
+      user.employeeProfile?.id === task.assignedToId ||
+      user.employeeProfileId === task.assignedToId ||
+      user.employeeId === task.assignedTo?.employeeId;
+
+    if (!isInternalAdmin && !isOwnerClient && !isAssignee) {
+      return NextResponse.json({ error: 'Permission denied to view comments for this task.' }, { status: 403 });
+    }
 
     const comments = await prisma.taskComment.findMany({
       where: { taskId: params.id },
@@ -59,12 +89,31 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
       return NextResponse.json({ error: 'Task not found' }, { status: 404 });
     }
 
-    const body = await req.json();
-    const { content, attachments } = body;
+    const isInternalAdmin = isAdminOrHR(user.role) || isManagerOrAbove(user.role);
+    const isOwnerClient = user.role === 'CLIENT' && (
+      task.clientId === user.clientId ||
+      task.clientId === user.parentClientId ||
+      task.client?.clientId === user.clientId ||
+      task.client?.id === user.parentClientId ||
+      task.client?.userId === user.id
+    );
+    const isAssignee =
+      user.employeeProfile?.id === task.assignedToId ||
+      user.employeeProfileId === task.assignedToId ||
+      user.employeeId === task.assignedTo?.employeeId;
 
-    if (!content || !content.trim()) {
+    if (!isInternalAdmin && !isOwnerClient && !isAssignee) {
+      return NextResponse.json({ error: 'Permission denied to post comments on this task.' }, { status: 403 });
+    }
+
+    const body = await req.json();
+    const rawContent = body.content || body.comment;
+    const { attachments } = body;
+
+    if (!rawContent || !rawContent.trim()) {
       return NextResponse.json({ error: 'Comment content is required' }, { status: 400 });
     }
+    const content = rawContent.trim();
 
     // Resolve author employee ID
     let authorEmployeeId = user.employeeProfile?.id;

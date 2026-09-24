@@ -77,6 +77,7 @@ export async function GET(req: NextRequest) {
       const presentCount = records.filter((r) => r.checkInTime).length;
       const lateCount = records.filter((r) => r.isLate).length;
       const onBreakCount = records.filter((r) => r.breaks.some((b) => !b.breakEndTime)).length;
+      const onLeaveCount = records.filter((r) => r.status === 'ON_LEAVE').length;
 
       return NextResponse.json({
         success: true,
@@ -86,7 +87,8 @@ export async function GET(req: NextRequest) {
           presentCount,
           lateCount,
           onBreakCount,
-          absentCount: Math.max(0, totalEmployees - presentCount),
+          onLeaveCount,
+          absentCount: Math.max(0, totalEmployees - presentCount - onLeaveCount),
         },
         records,
       });
@@ -139,6 +141,7 @@ export async function GET(req: NextRequest) {
       const presentCount = records.filter((r) => r.checkInTime).length;
       const lateCount = records.filter((r) => r.isLate).length;
       const onBreakCount = records.filter((r) => r.breaks.some((b) => !b.breakEndTime)).length;
+      const onLeaveCount = records.filter((r) => r.status === 'ON_LEAVE').length;
 
       return NextResponse.json({
         success: true,
@@ -149,7 +152,8 @@ export async function GET(req: NextRequest) {
           presentCount,
           lateCount,
           onBreakCount,
-          absentCount: Math.max(0, totalEmployees - presentCount),
+          onLeaveCount,
+          absentCount: Math.max(0, totalEmployees - presentCount - onLeaveCount),
         },
         records,
       });

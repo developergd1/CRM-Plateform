@@ -99,11 +99,11 @@ export const ClientAttendanceHub: React.FC<ClientAttendanceHubProps> = ({
                 onClick={() => handleSubTabChange(t.id)}
                 className={`interactive-btn-hover flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold transition-all shrink-0 cursor-pointer ${
                   isActive
-                    ? 'bg-growth-teal text-white shadow-tealGlow'
-                    : 'bg-slate-100 hover:bg-slate-200/80 text-slate-600 border border-slate-200/60'
+                    ? 'bg-teal-600 text-white shadow-xs'
+                    : 'bg-white hover:bg-slate-50 text-slate-600 hover:text-slate-900 border border-slate-200'
                 }`}
               >
-                <Icon className={`w-3.5 h-3.5 ${isActive ? 'text-growth-gold' : 'text-slate-400'}`} />
+                <Icon className={`w-3.5 h-3.5 ${isActive ? 'text-white' : 'text-slate-400'}`} />
                 <span>{t.label}</span>
                 {t.isLive && (
                   <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse ml-0.5" />

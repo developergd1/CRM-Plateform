@@ -26,6 +26,7 @@ import {
 import { formatTo12Hour } from '@/components/common/TimePicker12';
 import { EmployeeDetailDrawer } from './EmployeeDetailDrawer';
 import { AddEmployeeModal } from './AddEmployeeModal';
+import { EmployeeOnboardingWizard } from './EmployeeOnboardingWizard';
 import { EditEmployeeModal } from './EditEmployeeModal';
 import { EmployeeCredentialsModal } from './EmployeeCredentialsModal';
 import { ResetPasswordModal } from './ResetPasswordModal';
@@ -33,7 +34,19 @@ import { isAdminOrHR } from '@/lib/rbac';
 import { EmployeeItem, ClientItem } from '@/types';
 import { clientCache } from '@/lib/client-cache';
 
-export const EmployeesView: React.FC = () => {
+interface EmployeesViewProps {
+  onNavigateTo360?: (empId: string) => void;
+  onNavigateToOnboarding?: () => void;
+  initialClientId?: string;
+  hideClientFilter?: boolean;
+}
+
+export const EmployeesView: React.FC<EmployeesViewProps> = ({
+  onNavigateTo360,
+  onNavigateToOnboarding,
+  initialClientId,
+  hideClientFilter = false,
+}) => {
   const { user } = useAuth();
   const cachedEmployees = clientCache.get<EmployeeItem[]>('admin_employees_list', 10 * 60 * 1000);
   const cachedClients = clientCache.get<ClientItem[]>('crm_clients_list', 10 * 60 * 1000);
@@ -42,6 +55,7 @@ export const EmployeesView: React.FC = () => {
   const [loading, setLoading] = useState(() => !cachedEmployees);
   const [selectedEmpId, setSelectedEmpId] = useState<string | null>(null);
   const [showAddModal, setShowAddModal] = useState(false);
+  const [showOnboardingWizard, setShowOnboardingWizard] = useState(false);
   const [editingEmployee, setEditingEmployee] = useState<any | null>(null);
   const [resetPasswordTarget, setResetPasswordTarget] = useState<any | null>(null);
   const [viewingCredentialsEmp, setViewingCredentialsEmp] = useState<any | null>(null);
@@ -65,10 +79,12 @@ export const EmployeesView: React.FC = () => {
   // Filters
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
-  const [clientFilter, setClientFilter] = useState('');
+  const [clientFilter, setClientFilter] = useState(initialClientId || '');
+
+  const effectiveClientFilter = initialClientId || clientFilter;
 
   const fetchEmployees = async (forceRefresh = false) => {
-    const isDefaultQuery = !search && !statusFilter && !clientFilter;
+    const isDefaultQuery = !search && !statusFilter && !effectiveClientFilter;
     if (!forceRefresh && isDefaultQuery) {
       const cached = clientCache.get<EmployeeItem[]>('admin_employees_list', 10 * 60 * 1000);
       if (cached && cached.length > 0) {
@@ -82,7 +98,7 @@ export const EmployeesView: React.FC = () => {
       const query = new URLSearchParams();
       if (search) query.set('search', search);
       if (statusFilter) query.set('status', statusFilter);
-      if (clientFilter) query.set('clientId', clientFilter);
+      if (effectiveClientFilter) query.set('clientId', effectiveClientFilter);
 
       const res = await fetch(`/api/employees?${query.toString()}`);
       if (res.ok) {
@@ -153,7 +169,7 @@ export const EmployeesView: React.FC = () => {
       });
       const data = await res.json();
       if (res.ok) {
-        setAlertMsg(`⛔ ${blockTarget.fullName} (${blockTarget.employeeId}) has been BLOCKED.`);
+        setAlertMsg(`${blockTarget.fullName} (${blockTarget.employeeId}) has been BLOCKED.`);
         setBlockTarget(null);
         setCustomBlockReason('');
         setBlockRemarks('');
@@ -161,10 +177,10 @@ export const EmployeesView: React.FC = () => {
         await fetchEmployees(true);
         setTimeout(() => setAlertMsg(null), 4500);
       } else {
-        setAlertMsg(`⚠️ Error: ${data.error || 'Failed to block employee'}`);
+        setAlertMsg(`Error: ${data.error || 'Failed to block employee'}`);
       }
     } catch (e) {
-      setAlertMsg('⚠️ Network error while blocking employee');
+      setAlertMsg('Network error while blocking employee');
     } finally {
       setActionLoading(false);
     }
@@ -186,17 +202,17 @@ export const EmployeesView: React.FC = () => {
       });
       const data = await res.json();
       if (res.ok) {
-        setAlertMsg(`✅ ${unblockTarget.fullName} (${unblockTarget.employeeId}) is now UNBLOCKED & ACTIVE.`);
+        setAlertMsg(`${unblockTarget.fullName} (${unblockTarget.employeeId}) is now UNBLOCKED & ACTIVE.`);
         setUnblockTarget(null);
         setUnblockRemarks('');
         clientCache.remove('admin_employees_list');
         await fetchEmployees(true);
         setTimeout(() => setAlertMsg(null), 4500);
       } else {
-        setAlertMsg(`⚠️ Error: ${data.error || 'Failed to unblock employee'}`);
+        setAlertMsg(`Error: ${data.error || 'Failed to unblock employee'}`);
       }
     } catch (e) {
-      setAlertMsg('⚠️ Network error while unblocking employee');
+      setAlertMsg('Network error while unblocking employee');
     } finally {
       setActionLoading(false);
     }
@@ -212,7 +228,7 @@ export const EmployeesView: React.FC = () => {
       });
       const data = await res.json();
       if (res.ok) {
-        setAlertMsg(`🗑️ ${deleteEmployeeTarget.fullName} (${deleteEmployeeTarget.employeeId}) has been permanently deleted.`);
+        setAlertMsg(`${deleteEmployeeTarget.fullName} (${deleteEmployeeTarget.employeeId}) has been safely archived. Historical records are preserved.`);
         setDeleteEmployeeTarget(null);
         setDeleteError(null);
         clientCache.remove('admin_employees_list');
@@ -272,6 +288,38 @@ export const EmployeesView: React.FC = () => {
     document.body.removeChild(link);
   };
 
+  if (showOnboardingWizard) {
+    return (
+      <div className="space-y-4 pb-12">
+        <div className="p-3.5 bg-teal-50 border border-teal-200 rounded-2xl text-xs text-teal-800 font-bold flex items-center justify-between shadow-xs">
+          <div className="flex items-center gap-2">
+            <span className="w-2 h-2 rounded-full bg-teal-600 animate-pulse" />
+            <span>
+              Enterprise Multi-Step Employee Onboarding
+            </span>
+          </div>
+          <button
+            type="button"
+            onClick={() => setShowOnboardingWizard(false)}
+            className="text-xs text-teal-800 hover:text-teal-950 underline font-bold cursor-pointer"
+          >
+            Back to Employees Registry
+          </button>
+        </div>
+        <EmployeeOnboardingWizard
+          initialClientId={initialClientId}
+          onSuccess={() => {
+            clientCache.remove('admin_employees_list');
+            clientCache.remove('crm_clients_list');
+            fetchEmployees(true);
+            setShowOnboardingWizard(false);
+          }}
+          onCancel={() => setShowOnboardingWizard(false)}
+        />
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6 pb-12">
       {/* Alert Notification */}
@@ -284,41 +332,48 @@ export const EmployeesView: React.FC = () => {
       {/* Header Bar */}
       <div className="panel-premium bg-white p-6 rounded-3xl border border-slate-200 shadow-card flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="title-interactive-hover text-xl font-extrabold text-slate-900 tracking-tight flex items-center gap-2 cursor-pointer">
-            <Users className="w-5 h-5 text-growth-teal" />
-            <span>Employee Master Registry</span>
+          <h1 className="title-interactive-hover text-xl font-extrabold text-slate-900 tracking-tight cursor-pointer">
+            Employee Master Registry
           </h1>
-          <p className="subtitle-interactive-hover text-xs text-slate-500">
-            Sequential <strong className="text-growth-goldDark font-mono">GI-EMP-XXXXXX</strong> numbering, credentials, and block/unblock lifecycle governance
+          <p className="subtitle-interactive-hover text-xs text-slate-500 mt-0.5">
+            Sequential employee numbering, credentials, and lifecycle governance
           </p>
         </div>
 
         <div className="flex items-center gap-2.5">
           <button
             onClick={() => fetchEmployees(true)}
-            className="interactive-btn-hover flex items-center gap-2 px-3.5 py-2.5 bg-slate-50 hover:bg-slate-100 text-slate-700 font-bold text-xs rounded-xl border border-slate-200 transition-all shadow-sm cursor-pointer"
+            className="interactive-btn-hover px-3.5 py-2.5 bg-slate-50 hover:bg-slate-100 text-slate-700 font-bold text-xs rounded-xl border border-slate-200 transition-all shadow-sm cursor-pointer"
             title="Refresh Employees List"
           >
-            <RefreshCw className="w-4 h-4 text-slate-500" />
-            <span>Refresh</span>
+            Refresh
           </button>
 
           <button
             onClick={() => exportEmployeesCSV()}
-            className="interactive-btn-hover flex items-center gap-2 px-3.5 py-2.5 bg-slate-50 hover:bg-slate-100 text-slate-700 font-bold text-xs rounded-xl border border-slate-200 transition-all cursor-pointer"
+            className="interactive-btn-hover px-3.5 py-2.5 bg-slate-50 hover:bg-slate-100 text-slate-700 font-bold text-xs rounded-xl border border-slate-200 transition-all cursor-pointer"
             title="Export CSV"
           >
-            <Download className="w-4 h-4 text-slate-500" />
-            <span>Export CSV</span>
+            Export CSV
           </button>
 
-          <button
-            onClick={() => setShowAddModal(true)}
-            className="interactive-btn-hover flex items-center gap-2 px-4 py-2.5 bg-growth-teal hover:bg-growth-tealDark text-white font-bold text-xs rounded-xl shadow-tealGlow transition-all cursor-pointer"
-          >
-            <Plus className="w-4 h-4" />
-            <span>Onboard Employee</span>
-          </button>
+          {onNavigateToOnboarding ? (
+            <button
+              onClick={onNavigateToOnboarding}
+              className="interactive-btn-hover px-4 py-2.5 bg-growth-teal hover:bg-growth-tealDark text-white font-bold text-xs rounded-xl shadow-tealGlow transition-all cursor-pointer flex items-center gap-1.5"
+            >
+              <Plus className="w-4 h-4" />
+              <span>+ Enterprise Onboarding</span>
+            </button>
+          ) : (
+            <button
+              onClick={() => setShowOnboardingWizard(true)}
+              className="interactive-btn-hover px-4 py-2.5 bg-growth-teal hover:bg-growth-tealDark text-white font-bold text-xs rounded-xl shadow-tealGlow transition-all cursor-pointer flex items-center gap-1.5"
+            >
+              <Plus className="w-4 h-4" />
+              <span>Onboard Employee</span>
+            </button>
+          )}
         </div>
       </div>
 
@@ -337,18 +392,20 @@ export const EmployeesView: React.FC = () => {
 
         <div className="flex items-center gap-3 w-full md:w-auto">
           {/* Client Filter */}
-          <select
-            value={clientFilter}
-            onChange={(e) => setClientFilter(e.target.value)}
-            className="px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-700 focus:outline-none"
-          >
-            <option value="">All Clients</option>
-            {clients.map((c) => (
-              <option key={c.id} value={c.id}>
-                {c.companyName} ({c.clientId})
-              </option>
-            ))}
-          </select>
+          {!hideClientFilter && (
+            <select
+              value={clientFilter}
+              onChange={(e) => setClientFilter(e.target.value)}
+              className="px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-700 focus:outline-none"
+            >
+              <option value="">All Clients</option>
+              {clients.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.companyName} ({c.clientId})
+                </option>
+              ))}
+            </select>
+          )}
 
           {/* Status Filter */}
           <select
@@ -482,25 +539,15 @@ export const EmployeesView: React.FC = () => {
                       {/* Status / Block Badge */}
                       <td className="py-3.5 px-4 whitespace-nowrap">
                         <span
-                          className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase ${
+                          className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase ${
                             isEmpBlocked
-                              ? 'bg-rose-100 text-rose-800 border border-rose-200 animate-pulse'
+                              ? 'bg-orange-100 text-growth-orange border border-orange-200'
                               : emp.status === 'ACTIVE'
-                              ? 'bg-emerald-100 text-emerald-800 border border-emerald-200'
+                              ? 'bg-teal-50 text-growth-teal border border-teal-200'
                               : 'bg-slate-100 text-slate-700 border border-slate-200'
                           }`}
                         >
-                          {isEmpBlocked ? (
-                            <>
-                              <ShieldAlert className="w-3 h-3 text-rose-600" />
-                              <span>BLOCKED</span>
-                            </>
-                          ) : (
-                            <>
-                              <ShieldCheck className="w-3 h-3 text-emerald-600" />
-                              <span>{emp.status}</span>
-                            </>
-                          )}
+                          <span>{isEmpBlocked ? 'BLOCKED' : emp.status}</span>
                         </span>
                       </td>
 
@@ -532,9 +579,15 @@ export const EmployeesView: React.FC = () => {
 
                           {/* View Profile */}
                           <button
-                            onClick={() => setSelectedEmpId(emp.employeeId)}
+                            onClick={() => {
+                              if (onNavigateTo360) {
+                                onNavigateTo360(emp.employeeId);
+                              } else {
+                                setSelectedEmpId(emp.employeeId);
+                              }
+                            }}
                             className="interactive-btn-hover p-1.5 hover:bg-slate-100 text-slate-600 hover:text-growth-teal rounded-lg transition-colors cursor-pointer"
-                            title="View Profile"
+                            title="View 360 Employee Profile"
                           >
                             <Eye className="w-4 h-4" />
                           </button>
@@ -543,7 +596,7 @@ export const EmployeesView: React.FC = () => {
                           {isAdminOrHR(user?.role) && (
                             <button
                               onClick={() => setEditingEmployee(emp)}
-                              className="interactive-btn-hover p-1.5 hover:bg-slate-100 text-slate-600 hover:text-indigo-600 rounded-lg transition-colors cursor-pointer"
+                              className="interactive-btn-hover p-1.5 hover:bg-slate-100 text-slate-600 hover:text-growth-teal rounded-lg transition-colors cursor-pointer"
                               title="Edit Employee"
                             >
                               <Edit className="w-4 h-4" />
@@ -554,7 +607,7 @@ export const EmployeesView: React.FC = () => {
                           {isAdminOrHR(user?.role) && (
                             <button
                               onClick={() => setResetPasswordTarget(emp)}
-                              className="interactive-btn-hover p-1.5 hover:bg-amber-50 text-slate-400 hover:text-amber-600 rounded-lg transition-colors cursor-pointer"
+                              className="interactive-btn-hover p-1.5 hover:bg-orange-50 text-slate-400 hover:text-orange-600 rounded-lg transition-colors cursor-pointer"
                               title="Assign / Reset Password"
                             >
                               <KeyRound className="w-4 h-4" />
@@ -637,25 +690,25 @@ export const EmployeesView: React.FC = () => {
       {/* Delete Employee Confirmation Modal */}
       {deleteEmployeeTarget && (
         <div className="fixed inset-0 z-50 bg-slate-950/75 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
-          <div className="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl space-y-4 border border-rose-200 animate-in fade-in my-auto max-h-[90vh] overflow-y-auto">
+          <div className="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl space-y-4 border border-slate-200 animate-in fade-in my-auto max-h-[90vh] overflow-y-auto">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-rose-100 text-rose-600 flex items-center justify-center font-bold">
+              <div className="w-10 h-10 rounded-xl bg-amber-50 text-amber-700 flex items-center justify-center font-bold">
                 <Trash2 className="w-5 h-5" />
               </div>
               <div>
-                <h3 className="text-base font-black text-slate-900">Delete Employee Record</h3>
+                <h3 className="text-base font-black text-slate-900">Controlled Soft Archive</h3>
                 <p className="text-xs text-slate-500">{deleteEmployeeTarget.fullName} ({deleteEmployeeTarget.employeeId})</p>
               </div>
             </div>
 
             {deleteError && (
               <div className="p-3 bg-rose-50 border border-rose-200 text-rose-700 text-xs font-semibold rounded-xl">
-                ⚠️ {deleteError}
+                {deleteError}
               </div>
             )}
 
             <p className="text-xs text-slate-600 leading-relaxed">
-              Are you sure you want to permanently delete this employee? Their profile, operational records, and associated user credentials will be permanently removed.
+              In accordance with enterprise workforce governance, archiving removes this employee from active punch rosters and directory lists while strictly preserving their historical attendance logs, leave balances, approved timesheets, and compliance audit trail.
             </p>
 
             <div className="flex gap-2 pt-2">
@@ -663,9 +716,9 @@ export const EmployeesView: React.FC = () => {
                 type="button"
                 disabled={actionLoading}
                 onClick={handleDeleteEmployee}
-                className="flex-1 py-2.5 bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs rounded-xl transition-all disabled:opacity-50"
+                className="flex-1 py-2.5 bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs rounded-xl transition-all disabled:opacity-50 cursor-pointer"
               >
-                {actionLoading ? 'Deleting...' : 'Confirm Delete'}
+                {actionLoading ? 'Archiving...' : 'Confirm Soft Archive'}
               </button>
               <button
                 type="button"

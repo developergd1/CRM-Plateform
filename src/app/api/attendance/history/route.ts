@@ -35,13 +35,19 @@ export async function GET(req: NextRequest) {
           OR: [
             { userId: user.id },
             ...(user.clientId ? [{ clientId: user.clientId }] : []),
+            ...(user.parentClientId ? [{ id: user.parentClientId }, { clientId: user.parentClientId }] : []),
           ],
         },
       });
-      if (!clientProfile) return NextResponse.json({ error: 'Client not found' }, { status: 404 });
+      let clientProfileId = clientProfile?.id;
+      if (!clientProfileId && (user.parentClientId || user.clientId)) {
+        const { resolveClientObjectId } = await import('@/lib/prisma');
+        clientProfileId = (await resolveClientObjectId(user.parentClientId || user.clientId)) || undefined;
+      }
+      if (!clientProfileId) return NextResponse.json({ error: 'Client not found' }, { status: 404 });
 
       const clientEmployees = await prisma.employee.findMany({
-        where: { clientId: clientProfile.id },
+        where: { clientId: clientProfileId },
         select: { id: true },
       });
       const allowedIds = clientEmployees.map((e) => e.id);
@@ -145,6 +151,7 @@ export async function GET(req: NextRequest) {
     const presentCount = presentRecords.length;
     const lateCount = records.filter((r) => r.isLate).length;
     const halfDayCount = records.filter((r) => r.status === 'HALF_DAY').length;
+    const onLeaveCount = records.filter((r) => r.status === 'ON_LEAVE').length;
     const totalWorkMinutes = records.reduce((acc, curr) => acc + (curr.totalWorkMinutes || 0), 0);
     const totalBreakMinutes = records.reduce((acc, curr) => acc + (curr.totalBreakMinutes || 0), 0);
     const totalOvertimeMinutes = records.reduce((acc, curr) => acc + (curr.overtimeMinutes || 0), 0);
@@ -157,6 +164,7 @@ export async function GET(req: NextRequest) {
         presentCount,
         lateCount,
         halfDayCount,
+        onLeaveCount,
         totalWorkMinutes,
         totalWorkHours: Number((totalWorkMinutes / 60).toFixed(1)),
         totalBreakMinutes,
