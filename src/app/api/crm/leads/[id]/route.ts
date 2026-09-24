@@ -33,7 +33,9 @@ export async function GET(
 
     // Tenant check
     if (user.role === 'CLIENT') {
-      if (!user.clientId || leadBasic.clientId !== user.clientId) {
+      const { resolveClientObjectId } = await import('@/lib/prisma');
+      const resolvedCId = await resolveClientObjectId(user.parentClientId || user.clientId);
+      if (!resolvedCId || leadBasic.clientId !== resolvedCId) {
         return NextResponse.json({ error: 'Access denied to this lead' }, { status: 403 });
       }
     }

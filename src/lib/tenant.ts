@@ -184,7 +184,7 @@ export async function buildTenantWhereClause(
   if (user.role === 'CLIENT') {
     const assigned = (user.assignedModules || []).map((m) => m.toUpperCase());
     if (!assigned.includes('CRM') && !assigned.includes('ALL')) {
-      return { clientId: '__FORBIDDEN_NO_CRM_ACCESS__' };
+      return { clientId: '000000000000000000000000' };
     }
 
     const clientRecord = await prisma.client.findFirst({
@@ -205,7 +205,7 @@ export async function buildTenantWhereClause(
     if (!cId && user.clientId) {
       cId = await resolveClientObjectId(user.clientId);
     }
-    return cId ? { clientId: cId } : { clientId: '__NONE__' };
+    return cId ? { clientId: cId } : { clientId: '000000000000000000000000' };
   }
 
   // Employee: if client-affiliated, scope to client

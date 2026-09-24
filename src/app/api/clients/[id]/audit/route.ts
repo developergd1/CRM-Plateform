@@ -18,18 +18,40 @@ export async function GET(
 
     const client = await prisma.client.findFirst({
       where: getClientLookup(params.id),
-      select: { id: true, clientId: true },
+      select: { id: true, clientId: true, userId: true },
     });
 
     if (!client) {
       return NextResponse.json({ error: 'Client not found' }, { status: 404 });
     }
 
+    // Get all user IDs associated with this client (client user + client employees)
+    const clientUsers = await prisma.user.findMany({
+      where: {
+        OR: [
+          ...(client.userId ? [{ id: client.userId }] : []),
+          { parentClientId: client.id },
+        ],
+      },
+      select: { id: true },
+    });
+    const userIds = clientUsers.map((u) => u.id);
+
+    const clientEmployees = await prisma.employee.findMany({
+      where: { clientId: client.id },
+      select: { id: true, employeeId: true },
+    });
+    const employeeIds = clientEmployees.map((e) => e.id);
+    const employeeCodes = clientEmployees.map((e) => e.employeeId);
+
     const auditLogs = await prisma.auditLog.findMany({
       where: {
         OR: [
           { entityId: client.clientId },
           { entityId: client.id },
+          ...(userIds.length > 0 ? [{ actorUserId: { in: userIds } }] : []),
+          ...(employeeIds.length > 0 ? [{ entityId: { in: employeeIds } }] : []),
+          ...(employeeCodes.length > 0 ? [{ entityId: { in: employeeCodes } }, { actorEmployeeId: { in: employeeCodes } }] : []),
         ],
       },
       orderBy: { timestamp: 'desc' },

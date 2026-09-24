@@ -132,6 +132,15 @@ export async function GET(
       return NextResponse.json({ error: 'Deal not found' }, { status: 404 });
     }
 
+    // Tenant IDOR Protection for Client Portal
+    if (user.role === 'CLIENT') {
+      const { resolveClientObjectId } = await import('@/lib/prisma');
+      const resolvedCId = await resolveClientObjectId(user.parentClientId || user.clientId);
+      if (!resolvedCId || deal.clientId !== resolvedCId) {
+        return NextResponse.json({ error: 'Access denied. This deal belongs to another organization.' }, { status: 403 });
+      }
+    }
+
     return NextResponse.json({ success: true, data: deal });
   } catch (error: any) {
     console.error('Error fetching deal detail:', error);
