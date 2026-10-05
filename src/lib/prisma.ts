@@ -13,7 +13,7 @@ if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = prisma;
 /**
  * Returns true if the string is a valid 24-character hexadecimal MongoDB ObjectId.
  */
-export function isValidObjectId(id: string | null | undefined): boolean {
+export function isValidObjectId(id: string | null | undefined): id is string {
   if (!id || typeof id !== 'string') return false;
   return /^[0-9a-fA-F]{24}$/.test(id);
 }

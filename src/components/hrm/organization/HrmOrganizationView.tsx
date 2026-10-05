@@ -20,12 +20,27 @@ interface HrmOrganizationViewProps {
 }
 
 export const HrmOrganizationView: React.FC<HrmOrganizationViewProps> = ({ currentTenant }) => {
-  const [departments, setDepartments] = useState(currentTenant.departments);
-  const [designations, setDesignations] = useState(currentTenant.designations);
+  const tenant = currentTenant || ({} as any);
+  const [departments, setDepartments] = useState<any[]>(tenant.departments || []);
+  const [designations, setDesignations] = useState<any[]>(tenant.designations || []);
   const [showDeptModal, setShowDeptModal] = useState(false);
   const [newDeptName, setNewDeptName] = useState('');
   const [newDeptCode, setNewDeptCode] = useState('');
   const [newDeptManager, setNewDeptManager] = useState('');
+
+  const tenantName = tenant.name || 'Organization Architecture';
+  const tenantSlug = tenant.slug || (tenantName ? tenantName.toLowerCase().replace(/\s+/g, '-') : 'org');
+  const tenantIndustry = tenant.industry || 'Enterprise Organization';
+  const tenantPlan = tenant.plan || 'Enterprise Suite';
+  const tenantEmail = tenant.contactEmail || 'admin@growthindia.in';
+  const tenantTimezone = tenant.timezone || 'Asia/Kolkata (IST)';
+  const tenantCurrency = tenant.currency || 'INR (₹)';
+  const locations: string[] = Array.isArray(tenant.locations) && tenant.locations.length > 0
+    ? tenant.locations
+    : ['Headquarters (Primary)', 'Regional Center'];
+  const workDays: string[] = Array.isArray(tenant.workDays) && tenant.workDays.length > 0
+    ? tenant.workDays
+    : ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
 
   const handleAddDept = (e: React.FormEvent) => {
     e.preventDefault();
@@ -52,7 +67,7 @@ export const HrmOrganizationView: React.FC<HrmOrganizationViewProps> = ({ curren
           <div className="flex items-center gap-2">
             <h1 className="text-xl font-black text-slate-900">Organization Architecture</h1>
             <span className="text-[10px] font-black uppercase px-2.5 py-0.5 rounded-full bg-[#0D9488]/10 text-[#0D9488] border border-[#0D9488]/20">
-              {currentTenant.slug}
+              {tenantSlug}
             </span>
           </div>
           <p className="text-xs text-slate-500 mt-0.5">
@@ -74,15 +89,15 @@ export const HrmOrganizationView: React.FC<HrmOrganizationViewProps> = ({ curren
         <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6 pb-6 border-b border-slate-100">
           <div className="flex items-center gap-4">
             <div className="w-14 h-14 rounded-2xl bg-[#0D9488] text-white flex items-center justify-center font-black text-xl shadow-xs">
-              {currentTenant.name.charAt(0)}
+              {(tenantName || 'O').charAt(0).toUpperCase()}
             </div>
             <div>
-              <h2 className="text-base font-bold text-slate-900">{currentTenant.name}</h2>
-              <p className="text-xs text-slate-500">{currentTenant.industry}</p>
+              <h2 className="text-base font-bold text-slate-900">{tenantName}</h2>
+              <p className="text-xs text-slate-500">{tenantIndustry}</p>
               <div className="flex items-center gap-3 mt-1 text-[11px] font-mono text-slate-400">
-                <span>Plan: <strong className="text-orange-600">{currentTenant.plan}</strong></span>
+                <span>Plan: <strong className="text-orange-600">{tenantPlan}</strong></span>
                 <span>•</span>
-                <span>Contact: {currentTenant.contactEmail}</span>
+                <span>Contact: {tenantEmail}</span>
               </div>
             </div>
           </div>
@@ -90,11 +105,11 @@ export const HrmOrganizationView: React.FC<HrmOrganizationViewProps> = ({ curren
           <div className="flex flex-wrap items-center gap-2 text-xs font-semibold text-slate-600">
             <div className="px-3 py-1.5 rounded-xl bg-slate-50 border border-slate-200 flex items-center gap-1.5">
               <Clock className="w-3.5 h-3.5 text-slate-400" />
-              <span>{currentTenant.timezone}</span>
+              <span>{tenantTimezone}</span>
             </div>
             <div className="px-3 py-1.5 rounded-xl bg-slate-50 border border-slate-200 flex items-center gap-1.5">
               <Globe className="w-3.5 h-3.5 text-slate-400" />
-              <span>{currentTenant.currency}</span>
+              <span>{tenantCurrency}</span>
             </div>
           </div>
         </div>
@@ -107,7 +122,7 @@ export const HrmOrganizationView: React.FC<HrmOrganizationViewProps> = ({ curren
               <span>Operating Locations & Hubs</span>
             </h3>
             <div className="flex flex-wrap gap-2">
-              {currentTenant.locations.map((loc) => (
+              {locations.map((loc) => (
                 <span
                   key={loc}
                   className="px-2.5 py-1 rounded-lg bg-slate-50 border border-slate-200 text-xs font-semibold text-slate-700"
@@ -124,7 +139,7 @@ export const HrmOrganizationView: React.FC<HrmOrganizationViewProps> = ({ curren
               <span>Working Days & Schedule</span>
             </h3>
             <div className="flex flex-wrap gap-1.5">
-              {currentTenant.workDays.map((day) => (
+              {workDays.map((day) => (
                 <span
                   key={day}
                   className="px-2 py-0.5 rounded bg-[#0D9488]/10 text-[#0D9488] border border-[#0D9488]/20 text-[11px] font-bold"

@@ -1,14 +1,16 @@
 'use client';
 
 import React, { useState, useRef, useEffect } from 'react';
+import { useAuth } from '@/context/AuthContext';
+import { canAdminAccessPlatform } from '@/lib/rbac';
 import { PlatformProfile } from './AdminPlatformGateway';
 import {
-  Users,
   Building2,
   Briefcase,
   ChevronDown,
   LayoutGrid,
   Check,
+  TrendingUp,
 } from 'lucide-react';
 
 interface PlatformSwitcherDropdownProps {
@@ -22,6 +24,7 @@ export const PlatformSwitcherDropdown: React.FC<PlatformSwitcherDropdownProps> =
   onSelectPlatform,
   className = '',
 }) => {
+  const { user } = useAuth();
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
@@ -45,19 +48,19 @@ export const PlatformSwitcherDropdown: React.FC<PlatformSwitcherDropdownProps> =
           badgeColor: 'bg-[#0D9488]/10 text-[#0D9488] border-[#0D9488]/20',
           dot: 'bg-[#0D9488]',
         };
-      case 'CRM':
-        return {
-          title: 'CRM Platform',
-          fullTitle: 'CRM Platform',
-          icon: Building2,
-          badgeColor: 'bg-[#0D9488]/10 text-[#0D9488] border-[#0D9488]/20',
-          dot: 'bg-[#0D9488]',
-        };
       case 'HRM':
         return {
           title: 'HRM Suite',
           fullTitle: 'Enterprise HRM',
           icon: Briefcase,
+          badgeColor: 'bg-[#0D9488]/10 text-[#0D9488] border-[#0D9488]/20',
+          dot: 'bg-[#0D9488]',
+        };
+      case 'CRM':
+        return {
+          title: 'CRM Sales',
+          fullTitle: 'CRM Pipeline & Sales',
+          icon: TrendingUp,
           badgeColor: 'bg-[#0D9488]/10 text-[#0D9488] border-[#0D9488]/20',
           dot: 'bg-[#0D9488]',
         };
@@ -75,16 +78,10 @@ export const PlatformSwitcherDropdown: React.FC<PlatformSwitcherDropdownProps> =
   const current = getPlatformMeta(currentPlatform);
   const CurrentIcon = current.icon;
 
-  const platforms: { id: PlatformProfile; title: string; icon: React.ElementType; color: string }[] = [
+  const rawPlatforms: { id: PlatformProfile; title: string; icon: React.ElementType; color: string }[] = [
     {
       id: 'CMS',
       title: 'CMS — Client Management',
-      icon: Building2,
-      color: 'text-[#0D9488] bg-[#0D9488]/10',
-    },
-    {
-      id: 'CRM',
-      title: 'CRM Platform',
       icon: Building2,
       color: 'text-[#0D9488] bg-[#0D9488]/10',
     },
@@ -94,7 +91,15 @@ export const PlatformSwitcherDropdown: React.FC<PlatformSwitcherDropdownProps> =
       icon: Briefcase,
       color: 'text-[#0D9488] bg-[#0D9488]/10',
     },
+    {
+      id: 'CRM',
+      title: 'CRM — Sales & Deals',
+      icon: TrendingUp,
+      color: 'text-[#0D9488] bg-[#0D9488]/10',
+    },
   ];
+
+  const platforms = rawPlatforms.filter((p) => canAdminAccessPlatform(user, p.id));
 
   return (
     <div className={`relative inline-block text-left ${className}`} ref={dropdownRef}>
@@ -161,7 +166,7 @@ export const PlatformSwitcherDropdown: React.FC<PlatformSwitcherDropdownProps> =
               <div className="p-1.5 rounded-lg bg-slate-100 text-slate-600 shrink-0">
                 <LayoutGrid className="w-3.5 h-3.5" />
               </div>
-              <span>Gateway Hub (All 3)</span>
+              <span>Gateway Hub</span>
             </button>
           </div>
         </div>

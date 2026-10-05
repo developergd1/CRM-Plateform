@@ -14,6 +14,7 @@ import {
   Coffee,
   Check,
 } from 'lucide-react';
+import { formatTo12Hour } from '@/components/common/TimePicker12';
 
 interface HrmShiftsViewProps {
   currentTenant: HrmTenant;
@@ -114,7 +115,7 @@ export const HrmShiftsView: React.FC<HrmShiftsViewProps> = ({ currentTenant }) =
             <div>
               <h3 className="text-sm font-bold text-slate-900">{shift.name}</h3>
               <p className="text-xs text-[#0D9488] font-mono font-bold mt-1">
-                {shift.startTime} – {shift.endTime}
+                {formatTo12Hour(shift.startTime)} – {formatTo12Hour(shift.endTime)}
               </p>
             </div>
 

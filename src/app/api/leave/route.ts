@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma, resolveClientObjectId } from '@/lib/prisma';
+import { prisma, resolveClientObjectId, isValidObjectId } from '@/lib/prisma';
 import { getSessionUser } from '@/lib/auth';
 import { isManagerOrAbove } from '@/lib/rbac';
 import { logAuditEvent } from '@/lib/audit';
@@ -133,17 +133,9 @@ export async function POST(req: NextRequest) {
     const user = await getSessionUser(req);
     if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-    const currentEmp = await prisma.employee.findFirst({
-      where: {
-        OR: [
-          { userId: user.id },
-          ...(user.employeeId ? [{ employeeId: user.employeeId }] : []),
-        ],
-      },
-    });
-    if (!currentEmp) return NextResponse.json({ error: 'Employee not found' }, { status: 404 });
-
+    const body = await req.json();
     const {
+      employeeId: requestedEmpId,
       leaveType = 'Casual Leave',
       startDate,
       endDate,
@@ -151,17 +143,46 @@ export async function POST(req: NextRequest) {
       reason,
       remarks,
       attachmentUrl,
-    } = await req.json();
+      status: requestedStatus,
+    } = body;
+
+    let targetEmp = null;
+    const isPrivileged = isManagerOrAbove(user.role) || user.role === 'CLIENT';
+
+    if (requestedEmpId && isPrivileged) {
+      targetEmp = await prisma.employee.findFirst({
+        where: {
+          OR: [
+            ...(isValidObjectId(requestedEmpId) ? [{ id: requestedEmpId }] : []),
+            { employeeId: requestedEmpId },
+          ],
+        },
+      });
+    }
+
+    if (!targetEmp) {
+      targetEmp = await prisma.employee.findFirst({
+        where: {
+          OR: [
+            { userId: user.id },
+            ...(user.employeeId ? [{ employeeId: user.employeeId }] : []),
+          ],
+        },
+      });
+    }
+
+    if (!targetEmp) return NextResponse.json({ error: 'Employee not found' }, { status: 404 });
 
     if (!startDate || !endDate || !reason?.trim()) {
       return NextResponse.json({ error: 'Start date, end date, and reason are required' }, { status: 400 });
     }
 
     const parsedDays = Math.max(0.5, parseFloat(String(totalDays)) || 1);
+    const finalStatus = (isPrivileged && requestedStatus) ? requestedStatus : (isPrivileged ? 'APPROVED' : 'PENDING');
 
     const leave = await prisma.leaveRequest.create({
       data: {
-        employeeId: currentEmp.id,
+        employeeId: targetEmp.id,
         leaveType,
         startDate,
         endDate,
@@ -169,7 +190,10 @@ export async function POST(req: NextRequest) {
         reason: reason.trim(),
         remarks: remarks?.trim() || null,
         attachmentUrl: attachmentUrl?.trim() || null,
-        status: 'PENDING',
+        status: finalStatus,
+        reviewedById: finalStatus === 'APPROVED' ? user.id : null,
+        reviewedAt: finalStatus === 'APPROVED' ? new Date() : null,
+        reviewRemarks: finalStatus === 'APPROVED' ? (remarks?.trim() || 'Granted by Administrator/Client') : null,
       },
       include: {
         employee: {
@@ -187,24 +211,62 @@ export async function POST(req: NextRequest) {
     await prisma.leaveActionHistory.create({
       data: {
         leaveId: leave.id,
-        action: 'APPLIED',
-        performedBy: currentEmp.fullName,
+        action: finalStatus === 'APPROVED' ? 'APPROVED' : 'APPLIED',
+        performedBy: user.fullName || user.email || targetEmp.fullName,
         performerRole: user.role || 'EMPLOYEE',
-        performerId: currentEmp.employeeId || currentEmp.id,
+        performerId: user.id,
         previousStatus: null,
-        newStatus: 'PENDING',
-        remarks: remarks?.trim() || null,
+        newStatus: finalStatus,
+        remarks: remarks?.trim() || (finalStatus === 'APPROVED' ? 'Granted by Corporate Admin' : null),
       },
     });
+
+    // If approved, sync attendance records as ON_LEAVE
+    if (finalStatus === 'APPROVED') {
+      try {
+        const dates: string[] = [];
+        const curr = new Date(startDate);
+        const end = new Date(endDate);
+        let iterations = 0;
+        while (curr <= end && iterations < 60) {
+          dates.push(curr.toISOString().split('T')[0]);
+          curr.setDate(curr.getDate() + 1);
+          iterations++;
+        }
+        for (const dateStr of dates) {
+          await prisma.attendance.upsert({
+            where: {
+              employeeId_date: {
+                employeeId: targetEmp.id,
+                date: dateStr,
+              },
+            },
+            create: {
+              employeeId: targetEmp.id,
+              date: dateStr,
+              status: 'ON_LEAVE',
+              remarks: `On Approved Leave: ${leaveType}`,
+              totalWorkMinutes: 0,
+            },
+            update: {
+              status: 'ON_LEAVE',
+              remarks: `On Approved Leave: ${leaveType}`,
+            },
+          });
+        }
+      } catch (attErr) {
+        console.error('Error syncing attendance on leave grant:', attErr);
+      }
+    }
 
     const ip = req.headers.get('x-forwarded-for') || req.headers.get('x-real-ip') || '127.0.0.1';
     await logAuditEvent({
       actorUserId: user.id,
       actorEmployeeId: user.employeeId,
-      action: 'APPLY_LEAVE',
+      action: finalStatus === 'APPROVED' ? 'GRANT_LEAVE' : 'APPLY_LEAVE',
       entityType: 'LEAVE',
       entityId: leave.id,
-      newData: { leaveType, startDate, endDate, totalDays: parsedDays, reason },
+      newData: { leaveType, startDate, endDate, totalDays: parsedDays, reason, status: finalStatus },
       ipAddress: ip,
       status: 'SUCCESS',
     });
@@ -212,12 +274,12 @@ export async function POST(req: NextRequest) {
     // Notify Client and Admin
     await notifyLeaveApplied({
       leaveId: leave.id,
-      employeeName: currentEmp.fullName,
-      employeeId: currentEmp.id,
+      employeeName: targetEmp.fullName,
+      employeeId: targetEmp.id,
       leaveType,
       startDate,
       endDate,
-      clientId: currentEmp.clientId,
+      clientId: targetEmp.clientId,
     });
 
     return NextResponse.json({ success: true, leave }, { status: 201 });

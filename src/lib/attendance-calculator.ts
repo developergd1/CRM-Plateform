@@ -104,7 +104,11 @@ export function calculateAttendanceMetrics(
   const totalBreakMinutes = Math.floor(totalBreakSeconds / 60);
 
   // 4. Net Working Seconds (Attendance time minus break time)
-  const netWorkSeconds = Math.max(0, attendanceDurationSeconds - totalBreakSeconds);
+  // When sessionActiveSeconds is recorded, it is the authoritative source of truth.
+  // This prevents inflated hours if computer was shut down or tab was closed after punching in.
+  const netWorkSeconds = sessionActiveSeconds > 0
+    ? sessionActiveSeconds
+    : Math.max(0, attendanceDurationSeconds - totalBreakSeconds);
   const netWorkMinutes = Math.floor(netWorkSeconds / 60);
 
   // 5. Active & Idle Time

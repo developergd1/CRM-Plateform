@@ -45,7 +45,7 @@ export async function GET(req: NextRequest) {
       }
     }
 
-    const [metrics, recentOnboardings, recentBlockHistories, recentLeads, clientsList] = await Promise.all([
+    const [metrics, recentOnboardings, recentBlockHistories, clientsList] = await Promise.all([
       getExecutiveDashboardMetrics(
         { preset, startDate, endDate, timezone },
         user
@@ -78,23 +78,12 @@ export async function GET(req: NextRequest) {
           },
         },
       }),
-      !isClient
-        ? prisma.lead.findMany({
-            where: { isArchived: false },
-            take: 6,
-            orderBy: { createdAt: 'desc' },
-            include: {
-              client: { select: { companyName: true } },
-              assignedTo: { select: { fullName: true } },
-            },
-          })
-        : Promise.resolve([]),
       prisma.client.findMany({
         where: clientWhere.clientId ? { id: clientWhere.clientId } : {},
         take: 6,
         orderBy: { createdAt: 'desc' },
         include: {
-          _count: { select: { employees: true, deals: true } },
+          _count: { select: { employees: true, tasks: true } },
         },
       }),
     ]);
@@ -120,8 +109,6 @@ export async function GET(req: NextRequest) {
         recentOnboardings,
         recentBlockHistories,
         clientsList,
-        crm: metrics.crm,
-        recentLeads,
       },
     };
 

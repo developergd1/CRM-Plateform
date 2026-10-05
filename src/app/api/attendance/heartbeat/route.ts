@@ -18,8 +18,17 @@ export async function POST(req: NextRequest) {
     });
     if (!employee) return NextResponse.json({ error: 'Employee not found' }, { status: 404 });
 
-    const body = await req.json().catch(() => ({}));
-    const { sessionId, isIdle, deltaActiveSeconds, deltaIdleSeconds } = body;
+    let body: any = {};
+    try {
+      body = await req.json();
+    } catch {
+      try {
+        const text = await req.text();
+        if (text) body = JSON.parse(text);
+      } catch {}
+    }
+
+    const { sessionId, isIdle, deltaActiveSeconds, deltaIdleSeconds, isDisconnect } = body;
 
     const result = await processHeartbeat({
       employeeId: employee.id,
@@ -27,6 +36,7 @@ export async function POST(req: NextRequest) {
       isIdle: Boolean(isIdle),
       deltaActiveSeconds: Number(deltaActiveSeconds) || 0,
       deltaIdleSeconds: Number(deltaIdleSeconds) || 0,
+      isDisconnect: Boolean(isDisconnect),
     });
 
     return NextResponse.json({

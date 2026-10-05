@@ -73,7 +73,7 @@ export const CmsDashboardView: React.FC<CmsDashboardViewProps> = ({ onNavigateTa
     blockedEmployees: 0,
   };
 
-  const moduleDist = data?.moduleDistribution || { EMS: 0, CRM: 0, HRM: 0, totalSubscribedClients: 0 };
+  const moduleDist = data?.moduleDistribution || { EMS: 0, HRM: 0, totalSubscribedClients: 0 };
   const recentClients = data?.recentClients || [];
   const clientWiseSummary = data?.clientWiseSummary || [];
   const recentActivity = data?.recentActivity || [];
@@ -217,7 +217,7 @@ export const CmsDashboardView: React.FC<CmsDashboardViewProps> = ({ onNavigateTa
           </span>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-1">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-1">
           {/* EMS Module */}
           <div className="p-4 rounded-xl border border-teal-200 bg-teal-50/40 space-y-2">
             <div className="flex items-center justify-between">
@@ -228,19 +228,6 @@ export const CmsDashboardView: React.FC<CmsDashboardViewProps> = ({ onNavigateTa
             </div>
             <p className="text-[11px] text-slate-600 leading-relaxed">
               Workforce directory, attendance clocking, leave quotas, tasks, and document vault.
-            </p>
-          </div>
-
-          {/* CRM Module */}
-          <div className="p-4 rounded-xl border border-blue-200 bg-blue-50/40 space-y-2">
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-black text-blue-900 uppercase tracking-wider">CRM (Sales Engine)</span>
-              <span className="text-xs font-mono font-bold px-2 py-0.5 bg-blue-100 text-blue-800 rounded-md">
-                {moduleDist.CRM} Clients
-              </span>
-            </div>
-            <p className="text-[11px] text-slate-600 leading-relaxed">
-              Sales pipeline, leads scoring, contacts directory, deals Kanban, and commercials.
             </p>
           </div>
 

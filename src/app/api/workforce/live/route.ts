@@ -131,18 +131,18 @@ export async function GET(req: NextRequest) {
       },
     }).catch(() => {});
 
-    // Fetch active work sessions strictly for TODAY
+    // Fetch active/recent work sessions strictly for TODAY (including DISCONNECTED to preserve accumulated active seconds)
     const activeSessions = await prisma.workSession.findMany({
       where: {
         employeeId: { in: employeeIds },
-        status: { in: ['ACTIVE', 'IDLE', 'ON_BREAK'] },
+        status: { in: ['ACTIVE', 'IDLE', 'ON_BREAK', 'DISCONNECTED'] },
         loginTimestamp: { gte: todayStart },
       },
       orderBy: { createdAt: 'desc' },
     });
     const sessionMap = new Map<string, any>();
     activeSessions.forEach((sess) => {
-      // Keep only newest active session per employee
+      // Keep only newest session per employee
       if (!sessionMap.has(sess.employeeId)) {
         sessionMap.set(sess.employeeId, sess);
       }
@@ -165,7 +165,7 @@ export async function GET(req: NextRequest) {
         const metrics = attendance
           ? calculateAttendanceMetrics({
               attendance,
-              activeSession: isOffline ? null : session,
+              activeSession: session,
               policy: globalPolicy,
             })
           : null;
@@ -184,18 +184,29 @@ export async function GET(req: NextRequest) {
             client: emp.client,
             department: emp.department,
           },
+          // Flat fields for LiveWorkforceView table compatibility
+          id: emp.id,
+          fullName: emp.fullName,
+          employeeId: emp.employeeId,
+          designation: emp.designation,
+          clientName: emp.client?.companyName || 'Internal Staff',
+          shiftStartTime: emp.shiftStartTime || '09:30',
+          shiftEndTime: emp.shiftEndTime || '18:30',
+          activeSessionDuration: session?.activeSeconds ? `${Math.floor(session.activeSeconds / 60)}m` : '0m',
+          status: liveStatus === 'ON_BREAK' ? 'BREAK' : liveStatus === 'MISSING_CHECKIN' ? 'MISSING_PUNCH' : liveStatus,
+
           liveStatus, // 'WORKING' | 'IDLE' | 'ON_BREAK' | 'OFFLINE' | 'MISSING_CHECKIN'
-          loginTime: !isOffline && session ? session.loginTimestamp : null,
+          loginTime: session ? session.loginTimestamp : null,
           checkInTime: attendance?.checkInTime || null,
           checkOutTime: attendance?.checkOutTime || null,
           isLate: attendance?.isLate || false,
-          activeSeconds: !isOffline && session ? (session.activeSeconds || 0) : 0,
-          idleSeconds: !isOffline && metrics ? (metrics.idleSeconds || 0) : 0,
+          activeSeconds: session ? (session.activeSeconds || 0) : 0,
+          idleSeconds: metrics ? (metrics.idleSeconds || 0) : 0,
           totalBreakMinutes: attendance?.totalBreakMinutes || 0,
           attendanceMinutes: metrics?.attendanceMinutes || 0,
-          netWorkMinutes: metrics?.netWorkMinutes || 0,
+          netWorkMinutes: metrics?.netWorkMinutes || (attendance?.totalWorkMinutes || 0),
           activeBreak: attendance?.breaks?.find((b: any) => !b.breakEndTime) || null,
-          sessionId: !isOffline && session ? session.sessionId : null,
+          sessionId: session ? session.sessionId : null,
         };
       })
     );
@@ -226,6 +237,15 @@ export async function GET(req: NextRequest) {
         offlineCount,
       },
       workforce,
+      employees: workforce,
+      metrics: {
+        totalEmployees: totalCount,
+        workingCount,
+        idleCount,
+        breakCount: onBreakCount,
+        missingCheckInCount: missingCheckinCount,
+        offlineCount,
+      },
       timelineEvents,
     });
   } catch (error: any) {

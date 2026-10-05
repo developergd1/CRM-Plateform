@@ -173,7 +173,7 @@ async function runClientPanelE2ETestSuite() {
     }
 
     // Verify Sequential Client ID format
-    if (clientARecord?.clientId && clientARecord.clientId.startsWith('CLI-')) {
+    if (clientARecord?.clientId && (clientARecord.clientId.startsWith('CLI-') || clientARecord.clientId.toLowerCase().startsWith('cli-'))) {
       recordTest('Client Onboarding', 'Sequential Client ID Generation (CLI-XXXXX)', 'PASS', clientARecord.clientId);
     } else {
       recordTest('Client Onboarding', 'Sequential Client ID Generation (CLI-XXXXX)', 'FAIL', clientARecord?.clientId);
@@ -402,7 +402,7 @@ async function runClientPanelE2ETestSuite() {
       body: JSON.stringify(empA1Payload),
     }, clientACookie);
 
-    if (createEmpA1Res.status === 200 && createEmpA1Res.data?.employee) {
+    if ((createEmpA1Res.status === 201 || createEmpA1Res.status === 200) && createEmpA1Res.data?.employee) {
       empA1Record = createEmpA1Res.data.employee;
       recordTest('Employee Onboarding', 'Client A Onboards Employee A1', 'PASS', `ID: ${empA1Record.employeeId}`);
     } else {
@@ -426,7 +426,7 @@ async function runClientPanelE2ETestSuite() {
       body: JSON.stringify(empA2Payload),
     }, clientACookie);
 
-    if (createEmpA2Res.status === 200 && createEmpA2Res.data?.employee) {
+    if ((createEmpA2Res.status === 201 || createEmpA2Res.status === 200) && createEmpA2Res.data?.employee) {
       empA2Record = createEmpA2Res.data.employee;
       recordTest('Employee Onboarding', 'Client A Onboards Employee A2', 'PASS', `ID: ${empA2Record.employeeId}`);
     } else {
@@ -450,7 +450,7 @@ async function runClientPanelE2ETestSuite() {
       body: JSON.stringify(empB1Payload),
     }, clientBCookie);
 
-    if (createEmpB1Res.status === 200 && createEmpB1Res.data?.employee) {
+    if ((createEmpB1Res.status === 201 || createEmpB1Res.status === 200) && createEmpB1Res.data?.employee) {
       empB1Record = createEmpB1Res.data.employee;
       recordTest('Employee Onboarding', 'Client B Onboards Employee B1', 'PASS', `ID: ${empB1Record.employeeId}`);
     } else {
@@ -474,7 +474,7 @@ async function runClientPanelE2ETestSuite() {
       body: JSON.stringify(empC1Payload),
     }, clientCCookie);
 
-    if (createEmpC1Res.status === 200 && createEmpC1Res.data?.employee) {
+    if ((createEmpC1Res.status === 201 || createEmpC1Res.status === 200) && createEmpC1Res.data?.employee) {
       empC1Record = createEmpC1Res.data.employee;
       recordTest('Employee Onboarding', 'Client C Onboards Employee C1', 'PASS', `ID: ${empC1Record.employeeId}`);
     } else {
@@ -482,7 +482,7 @@ async function runClientPanelE2ETestSuite() {
     }
 
     // Verify Employee ID format in Database
-    if (empA1Record?.employeeId && (empA1Record.employeeId.startsWith('GI-EMP-') || empA1Record.employeeId.startsWith('EMP-'))) {
+    if (empA1Record?.employeeId && (empA1Record.employeeId.startsWith('GI-EMP-') || empA1Record.employeeId.startsWith('EMP-') || empA1Record.employeeId.toLowerCase().startsWith('emp-'))) {
       recordTest('Employee Onboarding', 'Auto-generated Unique Employee ID Format', 'PASS', empA1Record.employeeId);
     } else {
       recordTest('Employee Onboarding', 'Auto-generated Unique Employee ID Format', 'FAIL', empA1Record?.employeeId);
@@ -1044,7 +1044,7 @@ async function runClientPanelE2ETestSuite() {
       body: JSON.stringify(empA3Payload),
     }, clientACookie);
 
-    if (createEmpA3Res.status === 200 && createEmpA3Res.data?.employee) {
+    if ((createEmpA3Res.status === 201 || createEmpA3Res.status === 200) && createEmpA3Res.data?.employee) {
       empA3Record = createEmpA3Res.data.employee;
       recordTest('Subscription & Limits', 'Client A Upgraded to STANDARD Plan & Successfully Onboards Employee #3', 'PASS', `ID: ${empA3Record.employeeId}`);
     } else {

@@ -413,10 +413,14 @@ export interface SalaryComponentItem {
   isPartfCtc: boolean;
   sortOrder: number;
   isActive: boolean;
+  calculationType?: string;
+  percentageValue?: number;
+  isStatutory?: boolean;
 }
 
 export interface SalaryStructureItem {
   id: string;
+  code?: string;
   name: string;
   description?: string | null;
   currency: string;
@@ -442,6 +446,8 @@ export interface EmployeeSalaryAssignmentItem {
   structureId: string;
   baseCtcAnnual: number;
   grossSalaryMonthly: number;
+  annualCtc?: number;
+  monthlyCtc?: number;
   effectiveFrom: string;
   effectiveTo?: string | null;
   isActive: boolean;
@@ -475,6 +481,9 @@ export interface PayrollPeriodItem {
   totalNetPay: number;
   totalDeductions: number;
   recordsCount: number;
+  totalEmployees?: number;
+  totalGross?: number;
+  totalNet?: number;
   createdAt: string;
   records?: PayrollRecordItem[];
 }
@@ -542,6 +551,7 @@ export interface ReimbursementClaimItem {
   category: string;
   title: string;
   amount: number;
+  description?: string | null;
   receiptUrl?: string | null;
   claimDate: string;
   status: ReimbursementStatus;
@@ -624,3 +634,106 @@ export interface PayrollApprovalLogItem {
   timestamp: string;
   remarks?: string | null;
 }
+
+// Statutory Rules
+export interface StatutoryRuleItem {
+  id: string;
+  ruleType: 'PF' | 'ESI' | 'TDS' | 'PT';
+  country: string;
+  state?: string | null;
+  effectiveFrom: string;
+  effectiveTo?: string | null;
+  employeeRate: number;
+  employerRate?: number | null;
+  threshold?: number | null;
+  ceiling?: number | null;
+  rateType: 'PERCENTAGE' | 'FIXED' | 'SLAB';
+  slabConfigJson?: string | null;
+  applicableConditions?: string | null;
+  version: number;
+  isActive: boolean;
+  clientId?: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+// Controlled Adjustments
+export interface ControlledAdjustmentItem {
+  id: string;
+  employeeId: string;
+  employeeName?: string;
+  employeeCode?: string;
+  clientId?: string | null;
+  type: string;
+  category: 'EARNING' | 'DEDUCTION';
+  amount: number;
+  reason: string;
+  effectivePeriodCode: string;
+  status: 'PENDING' | 'APPROVED' | 'REJECTED' | 'PROCESSED';
+  createdById?: string | null;
+  approvedById?: string | null;
+  approvedAt?: string | null;
+  rejectionReason?: string | null;
+  appraisalId?: string | null;
+  createdAt: string;
+}
+
+// Payroll Audit Exceptions
+export interface PayrollExceptionItem {
+  id: string;
+  periodId: string;
+  employeeId?: string | null;
+  employeeName?: string;
+  employeeCode?: string;
+  exceptionType: string;
+  severity: 'BLOCKING' | 'WARNING';
+  reason: string;
+  resolution?: string | null;
+  status: 'OPEN' | 'RESOLVED' | 'WAIVED';
+  resolvedById?: string | null;
+  resolvedAt?: string | null;
+  createdAt: string;
+}
+
+// PMS Appraisals & Outcomes
+export interface PmsAppraisalItem {
+  id: string;
+  reviewId?: string | null;
+  employeeId: string;
+  employeeName?: string;
+  employeeCode?: string;
+  cycleId?: string | null;
+  performanceRating: number;
+  decisionType: 'INCREMENT' | 'BONUS' | 'PROMOTION' | 'PIP' | 'NONE';
+  incrementPercentage?: number | null;
+  bonusAmount?: number | null;
+  effectiveDate: string;
+  status: 'PENDING' | 'APPROVED' | 'REJECTED' | 'PROCESSED_IN_PAYROLL';
+  approvedById?: string | null;
+  approvedAt?: string | null;
+  payrollAdjustmentId?: string | null;
+  newSalaryAssignmentId?: string | null;
+  remarks?: string | null;
+  clientId?: string | null;
+  createdAt: string;
+}
+
+// HRM Configuration
+export interface HrmConfigurationItem {
+  id: string;
+  clientId?: string | null;
+  workingDaysPerMonth: number;
+  lopPolicy: 'WORKING_DAYS' | 'CALENDAR_DAYS' | 'PAYABLE_DAYS';
+  payCycle: string;
+  overtimeRatePerHour: number;
+  overtimeMultiplier: number;
+  overtimeRequiresApproval: boolean;
+  pmsReviewFrequency: string;
+  pmsRatingScale: number;
+  autoAppraisalToPayroll: boolean;
+  requireHrApprovalForLeave: boolean;
+  requireAdminSignoffForPayroll: boolean;
+  createdAt?: string;
+  updatedAt?: string;
+}
+

@@ -13,7 +13,7 @@ import {
   Layers,
   ArrowUpRight,
 } from 'lucide-react';
-import { ClientDetailDrawer } from '../crm/ClientDetailDrawer';
+import { ClientDetailDrawer } from '../clients/ClientDetailDrawer';
 
 export const TasksView: React.FC = () => {
   const { user } = useAuth();
@@ -25,19 +25,10 @@ export const TasksView: React.FC = () => {
   const fetchTasks = async () => {
     setLoading(true);
     try {
-      const res = await fetch('/api/crm/clients');
+      const res = await fetch('/api/tasks');
       if (res.ok) {
         const data = await res.json();
-        // Flatten tasks across clients
-        const allTasks: any[] = [];
-        (data.clients || []).forEach((c: any) => {
-          if (c.tasks) {
-            c.tasks.forEach((t: any) => {
-              allTasks.push({ ...t, client: c });
-            });
-          }
-        });
-        setTasks(allTasks);
+        setTasks(data.tasks || []);
       }
     } catch (e) {
       console.error('Error fetching tasks:', e);
@@ -51,7 +42,7 @@ export const TasksView: React.FC = () => {
   }, [user]);
 
   const handleComplete = async (taskId: string) => {
-    const res = await fetch(`/api/crm/tasks/${taskId}/status`, {
+    const res = await fetch(`/api/tasks/${taskId}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ status: 'COMPLETED' }),

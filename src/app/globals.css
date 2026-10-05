@@ -143,6 +143,39 @@ textarea::placeholder {
   opacity: 1;
 }
 
+/* Gateway Flow-In Entrance Animations */
+@keyframes flowInLeft {
+  0% {
+    opacity: 0;
+    transform: translate3d(-80px, 0, 0);
+  }
+  100% {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+@keyframes flowInRight {
+  0% {
+    opacity: 0;
+    transform: translate3d(80px, 0, 0);
+  }
+  100% {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+.animate-flow-left {
+  animation: flowInLeft 0.85s cubic-bezier(0.16, 1, 0.3, 1) both;
+  will-change: transform, opacity;
+}
+
+.animate-flow-right {
+  animation: flowInRight 0.85s cubic-bezier(0.16, 1, 0.3, 1) both;
+  will-change: transform, opacity;
+}
+
 .panel-premium {
   background: #ffffff;
   border: 1px solid rgba(226, 232, 240, 0.95);

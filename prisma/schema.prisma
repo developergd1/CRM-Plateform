@@ -120,6 +120,40 @@ model AccountInvitation {
 }
 
 // ----------------------------------------------------
+// 1C. DEDICATED ADMIN INVITATIONS (ISOLATED DATABASE)
+// ----------------------------------------------------
+
+model AdminInvitation {
+  id                 String    @id @default(auto()) @map("_id") @db.ObjectId
+  token              String    @unique
+  name               String
+  email              String
+  phone              String?
+  designation        String?   @default("System Administrator")
+  department         String?   @default("Administration & Governance")
+  role               String    @default("ADMIN") // 'SUPER_ADMIN' | 'ADMIN' | 'ADMIN_HR'
+  permissions        String    // JSON array of granular admin permissions e.g. ["all_access", "cms_full", "hrm_full", "workforce_full", "payroll_admin", "compliance_admin", "tasks_admin"]
+  inviterAdminId     String    @db.ObjectId // ObjectId of the inviter Admin User
+  inviterAdminName   String?
+  inviterAdminEmail  String?
+  status             String    @default("PENDING") // 'PENDING' | 'ACCEPTED' | 'REVOKED' | 'EXPIRED'
+  expiresAt          DateTime?
+  acceptedAt         DateTime?
+  acceptedUserId     String?   @db.ObjectId
+  acceptedEmployeeId String?
+  revokedAt          DateTime?
+  revokedBy          String?
+  notes              String?
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+
+  @@index([email])
+  @@index([status])
+  @@index([inviterAdminId])
+  @@map("admin_invitations")
+}
+
+// ----------------------------------------------------
 // 2. ORGANIZATION & EMPLOYEES (PHASE 1 CORE + HRMS)
 // ----------------------------------------------------
 
@@ -167,6 +201,12 @@ model Employee {
   panNumber        String?
   panMasked        String?
   aadhaarMasked    String?
+  pfUan            String?
+  esiNumber        String?
+  ptState          String?   @default("Maharashtra")
+  bankName         String?
+  bankAccount      String?
+  bankIfsc         String?
   address          String?
   profilePhotoUrl  String?
   emergencyContact String?
@@ -217,6 +257,9 @@ model Employee {
   workSessions      WorkSession[]
   leaveRequests     LeaveRequest[]
   allocatedAssets   Asset[]
+  payrollAdjustments PayrollAdjustment[]
+  pmsAppraisals      PmsAppraisal[]
+  payrollExceptions  PayrollException[]
 
   // CRM Relationships (Legacy Client specific)
   createdClients      Client[]           @relation("ClientCreator")
@@ -1924,11 +1967,14 @@ model PayrollPeriod {
   finalizedById   String?              @db.ObjectId
   payrollRecords  PayrollRecord[]
   approvals       PayrollApprovalLog[]
+  clientId        String?              @db.ObjectId
+  exceptions      PayrollException[]
   createdAt       DateTime             @default(now())
   updatedAt       DateTime             @updatedAt
 
   @@index([status])
   @@index([year, month])
+  @@index([clientId])
 }
 
 model SalaryComponent {
@@ -2020,6 +2066,21 @@ model PayrollRecord {
   totalDeductions  Float           @default(0)
   reimbursements   Float           @default(0)
   netPay           Float           @default(0)
+
+  // Detailed statutory & earnings breakdown
+  basic            Float           @default(0)
+  hra              Float           @default(0)
+  allowances       Float           @default(0)
+  overtimePay      Float           @default(0)
+  bonus            Float           @default(0)
+  pfEmployee       Float           @default(0)
+  pfEmployer       Float           @default(0)
+  esiEmployee      Float           @default(0)
+  esiEmployer      Float           @default(0)
+  tds              Float           @default(0)
+  pt               Float           @default(0)
+  otherDeductions  Float           @default(0)
+  employerContributions Float      @default(0)
   
   status           String          @default("PROCESSED") // PROCESSED, REVIEWED, APPROVED, FINALIZED, HOLD
   calculationTrace String?         // Detailed JSON step-by-step audit trace
@@ -2153,4 +2214,142 @@ model PayrollApprovalLog {
 
   @@index([periodId])
 }
+
+// ----------------------------------------------------
+// 13. STATUTORY COMPLIANCE & VERSIONED RULES ENGINE
+// ----------------------------------------------------
+
+model StatutoryRule {
+  id                   String    @id @default(auto()) @map("_id") @db.ObjectId
+  ruleType             String    // PF, ESI, TDS, PT
+  country              String    @default("India")
+  state                String?   // e.g. "Maharashtra", "Karnataka", "Delhi", "ALL"
+  effectiveFrom        DateTime
+  effectiveTo          DateTime?
+  employeeRate         Float     // Percentage (e.g. 12 for PF, 0.75 for ESI) or flat amount
+  employerRate         Float?    // Percentage (e.g. 12 for PF, 3.25 for ESI)
+  threshold            Float?    // Minimum wage threshold for applicability (e.g. 15000 for PT, 21000 for ESI)
+  ceiling              Float?    // Maximum wage ceiling (e.g. 15000 for PF basic ceiling -> 1800 cap)
+  rateType             String    @default("PERCENTAGE") // PERCENTAGE, FIXED, SLAB
+  slabConfigJson       String?   // For state-specific PT slabs or progressive TDS slabs
+  applicableConditions String?   // JSON conditions for applicability
+  version              Int       @default(1)
+  isActive             Boolean   @default(true)
+  clientId             String?   @db.ObjectId // Optional client-specific rule override (null = system statutory standard)
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
+
+  @@index([ruleType, isActive])
+  @@index([clientId])
+}
+
+// ----------------------------------------------------
+// 14. CONTROLLED PAYROLL ADJUSTMENTS & REIMBURSEMENTS
+// ----------------------------------------------------
+
+model PayrollAdjustment {
+  id                  String    @id @default(auto()) @map("_id") @db.ObjectId
+  employeeId          String    @db.ObjectId
+  employee            Employee  @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  clientId            String?   @db.ObjectId
+  type                String    // BONUS, COMMISSION, INCENTIVE, REIMBURSEMENT, ADVANCE, LOAN_DEDUCTION, ARREAR, ONE_TIME_DEDUCTION, OTHER_EARNING, OTHER_DEDUCTION
+  category            String    @default("EARNING") // EARNING, DEDUCTION
+  amount              Float
+  reason              String
+  effectivePeriodCode String    // e.g. PAY-2026-10
+  status              String    @default("PENDING") // PENDING, APPROVED, REJECTED, PROCESSED
+  createdById         String?   @db.ObjectId
+  approvedById        String?   @db.ObjectId
+  approvedAt          DateTime?
+  rejectionReason     String?
+  appraisalId         String?   @db.ObjectId // Originating PMS appraisal decision if applicable
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+
+  @@index([employeeId])
+  @@index([effectivePeriodCode])
+  @@index([status])
+  @@index([clientId])
+}
+
+// ----------------------------------------------------
+// 15. PAYROLL AUDIT EXCEPTIONS & BLOCKING ANOMALIES
+// ----------------------------------------------------
+
+model PayrollException {
+  id            String         @id @default(auto()) @map("_id") @db.ObjectId
+  periodId      String         @db.ObjectId
+  period        PayrollPeriod  @relation(fields: [periodId], references: [id], onDelete: Cascade)
+  employeeId    String?        @db.ObjectId
+  employee      Employee?      @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  exceptionType String         // NO_SALARY_STRUCTURE, MISSING_BANK_INFO, MISSING_STATUTORY_INFO, ATTENDANCE_INCOMPLETE, LEAVE_NOT_FINALIZED, NEGATIVE_NET_SALARY, UNAPPROVED_ADJUSTMENT, MISSING_TAX_CONFIG, STATUTORY_RULE_MISSING
+  severity      String         @default("BLOCKING") // BLOCKING, WARNING
+  reason        String
+  resolution    String?
+  status        String         @default("OPEN") // OPEN, RESOLVED, WAIVED
+  resolvedById  String?        @db.ObjectId
+  resolvedAt    DateTime?
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+
+  @@index([periodId])
+  @@index([employeeId])
+  @@index([status])
+}
+
+// ----------------------------------------------------
+// 16. PMS APPRAISALS & PAYROLL BRIDGE
+// ----------------------------------------------------
+
+model PmsAppraisal {
+  id                   String    @id @default(auto()) @map("_id") @db.ObjectId
+  reviewId             String?   @db.ObjectId
+  employeeId           String    @db.ObjectId
+  employee             Employee  @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  cycleId              String?   @db.ObjectId
+  performanceRating    Float     // E.g. 4.5 out of 5
+  decisionType         String    // INCREMENT, BONUS, PROMOTION, PIP, NONE
+  incrementPercentage  Float?    // e.g. 10 for 10% CTC increment
+  bonusAmount          Float?    // e.g. 15000 for one-time performance bonus
+  effectiveDate        DateTime
+  status               String    @default("PENDING") // PENDING, APPROVED, REJECTED, PROCESSED_IN_PAYROLL
+  approvedById         String?   @db.ObjectId
+  approvedAt           DateTime?
+  payrollAdjustmentId  String?   @db.ObjectId // Link to created payroll adjustment (for bonus)
+  newSalaryAssignmentId String?  @db.ObjectId // Link to new salary assignment (for increment)
+  remarks              String?
+  clientId             String?   @db.ObjectId
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
+
+  @@index([employeeId])
+  @@index([status])
+  @@index([clientId])
+}
+
+// ----------------------------------------------------
+// 17. TENANT-AWARE HRM & PAYROLL CONFIGURATION
+// ----------------------------------------------------
+
+model HrmConfiguration {
+  id                          String   @id @default(auto()) @map("_id") @db.ObjectId
+  clientId                    String?  @unique @db.ObjectId // null for default Growth India global config
+  // Work / Pay Policies
+  workingDaysPerMonth         Int      @default(26)
+  lopPolicy                   String   @default("WORKING_DAYS") // WORKING_DAYS, CALENDAR_DAYS, PAYABLE_DAYS
+  payCycle                    String   @default("MONTHLY")
+  overtimeRatePerHour         Float    @default(200)
+  overtimeMultiplier          Float    @default(1.5)
+  overtimeRequiresApproval    Boolean  @default(true)
+  // PMS Policies
+  pmsReviewFrequency          String   @default("QUARTERLY") // MONTHLY, QUARTERLY, BIANNUAL, ANNUAL
+  pmsRatingScale              Int      @default(5)
+  autoAppraisalToPayroll      Boolean  @default(false) // Strictly false: "Only an approved appraisal decision can affect payroll"
+  // Approval Settings
+  requireHrApprovalForLeave   Boolean  @default(true)
+  requireAdminSignoffForPayroll Boolean @default(true)
+  createdAt                   DateTime @default(now())
+  updatedAt                   DateTime @updatedAt
+}
+
 

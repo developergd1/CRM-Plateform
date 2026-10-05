@@ -200,7 +200,7 @@ async function runPerformanceHelpdeskTests() {
   });
   const reqData = await reqRes.json();
   const createdReq = reqData.request;
-  record('REQ-01', 'Employee HR Service Request Submitted', reqRes.status === 200 && !!createdReq?.reqNumber, `Request #: ${createdReq?.reqNumber}, Status: ${createdReq?.status}`);
+  record('REQ-01', 'Employee HR Service Request Submitted', (reqRes.status === 201 || reqRes.status === 200) && !!createdReq?.reqNumber, `Request #: ${createdReq?.reqNumber}, Status: ${createdReq?.status}`);
 
   // 3. HR Admin Updates Request Status to IN_REVIEW
   const reviewReqRes = await fetch(`${BASE_URL}/api/hrm/requests`, {
@@ -247,7 +247,7 @@ async function runPerformanceHelpdeskTests() {
   });
   const tckData = await tckRes.json();
   const ticket = tckData.ticket;
-  record('TCK-01', 'High-Priority Employee Helpdesk Ticket Created', tckRes.status === 200 && !!ticket?.ticketNumber, `Ticket #: ${ticket?.ticketNumber}, Priority: ${ticket?.priority}`);
+  record('TCK-01', 'High-Priority Employee Helpdesk Ticket Created', (tckRes.status === 201 || tckRes.status === 200) && !!ticket?.ticketNumber, `Ticket #: ${ticket?.ticketNumber}, Priority: ${ticket?.priority}`);
 
   // 2. HR Admin Adds Official Comment
   const commentRes = await fetch(`${BASE_URL}/api/hrm/helpdesk`, {

@@ -22,7 +22,7 @@ import {
   Eye,
   EyeOff,
 } from 'lucide-react';
-import { TimePicker12 } from '@/components/common/TimePicker12';
+import { TimePicker12, formatTo12Hour } from '@/components/common/TimePicker12';
 import { EmployeeCredentialsModal, EmployeeCredentialData } from './EmployeeCredentialsModal';
 
 interface OnboardingWizardProps {
@@ -674,7 +674,7 @@ export const EmployeeOnboardingWizard: React.FC<OnboardingWizardProps> = ({
                       }`}
                     >
                       <h4 className="font-bold text-slate-900">{s.name}</h4>
-                      <p className="font-mono text-teal-700 text-[11px] mt-1">{s.startTime} – {s.endTime}</p>
+                      <p className="font-mono text-teal-700 text-[11px] mt-1">{formatTo12Hour(s.startTime)} – {formatTo12Hour(s.endTime)}</p>
                       <span className="text-[10px] text-slate-400 mt-1 block">Grace: {s.gracePeriodMinutes}m</span>
                     </div>
                   ))}
@@ -874,7 +874,9 @@ export const EmployeeOnboardingWizard: React.FC<OnboardingWizardProps> = ({
               </div>
               <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200 space-y-1">
                 <span className="text-[10px] uppercase font-bold text-slate-400">Working Shift</span>
-                <p className="font-bold text-teal-800 font-mono">{formData.shiftStartTime} – {formData.shiftEndTime}</p>
+                <p className="font-bold text-teal-800 font-mono">
+                  {formatTo12Hour(formData.shiftStartTime)} – {formatTo12Hour(formData.shiftEndTime)}
+                </p>
               </div>
               <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200 space-y-1">
                 <span className="text-[10px] uppercase font-bold text-slate-400">Joining Date</span>

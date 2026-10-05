@@ -49,7 +49,7 @@ export const EmployeesView: React.FC<EmployeesViewProps> = ({
 }) => {
   const { user } = useAuth();
   const cachedEmployees = clientCache.get<EmployeeItem[]>('admin_employees_list', 10 * 60 * 1000);
-  const cachedClients = clientCache.get<ClientItem[]>('crm_clients_list', 10 * 60 * 1000);
+  const cachedClients = clientCache.get<ClientItem[]>('platform_clients_list', 10 * 60 * 1000);
   const [employees, setEmployees] = useState<EmployeeItem[]>(() => cachedEmployees || []);
   const [clients, setClients] = useState<ClientItem[]>(() => cachedClients || []);
   const [loading, setLoading] = useState(() => !cachedEmployees);
@@ -122,7 +122,7 @@ export const EmployeesView: React.FC<EmployeesViewProps> = ({
   };
 
   const fetchClients = async () => {
-    const cached = clientCache.get<ClientItem[]>('crm_clients_list', 10 * 60 * 1000);
+    const cached = clientCache.get<ClientItem[]>('platform_clients_list', 10 * 60 * 1000);
     if (cached && cached.length > 0) {
       setClients(cached);
       return;
@@ -133,7 +133,7 @@ export const EmployeesView: React.FC<EmployeesViewProps> = ({
         const data = await res.json();
         const list = data.clients || [];
         setClients(list);
-        clientCache.set('crm_clients_list', list);
+        clientCache.set('platform_clients_list', list);
       }
     } catch (e) {}
   };
@@ -310,7 +310,7 @@ export const EmployeesView: React.FC<EmployeesViewProps> = ({
           initialClientId={initialClientId}
           onSuccess={() => {
             clientCache.remove('admin_employees_list');
-            clientCache.remove('crm_clients_list');
+            clientCache.remove('platform_clients_list');
             fetchEmployees(true);
             setShowOnboardingWizard(false);
           }}
@@ -876,7 +876,7 @@ export const EmployeesView: React.FC<EmployeesViewProps> = ({
         onClose={() => setShowAddModal(false)}
         onEmployeeCreated={() => {
           clientCache.remove('admin_employees_list');
-          clientCache.remove('crm_clients_list');
+          clientCache.remove('platform_clients_list');
           fetchEmployees(true);
         }}
       />

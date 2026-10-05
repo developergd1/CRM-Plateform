@@ -45,6 +45,11 @@ export const CmsSelectedClientShell: React.FC<CmsSelectedClientShellProps> = ({
   const [assignedModules, setAssignedModules] = useState<string[]>(['EMS']);
   const [savingModules, setSavingModules] = useState(false);
 
+  // Subscription and employee quota state
+  const [selectedPlan, setSelectedPlan] = useState<string>('STANDARD');
+  const [maxEmployees, setMaxEmployees] = useState<number>(100);
+  const [savingSubscription, setSavingSubscription] = useState(false);
+
   // Password reset modal
   const [showPasswordModal, setShowPasswordModal] = useState(false);
   const [newPassword, setNewPassword] = useState('');
@@ -68,6 +73,8 @@ export const CmsSelectedClientShell: React.FC<CmsSelectedClientShellProps> = ({
             ? data.client.assignedModules
             : ['EMS']
         );
+        setSelectedPlan(data.client.subscriptionPlan || 'STANDARD');
+        setMaxEmployees(data.client.maxEmployees || 100);
       } else {
         throw new Error(data.error || 'Failed to load client details');
       }
@@ -82,6 +89,50 @@ export const CmsSelectedClientShell: React.FC<CmsSelectedClientShellProps> = ({
   useEffect(() => {
     fetchClientDetails();
   }, [clientId]);
+
+  const handlePlanChange = (plan: string) => {
+    setSelectedPlan(plan);
+    const defaults: Record<string, number> = {
+      TRIAL: 2,
+      STARTER: 25,
+      STANDARD: 100,
+      ENTERPRISE: 1000,
+    };
+    if (defaults[plan]) {
+      setMaxEmployees(defaults[plan]);
+    }
+  };
+
+  const handleSaveSubscription = async () => {
+    if (!maxEmployees || maxEmployees < 1) {
+      showToast('Please enter a valid employee onboarding limit (minimum 1).', 'error');
+      return;
+    }
+    try {
+      setSavingSubscription(true);
+      const res = await fetch(`/api/clients/${clientId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          subscriptionPlan: selectedPlan,
+          maxEmployees: Number(maxEmployees),
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to update subscription quota');
+
+      showToast(`Subscription plan (${selectedPlan}) & employee limit (${maxEmployees}) updated successfully!`);
+      setClient((prev: any) => ({
+        ...prev,
+        subscriptionPlan: selectedPlan,
+        maxEmployees: Number(maxEmployees),
+      }));
+    } catch (err: any) {
+      showToast(err.message, 'error');
+    } finally {
+      setSavingSubscription(false);
+    }
+  };
 
   const showToast = (text: string, type: 'success' | 'error' = 'success') => {
     setToastMsg({ text, type });
@@ -254,46 +305,119 @@ export const CmsSelectedClientShell: React.FC<CmsSelectedClientShellProps> = ({
         </div>
       </div>
 
-      {/* Primary Tab Navigation */}
-      <div className="bg-white p-1.5 rounded-2xl border border-slate-200 shadow-xs flex items-center gap-1 overflow-x-auto">
-        <button
-          type="button"
+      {/* Primary Section Boxes Navigation (Task 2: Converted to animated interactive boxes) */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 lg:gap-6">
+        {/* Box 1: Client Account & Profile (Flows in from Left) */}
+        <div
           onClick={() => setActiveTab('profile')}
-          className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+          className={`animate-flow-left group relative p-5 lg:p-6 rounded-3xl border-2 transition-all duration-300 shadow-xs hover:shadow-lg cursor-pointer flex flex-col justify-between ${
             activeTab === 'profile'
-              ? 'bg-[#0D9488] text-white shadow-xs'
-              : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
+              ? 'bg-white border-[#0D9488] ring-2 ring-[#0D9488]/20 shadow-md'
+              : 'bg-white/80 hover:bg-white border-slate-200 hover:border-[#0D9488]/60'
           }`}
         >
-          <Building2 className="w-4 h-4" />
-          <span>Client Account & Profile</span>
-        </button>
+          <div className="flex items-center justify-between mb-4">
+            <div
+              className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-all duration-300 ${
+                activeTab === 'profile'
+                  ? 'bg-[#0D9488] text-white shadow-xs'
+                  : 'bg-[#0D9488]/10 text-[#0D9488] group-hover:scale-110'
+              }`}
+            >
+              <Building2 className="w-6 h-6" />
+            </div>
+            {activeTab === 'profile' && (
+              <span className="text-[10px] font-black uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-[#0D9488] text-white">
+                Active View
+              </span>
+            )}
+          </div>
+          <div>
+            <h3
+              className={`text-lg lg:text-xl font-black tracking-tight transition-colors ${
+                activeTab === 'profile' ? 'text-[#0D9488]' : 'text-slate-900 group-hover:text-[#0D9488]'
+              }`}
+            >
+              Client Account & Profile
+            </h3>
+          </div>
+        </div>
 
-        <button
-          type="button"
+        {/* Box 2: Assigned Modules (Flows in from Left) */}
+        <div
           onClick={() => setActiveTab('modules')}
-          className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+          className={`animate-flow-left group relative p-5 lg:p-6 rounded-3xl border-2 transition-all duration-300 shadow-xs hover:shadow-lg cursor-pointer flex flex-col justify-between ${
             activeTab === 'modules'
-              ? 'bg-[#0D9488] text-white shadow-xs'
-              : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
+              ? 'bg-white border-[#0D9488] ring-2 ring-[#0D9488]/20 shadow-md'
+              : 'bg-white/80 hover:bg-white border-slate-200 hover:border-[#0D9488]/60'
           }`}
         >
-          <Layers className="w-4 h-4" />
-          <span>Assigned Modules ({assignedModules.length})</span>
-        </button>
+          <div className="flex items-center justify-between mb-4">
+            <div
+              className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-all duration-300 ${
+                activeTab === 'modules'
+                  ? 'bg-[#0D9488] text-white shadow-xs'
+                  : 'bg-[#0D9488]/10 text-[#0D9488] group-hover:scale-110'
+              }`}
+            >
+              <Layers className="w-6 h-6" />
+            </div>
+            <span
+              className={`text-[10px] font-black uppercase tracking-wider px-2.5 py-0.5 rounded-full ${
+                activeTab === 'modules'
+                  ? 'bg-[#0D9488] text-white'
+                  : 'bg-[#0D9488]/10 text-[#0D9488]'
+              }`}
+            >
+              {assignedModules.length} Subscribed
+            </span>
+          </div>
+          <div>
+            <h3
+              className={`text-lg lg:text-xl font-black tracking-tight transition-colors ${
+                activeTab === 'modules' ? 'text-[#0D9488]' : 'text-slate-900 group-hover:text-[#0D9488]'
+              }`}
+            >
+              Assigned Modules
+            </h3>
+          </div>
+        </div>
 
-        <button
-          type="button"
+        {/* Box 3: Client-Specific EMS (Flows in from Right) */}
+        <div
           onClick={() => setActiveTab('ems')}
-          className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+          className={`animate-flow-right group relative p-5 lg:p-6 rounded-3xl border-2 transition-all duration-300 shadow-xs hover:shadow-lg cursor-pointer flex flex-col justify-between ${
             activeTab === 'ems'
-              ? 'bg-[#0D9488] text-white shadow-xs'
-              : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
+              ? 'bg-white border-[#0D9488] ring-2 ring-[#0D9488]/20 shadow-md'
+              : 'bg-white/80 hover:bg-white border-slate-200 hover:border-[#0D9488]/60'
           }`}
         >
-          <Users className="w-4 h-4" />
-          <span>Client-Specific EMS</span>
-        </button>
+          <div className="flex items-center justify-between mb-4">
+            <div
+              className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-all duration-300 ${
+                activeTab === 'ems'
+                  ? 'bg-[#0D9488] text-white shadow-xs'
+                  : 'bg-[#0D9488]/10 text-[#0D9488] group-hover:scale-110'
+              }`}
+            >
+              <Users className="w-6 h-6" />
+            </div>
+            {activeTab === 'ems' && (
+              <span className="text-[10px] font-black uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-[#0D9488] text-white">
+                Active View
+              </span>
+            )}
+          </div>
+          <div>
+            <h3
+              className={`text-lg lg:text-xl font-black tracking-tight transition-colors ${
+                activeTab === 'ems' ? 'text-[#0D9488]' : 'text-slate-900 group-hover:text-[#0D9488]'
+              }`}
+            >
+              Client-Specific EMS
+            </h3>
+          </div>
+        </div>
       </div>
 
       {/* TAB CONTENT */}
@@ -382,9 +506,9 @@ export const CmsSelectedClientShell: React.FC<CmsSelectedClientShellProps> = ({
                   <dd className="font-bold text-slate-900 mt-0.5">{client.subscriptionPlan || 'STANDARD'}</dd>
                 </div>
                 <div>
-                  <dt className="text-slate-400 text-[11px] font-bold">Workforce Deployed</dt>
-                  <dd className="font-bold text-slate-900 mt-0.5">
-                    {client._count?.employees || 0} employees
+                  <dt className="text-slate-400 text-[11px] font-bold">Staff Onboard Quota</dt>
+                  <dd className="font-bold text-teal-700 mt-0.5">
+                    {client._count?.employees || 0} / {client.maxEmployees || maxEmployees || 100} Allowed
                   </dd>
                 </div>
               </dl>
@@ -402,6 +526,112 @@ export const CmsSelectedClientShell: React.FC<CmsSelectedClientShellProps> = ({
               <KeyRound className="w-3.5 h-3.5" />
               <span>Change / Reset Client Password</span>
             </button>
+          </div>
+
+          {/* 3. Subscription Tier & Employee Onboarding Quota Governance Card */}
+          <div className="col-span-1 md:col-span-2 bg-white p-6 rounded-2xl border border-slate-200 shadow-xs space-y-5">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-100 pb-4">
+              <div>
+                <div className="flex items-center gap-2">
+                  <h2 className="text-xs font-black uppercase tracking-wider text-slate-900">
+                    Subscription Tier & Employee Onboarding Quota
+                  </h2>
+                  <span className="px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-wider bg-teal-50 text-teal-700 border border-teal-200">
+                    Platform Administrator Authority
+                  </span>
+                </div>
+                <p className="text-[11px] text-slate-500 mt-0.5">
+                  Admin decides how many employees {client.companyName} can onboard under their organization account.
+                </p>
+              </div>
+
+              <button
+                type="button"
+                onClick={handleSaveSubscription}
+                disabled={savingSubscription}
+                className="inline-flex items-center gap-1.5 px-5 py-2.5 bg-[#0D9488] hover:bg-[#0F766E] text-white text-xs font-bold rounded-xl shadow-xs transition-all cursor-pointer disabled:opacity-50 shrink-0"
+              >
+                <Check className="w-4 h-4" />
+                <span>{savingSubscription ? 'Saving Quota...' : 'Save Plan & Limit'}</span>
+              </button>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+              {/* Plan Selector */}
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                  Subscription Tier
+                </label>
+                <select
+                  value={selectedPlan}
+                  onChange={(e) => handlePlanChange(e.target.value)}
+                  className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:bg-white focus:outline-none focus:ring-1 focus:ring-growth-teal"
+                >
+                  <option value="TRIAL">Evaluation Trial (Default: 2 Employees)</option>
+                  <option value="STARTER">Starter Plan (Default: 25 Employees)</option>
+                  <option value="STANDARD">Growth Standard (Default: 100 Employees)</option>
+                  <option value="ENTERPRISE">Enterprise HRM Suite (Default: 1,000 Employees)</option>
+                  <option value="CUSTOM">Custom Enterprise Quota</option>
+                </select>
+                <p className="text-[10px] text-slate-400 mt-1">
+                  Changing plan tier auto-fills preset limit, or you can customize below.
+                </p>
+              </div>
+
+              {/* Max Employee Limit Input */}
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                  Employee Onboard Limit *
+                </label>
+                <div className="relative">
+                  <input
+                    type="number"
+                    min={1}
+                    max={100000}
+                    value={maxEmployees}
+                    onChange={(e) => setMaxEmployees(Math.max(1, parseInt(e.target.value) || 1))}
+                    className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-black text-slate-900 focus:bg-white focus:outline-none focus:ring-1 focus:ring-growth-teal"
+                    placeholder="e.g. 1000"
+                  />
+                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[11px] font-bold text-slate-400">
+                    staff max
+                  </span>
+                </div>
+                <p className="text-[10px] text-slate-400 mt-1">
+                  Client portal will enforce this quota; adding more staff will be blocked.
+                </p>
+              </div>
+
+              {/* Current Utilization Progress */}
+              <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4 flex flex-col justify-between">
+                <div>
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="font-bold text-slate-600">Current Usage</span>
+                    <span className="font-mono font-black text-[#0D9488]">
+                      {Math.min(100, Math.round(((client._count?.employees || 0) / (maxEmployees || 1)) * 100))}%
+                    </span>
+                  </div>
+                  <div className="w-full bg-slate-200 rounded-full h-2 overflow-hidden mt-2">
+                    <div
+                      className={`h-full rounded-full transition-all ${
+                        (client._count?.employees || 0) >= (maxEmployees || 1)
+                          ? 'bg-rose-500'
+                          : (client._count?.employees || 0) >= (maxEmployees || 1) * 0.85
+                          ? 'bg-amber-500'
+                          : 'bg-[#0D9488]'
+                      }`}
+                      style={{
+                        width: `${Math.min(100, Math.round(((client._count?.employees || 0) / (maxEmployees || 1)) * 100))}%`,
+                      }}
+                    />
+                  </div>
+                </div>
+                <div className="text-[11px] font-bold text-slate-700 mt-2">
+                  <span className="text-slate-900 font-black">{client._count?.employees || 0}</span> onboarded of{' '}
+                  <span className="text-slate-900 font-black">{maxEmployees}</span> slots allowed
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       )}
@@ -429,7 +659,7 @@ export const CmsSelectedClientShell: React.FC<CmsSelectedClientShellProps> = ({
             </button>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {/* EMS Module */}
             <div
               onClick={() => {
@@ -460,39 +690,6 @@ export const CmsSelectedClientShell: React.FC<CmsSelectedClientShellProps> = ({
               <h3 className="text-xs font-bold text-slate-800">Employee Management System</h3>
               <p className="text-[11px] text-slate-500 mt-1 leading-normal">
                 Workforce directory, attendance time clocking, leave quotas, project tasks, and document vault.
-              </p>
-            </div>
-
-            {/* CRM Module */}
-            <div
-              onClick={() => {
-                const exists = assignedModules.includes('CRM');
-                if (exists && assignedModules.length === 1) return;
-                setAssignedModules(
-                  exists ? assignedModules.filter((m) => m !== 'CRM') : [...assignedModules, 'CRM']
-                );
-              }}
-              className={`p-5 rounded-2xl border-2 cursor-pointer transition-all ${
-                assignedModules.includes('CRM')
-                  ? 'border-[#0D9488] bg-[#0D9488]/5 shadow-xs'
-                  : 'border-slate-200 bg-white hover:border-slate-300'
-              }`}
-            >
-              <div className="flex items-center justify-between mb-3">
-                <span className="text-xs font-black uppercase tracking-wider text-slate-900">CRM</span>
-                <span
-                  className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
-                    assignedModules.includes('CRM')
-                      ? 'bg-[#0D9488] text-white'
-                      : 'bg-slate-100 text-slate-500'
-                  }`}
-                >
-                  {assignedModules.includes('CRM') ? 'ENABLED' : 'DISABLED'}
-                </span>
-              </div>
-              <h3 className="text-xs font-bold text-slate-800">Customer Relationship Mgmt</h3>
-              <p className="text-[11px] text-slate-500 mt-1 leading-normal">
-                Sales deals pipeline, lead qualification, quotes, commercial contracts, and analytics.
               </p>
             </div>
 

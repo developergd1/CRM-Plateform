@@ -356,6 +356,11 @@ export const ClientsListView: React.FC<ClientsListViewProps> = ({ onView360, ini
                           <span className="group-hover/cname:underline">{client.companyName}</span>
                           <ArrowUpRight className="w-3.5 h-3.5 text-slate-400 group-hover/cname:text-growth-teal opacity-70 group-hover/cname:opacity-100 transition-opacity" />
                         </button>
+                        <div className="flex items-center gap-1.5 text-[10px] text-slate-500 mt-0.5">
+                          <span className="font-bold text-teal-700 bg-teal-50 px-1.5 py-0.5 rounded border border-teal-200">
+                            {client._count?.employees || 0} / {client.maxEmployees || 100} Staff
+                          </span>
+                        </div>
                       </td>
 
                       {/* Contact Person */}

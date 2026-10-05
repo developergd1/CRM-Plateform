@@ -1,5 +1,5 @@
 import { prisma, resolveEmployeeObjectId } from '@/lib/prisma';
-import { generateGoalNumber } from '@/lib/id-generator';
+import { generateGoalNumber, generatePayrollPeriodCode } from '@/lib/id-generator';
 import { logAuditEvent } from '@/lib/audit';
 
 export async function ensureDefaultPerformanceCycle() {
@@ -75,6 +75,7 @@ export async function createGoal(
     category?: string;
     targetValue?: number;
     currentValue?: number;
+    weightage?: number;
     keyResults?: Array<{
       title: string;
       metric?: string;
@@ -95,7 +96,7 @@ export async function createGoal(
       title: input.title,
       description: input.description,
       category: input.category || 'INDIVIDUAL',
-      weightage: 25,
+      weightage: input.weightage || 25,
       progress: input.currentValue ? Math.min(100, Math.round((input.currentValue / (input.targetValue || 100)) * 100)) : 0,
       status: 'IN_PROGRESS',
       keyResults: input.keyResults && input.keyResults.length > 0 ? {
@@ -131,12 +132,17 @@ export async function createGoal(
   return goal;
 }
 
-export async function getEmployeeGoals(filters?: { employeeId?: string; status?: string }) {
+export async function getEmployeeGoals(filters?: { employeeId?: string; status?: string; clientId?: string | null }) {
   const where: any = {};
   if (filters?.employeeId) {
     where.employeeId = await resolveEmployeeObjectId(filters.employeeId) || filters.employeeId;
   }
-  if (filters?.status) where.status = filters.status;
+  if (filters?.status && filters.status !== 'ALL') {
+    where.status = filters.status;
+  }
+  if (filters?.clientId) {
+    where.employee = { clientId: filters.clientId };
+  }
 
   return prisma.goal.findMany({
     where,
@@ -148,6 +154,7 @@ export async function getEmployeeGoals(filters?: { employeeId?: string; status?:
           employeeId: true,
           fullName: true,
           designation: true,
+          departmentName: true,
         },
       },
     },
@@ -184,7 +191,7 @@ export async function updateGoalProgress(
 
 export async function submitPerformanceReview(
   input: {
-    cycleId: string;
+    cycleId?: string;
     employeeId: string;
     selfRating?: number | null;
     selfComments?: string | null;
@@ -194,10 +201,11 @@ export async function submitPerformanceReview(
   user: { id: string; fullName: string; role: string }
 ) {
   const resolvedEmpId = await resolveEmployeeObjectId(input.employeeId) || input.employeeId;
+  const cycle = input.cycleId ? { id: input.cycleId } : await ensureDefaultPerformanceCycle();
 
   let existing = await prisma.performanceReview.findFirst({
     where: {
-      cycleId: input.cycleId,
+      cycleId: cycle.id,
       employeeId: resolvedEmpId,
     },
   });
@@ -205,14 +213,17 @@ export async function submitPerformanceReview(
   if (!existing) {
     existing = await prisma.performanceReview.create({
       data: {
-        cycleId: input.cycleId,
+        cycleId: cycle.id,
         employeeId: resolvedEmpId,
         reviewerId: user.id,
         selfRating: input.selfRating,
         selfComments: input.selfComments,
+        selfSubmittedAt: input.selfRating !== undefined ? new Date() : null,
         managerRating: input.managerRating,
         managerComments: input.managerComments,
-        status: input.managerRating ? 'COMPLETED' : 'PENDING_MANAGER',
+        managerSubmittedAt: input.managerRating !== undefined ? new Date() : null,
+        finalRating: input.managerRating ?? null,
+        status: input.managerRating ? 'COMPLETED' : (input.selfRating ? 'PENDING_MANAGER' : 'PENDING_SELF'),
       },
     });
   } else {
@@ -240,12 +251,21 @@ export async function submitPerformanceReview(
     });
   }
 
+  await logAuditEvent({
+    actorUserId: user.id,
+    action: 'UPDATE',
+    entityType: 'PERFORMANCE',
+    entityId: existing.id,
+    reason: `Updated review score for employee ${input.employeeId}`,
+  });
+
   return existing;
 }
 
-export async function getPerformanceReviews(cycleId?: string) {
+export async function getPerformanceReviews(filters?: { cycleId?: string; clientId?: string | null }) {
   const where: any = {};
-  if (cycleId) where.cycleId = cycleId;
+  if (filters?.cycleId) where.cycleId = filters.cycleId;
+  if (filters?.clientId) where.employee = { clientId: filters.clientId };
 
   return prisma.performanceReview.findMany({
     where,
@@ -257,9 +277,230 @@ export async function getPerformanceReviews(cycleId?: string) {
           employeeId: true,
           fullName: true,
           designation: true,
+          departmentName: true,
         },
       },
     },
     orderBy: { createdAt: 'desc' },
   });
+}
+
+// ====================================================
+// PMS APPRAISAL DECISIONS & PMS -> PAYROLL INTEGRATION
+// ====================================================
+
+export interface CreateAppraisalInput {
+  employeeId: string;
+  reviewId?: string | null;
+  cycleId?: string | null;
+  performanceRating: number;
+  decisionType: 'INCREMENT' | 'BONUS' | 'PROMOTION' | 'PIP' | 'NONE';
+  incrementPercentage?: number | null; // e.g. 10 for 10%
+  bonusAmount?: number | null; // e.g. 20000
+  effectiveDate: string | Date;
+  remarks?: string | null;
+  clientId?: string | null;
+}
+
+/**
+ * Creates an Appraisal Outcome proposal based on performance review.
+ * IMPORTANT: In adherence to business rules, score DOES NOT automatically modify salary!
+ * An appraisal decision must first be explicitly approved by HR/Executive governance.
+ */
+export async function createAppraisalDecision(
+  input: CreateAppraisalInput,
+  user: { id: string; fullName: string }
+) {
+  const resolvedEmpId = await resolveEmployeeObjectId(input.employeeId) || input.employeeId;
+
+  const appraisal = await prisma.pmsAppraisal.create({
+    data: {
+      employeeId: resolvedEmpId,
+      reviewId: input.reviewId || null,
+      cycleId: input.cycleId || null,
+      performanceRating: input.performanceRating,
+      decisionType: input.decisionType,
+      incrementPercentage: input.incrementPercentage ?? null,
+      bonusAmount: input.bonusAmount ?? null,
+      effectiveDate: new Date(input.effectiveDate),
+      status: 'PENDING',
+      remarks: input.remarks || null,
+      clientId: input.clientId || null,
+    },
+    include: {
+      employee: {
+        select: {
+          id: true,
+          employeeId: true,
+          fullName: true,
+          designation: true,
+        },
+      },
+    },
+  });
+
+  await logAuditEvent({
+    actorUserId: user.id,
+    action: 'CREATE',
+    entityType: 'PERFORMANCE',
+    entityId: appraisal.id,
+    reason: `Created PMS appraisal proposal: ${input.decisionType} for ${appraisal.employee.fullName}`,
+  });
+
+  return appraisal;
+}
+
+/**
+ * Approves an appraisal decision and bridges into Payroll:
+ * 1. If Bonus: creates an approved PayrollAdjustment for the target payroll period.
+ * 2. If Increment: creates a revised EmployeeSalaryAssignment preserving historical CTC records.
+ */
+export async function approveAppraisalDecision(
+  appraisalId: string,
+  user: { id: string; fullName: string; role: string },
+  decision: 'APPROVED' | 'REJECTED'
+) {
+  const appraisal = await prisma.pmsAppraisal.findUnique({
+    where: { id: appraisalId },
+    include: { employee: true },
+  });
+
+  if (!appraisal) throw new Error('Appraisal decision not found');
+  if (appraisal.status !== 'PENDING') {
+    throw new Error(`Appraisal decision is already ${appraisal.status}`);
+  }
+
+  if (decision === 'REJECTED') {
+    return prisma.pmsAppraisal.update({
+      where: { id: appraisalId },
+      data: {
+        status: 'REJECTED',
+        approvedById: user.id,
+        approvedAt: new Date(),
+      },
+    });
+  }
+
+  let payrollAdjustmentId: string | null = null;
+  let newSalaryAssignmentId: string | null = null;
+
+  // 1. Bridge Bonus -> Controlled Payroll Adjustment
+  if (appraisal.decisionType === 'BONUS' && appraisal.bonusAmount && appraisal.bonusAmount > 0) {
+    const effDate = new Date(appraisal.effectiveDate);
+    const targetPeriodCode = await generatePayrollPeriodCode(effDate.getFullYear(), effDate.getMonth() + 1);
+
+    const adjustment = await prisma.payrollAdjustment.create({
+      data: {
+        employeeId: appraisal.employeeId,
+        clientId: appraisal.clientId || null,
+        type: 'BONUS',
+        category: 'EARNING',
+        amount: appraisal.bonusAmount,
+        reason: `Approved PMS Performance Bonus (Rating: ${appraisal.performanceRating}/5): ${appraisal.remarks || 'Merit bonus'}`,
+        effectivePeriodCode: targetPeriodCode,
+        status: 'APPROVED', // Pre-approved via executive appraisal sign-off
+        createdById: user.id,
+        approvedById: user.id,
+        approvedAt: new Date(),
+        appraisalId: appraisal.id,
+      },
+    });
+    payrollAdjustmentId = adjustment.id;
+  }
+
+  // 2. Bridge Increment -> Salary Revision (Preserving Historical Salary Assignment)
+  if (appraisal.decisionType === 'INCREMENT' && appraisal.incrementPercentage && appraisal.incrementPercentage > 0) {
+    const currentAssignment = await prisma.employeeSalaryAssignment.findFirst({
+      where: { employeeId: appraisal.employeeId, isCurrent: true },
+    });
+
+    if (currentAssignment) {
+      const multiplier = 1 + appraisal.incrementPercentage / 100;
+      const newAnnualCtc = Math.round(currentAssignment.annualCtc * multiplier);
+      const newMonthlyCtc = Math.round(newAnnualCtc / 12);
+
+      // Deactivate previous assignment with effectiveTo
+      await prisma.employeeSalaryAssignment.update({
+        where: { id: currentAssignment.id },
+        data: {
+          isCurrent: false,
+          effectiveTo: new Date(appraisal.effectiveDate),
+        },
+      });
+
+      // Create revised assignment with increment version
+      const newAssignment = await prisma.employeeSalaryAssignment.create({
+        data: {
+          employeeId: appraisal.employeeId,
+          structureId: currentAssignment.structureId,
+          annualCtc: newAnnualCtc,
+          monthlyCtc: newMonthlyCtc,
+          effectiveFrom: new Date(appraisal.effectiveDate),
+          version: currentAssignment.version + 1,
+          isCurrent: true,
+          bankAccount: currentAssignment.bankAccount,
+          bankIfsc: currentAssignment.bankIfsc,
+          panNumber: currentAssignment.panNumber,
+          assignedById: user.id,
+        },
+      });
+      newSalaryAssignmentId = newAssignment.id;
+    }
+  }
+
+  const updated = await prisma.pmsAppraisal.update({
+    where: { id: appraisalId },
+    data: {
+      status: 'APPROVED',
+      approvedById: user.id,
+      approvedAt: new Date(),
+      payrollAdjustmentId,
+      newSalaryAssignmentId,
+    },
+  });
+
+  await logAuditEvent({
+    actorUserId: user.id,
+    action: 'APPROVE',
+    entityType: 'PERFORMANCE',
+    entityId: appraisal.id,
+    reason: `Approved PMS appraisal ${appraisal.decisionType} for ${appraisal.employee.fullName}. Integrated into payroll.`,
+  });
+
+  return updated;
+}
+
+export async function getPmsAppraisals(filters?: { employeeId?: string; clientId?: string | null }) {
+  const where: any = {};
+  if (filters?.employeeId) {
+    where.employeeId = await resolveEmployeeObjectId(filters.employeeId) || filters.employeeId;
+  }
+  if (filters?.clientId) {
+    where.OR = [
+      { clientId: filters.clientId },
+      { employee: { clientId: filters.clientId } },
+    ];
+  }
+
+  const appraisals = await prisma.pmsAppraisal.findMany({
+    where,
+    include: {
+      employee: {
+        select: {
+          id: true,
+          employeeId: true,
+          fullName: true,
+          designation: true,
+          departmentName: true,
+        },
+      },
+    },
+    orderBy: { createdAt: 'desc' },
+  });
+
+  return appraisals.map((a) => ({
+    ...a,
+    employeeName: a.employee?.fullName,
+    employeeCode: a.employee?.employeeId,
+  }));
 }

@@ -48,9 +48,30 @@ export const PresenceTracker: React.FC<PresenceTrackerProps> = ({ activeTab }) =
     const handleFocus = () => sendHeartbeat();
     window.addEventListener('focus', handleFocus);
 
+    // 4. Send disconnect beacon when closing tab, window, or shutting down
+    const handleUnload = () => {
+      const payload = JSON.stringify({ isDisconnect: true });
+      if (typeof navigator !== 'undefined' && navigator.sendBeacon) {
+        const blob = new Blob([payload], { type: 'application/json' });
+        navigator.sendBeacon('/api/presence/heartbeat', blob);
+      } else {
+        fetch('/api/presence/heartbeat', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: payload,
+          keepalive: true,
+        }).catch(() => {});
+      }
+    };
+
+    window.addEventListener('beforeunload', handleUnload);
+    window.addEventListener('pagehide', handleUnload);
+
     return () => {
       clearInterval(interval);
       window.removeEventListener('focus', handleFocus);
+      window.removeEventListener('beforeunload', handleUnload);
+      window.removeEventListener('pagehide', handleUnload);
     };
   }, [pathname, activeTab]);
 

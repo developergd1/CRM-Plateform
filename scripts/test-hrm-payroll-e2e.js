@@ -52,6 +52,15 @@ async function runPayrollE2ETests() {
   const emp1 = await prisma.employee.findUnique({ where: { employeeId: 'QA-EMP-001' } });
   const emp2 = await prisma.employee.findUnique({ where: { employeeId: 'QA-EMP-002' } });
 
+  await prisma.employee.update({
+    where: { id: emp1.id },
+    data: {
+      ptState: 'Maharashtra',
+      pfUan: '100904561234',
+      panNumber: 'ABCDE1111A',
+    },
+  });
+
   // Assign Salary to QA-EMP-001: Monthly 60,000 / Annual 7,20,000
   await prisma.employeeSalaryAssignment.deleteMany({ where: { employeeId: emp1.id } });
   const assign1 = await prisma.employeeSalaryAssignment.create({

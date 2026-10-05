@@ -32,7 +32,7 @@ export async function GET(req: NextRequest) {
     const [cycles, goals, allReviews] = await Promise.all([
       getPerformanceCycles(),
       getEmployeeGoals({ employeeId: employeeId || undefined }),
-      getPerformanceReviews(cycleId),
+      getPerformanceReviews({ cycleId }),
     ]);
 
     // Role-based review filtering

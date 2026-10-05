@@ -70,6 +70,8 @@ export interface ClientItem {
   assignedModules?: string[];
   subscriptionPlan?: string | null;
   subscriptionStatus?: string | null;
+  maxEmployees?: number | null;
+  customMaxEmployees?: number | null;
   gstNumber?: string | null;
   panNumber?: string | null;
   aadharNumber?: string | null;
@@ -194,4 +196,3 @@ export interface Phase1DashboardStats {
 }
 
 export * from './crm';
-

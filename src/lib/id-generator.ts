@@ -106,6 +106,8 @@ export async function generateCrmTaskNumber(): Promise<string> {
   return `TSK-${String(nextNum).padStart(6, '0')}`;
 }
 
+export const generateTaskNumber = generateCrmTaskNumber;
+
 export async function generateFollowUpNumber(): Promise<string> {
   const count = await prisma.followUp.count();
   const latest = await prisma.followUp.findFirst({

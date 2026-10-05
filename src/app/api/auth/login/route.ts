@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import bcrypt from 'bcryptjs';
-import { prisma } from '@/lib/prisma';
+import { prisma, isValidObjectId } from '@/lib/prisma';
 import { createToken, AUTH_COOKIE_NAME, ensureDefaultAdmin } from '@/lib/auth';
 import { logAuditEvent } from '@/lib/audit';
 
@@ -139,7 +139,8 @@ export async function POST(req: NextRequest) {
         where: {
           OR: [
             { userId: user.id },
-            ...(user.parentClientId ? [{ id: user.parentClientId }] : []),
+            ...(user.parentClientId ? [{ clientId: user.parentClientId }] : []),
+            ...(isValidObjectId(user.parentClientId) ? [{ id: user.parentClientId }] : []),
           ],
         },
         select: { status: true, companyName: true },
@@ -289,11 +290,23 @@ export async function POST(req: NextRequest) {
       ? await prisma.client.findFirst({ where: { userId: user.id } })
       : null;
 
+    // Parse delegated permissions if present
+    let delegatedPerms: string[] = [];
+    if (user.delegatedPermissions) {
+      try {
+        delegatedPerms = JSON.parse(user.delegatedPermissions);
+      } catch (e) {
+        delegatedPerms = [];
+      }
+    }
+
     let returnUser: any = {
       id: user.id,
       email: user.email,
       role: user.role.name,
-      roleDisplayName: user.role.displayName,
+      roleDisplayName: user.isDelegated ? 'Delegated Administrator' : user.role.displayName,
+      isDelegated: Boolean(user.isDelegated),
+      delegatedPermissions: delegatedPerms,
     };
 
     if (user.role.name === 'CLIENT' && clientRecord) {

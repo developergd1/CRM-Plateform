@@ -5,6 +5,7 @@ import { getSessionUser } from '@/lib/auth';
 import { isAdminOrHR } from '@/lib/rbac';
 import { logAuditEvent } from '@/lib/audit';
 import { verifyClientOrganizationAccess } from '@/lib/tenant';
+import { SAAS_PLANS } from '@/lib/services/subscription-service';
 
 export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
   try {
@@ -59,12 +60,9 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
         _count: {
           select: {
             employees: true,
-            deals: true,
-            opportunities: true,
-            contacts: true,
-            leads: true,
             departments: true,
             documents: true,
+            tasks: true,
           },
         },
       },
@@ -99,6 +97,7 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
     let companyType = client.companyType || 'Private Limited';
     let remarks = client.remarks || '';
     let assignedModules = Array.isArray(client.assignedModules) && client.assignedModules.length > 0 ? client.assignedModules : ['EMS'];
+    let maxEmployees: number | null = null;
     try {
       if (client.tags && client.tags.startsWith('{')) {
         const parsed = JSON.parse(client.tags);
@@ -110,8 +109,15 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
         if ((!client.assignedModules || client.assignedModules.length === 0) && Array.isArray(parsed.assignedModules)) {
           assignedModules = parsed.assignedModules;
         }
+        if (parsed.maxEmployees !== undefined && parsed.maxEmployees !== null && Number(parsed.maxEmployees) > 0) {
+          maxEmployees = Number(parsed.maxEmployees);
+        }
       }
     } catch (e) {}
+
+    const planKey = (client.subscriptionPlan || 'STANDARD').toUpperCase();
+    const defaultMax = (SAAS_PLANS[planKey] || SAAS_PLANS.STANDARD).maxEmployees;
+    const effectiveLimit = maxEmployees ?? defaultMax;
 
     return NextResponse.json({
       success: true,
@@ -123,6 +129,8 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
         companyType,
         remarks,
         assignedModules,
+        maxEmployees: effectiveLimit,
+        customMaxEmployees: maxEmployees,
       },
     });
   } catch (error: any) {
@@ -167,6 +175,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
       assignedModules,
       subscriptionPlan,
       subscriptionStatus,
+      maxEmployees,
       legalName,
       alternatePhone,
       website,
@@ -192,7 +201,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
     const resolvedGst = gst !== undefined ? (gst ? gst.trim().toUpperCase() : null) : (gstNumber !== undefined ? (gstNumber ? gstNumber.trim().toUpperCase() : null) : undefined);
 
     let updatedTags: string | undefined = undefined;
-    if (gstNumber !== undefined || panNumber !== undefined || aadharNumber !== undefined) {
+    if (gstNumber !== undefined || panNumber !== undefined || aadharNumber !== undefined || maxEmployees !== undefined) {
       let existingTagsObj: any = {};
       try {
         if (existing.tags && existing.tags.startsWith('{')) {
@@ -203,6 +212,9 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
       if (gstNumber !== undefined) existingTagsObj.gstNumber = gstNumber ? gstNumber.trim().toUpperCase() : '';
       if (panNumber !== undefined) existingTagsObj.panNumber = panNumber ? panNumber.trim().toUpperCase() : '';
       if (aadharNumber !== undefined) existingTagsObj.aadharNumber = aadharNumber ? aadharNumber.trim() : '';
+      if (maxEmployees !== undefined) {
+        existingTagsObj.maxEmployees = (maxEmployees !== null && maxEmployees !== '' && Number(maxEmployees) > 0) ? Number(maxEmployees) : null;
+      }
       updatedTags = JSON.stringify(existingTagsObj);
     }
 
@@ -282,7 +294,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
         ...(resolvedGst !== undefined ? { gst: resolvedGst } : {}),
         ...(remarks !== undefined ? { remarks: remarks ? remarks.trim() : null } : {}),
         ...(assignedModules !== undefined && Array.isArray(assignedModules)
-          ? { assignedModules: assignedModules.filter((m: string) => ['EMS', 'CRM', 'HRM'].includes(m.toUpperCase())) }
+          ? { assignedModules: assignedModules.filter((m: string) => ['EMS', 'HRM'].includes(m.toUpperCase())) }
           : {}),
         ...(subscriptionPlan !== undefined ? { subscriptionPlan } : {}),
         ...(subscriptionStatus !== undefined ? { subscriptionStatus } : {}),
@@ -363,12 +375,8 @@ export async function DELETE(req: NextRequest, { params }: { params: { id: strin
         data: { clientId: null },
       });
 
-      // 2. Delete related CRM histories and notes
-      await tx.clientAssignment.deleteMany({ where: { clientId: clientDbId } });
-      await tx.clientPipelineHistory.deleteMany({ where: { clientId: clientDbId } });
-      await tx.clientActivity.deleteMany({ where: { clientId: clientDbId } });
-      await tx.clientNote.deleteMany({ where: { clientId: clientDbId } });
-      await tx.clientTask.deleteMany({ where: { clientId: clientDbId } });
+      // 2. Delete related tasks
+      await tx.task.deleteMany({ where: { clientId: clientDbId } });
 
       // 3. Delete active user sessions for client user
       if (clientUserId) {

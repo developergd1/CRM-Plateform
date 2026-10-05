@@ -41,14 +41,14 @@ export const SAAS_PLANS: Record<string, PlanDefinition> = {
   },
   STANDARD: {
     name: 'Growth Standard',
-    description: 'Comprehensive business administration with CRM pipeline and attendance automation',
+    description: 'Comprehensive business administration with client workforce and attendance automation',
     monthlyPriceInr: 12999,
     yearlyPriceInr: 129990,
     maxEmployees: 100,
     maxUsers: 25,
     maxAdminUsers: 5,
     storageLimitGb: 25,
-    allowedModules: ['EMS', 'CRM', 'Attendance', 'Leave', 'Documents', 'Tasks', 'Reports'],
+    allowedModules: ['EMS', 'Attendance', 'Leave', 'Documents', 'Tasks', 'Reports'],
     status: 'ACTIVE',
   },
   ENTERPRISE: {
@@ -62,7 +62,6 @@ export const SAAS_PLANS: Record<string, PlanDefinition> = {
     storageLimitGb: 100,
     allowedModules: [
       'EMS',
-      'CRM',
       'HRM',
       'Attendance',
       'Leave',
@@ -77,6 +76,18 @@ export const SAAS_PLANS: Record<string, PlanDefinition> = {
       'Shift',
       'Reports',
     ],
+    status: 'ACTIVE',
+  },
+  CUSTOM: {
+    name: 'Custom Enterprise Quota',
+    description: 'Customized workforce onboarding capacity configured by Platform Administrator',
+    monthlyPriceInr: 0,
+    yearlyPriceInr: 0,
+    maxEmployees: 100,
+    maxUsers: 50,
+    maxAdminUsers: 10,
+    storageLimitGb: 50,
+    allowedModules: ['EMS', 'HRM'],
     status: 'ACTIVE',
   },
 };
@@ -99,6 +110,7 @@ export async function canAddEmployee(clientId: string): Promise<{
       subscriptionPlan: true,
       subscriptionStatus: true,
       assignedModules: true,
+      tags: true,
     },
   });
 
@@ -120,6 +132,17 @@ export async function canAddEmployee(clientId: string): Promise<{
   const planKey = (client.subscriptionPlan || 'STANDARD').toUpperCase();
   const plan = SAAS_PLANS[planKey] || SAAS_PLANS.STANDARD;
 
+  // Check for admin-configured custom employee limit in client tags
+  let effectiveMax = plan.maxEmployees;
+  if (client.tags && client.tags.startsWith('{')) {
+    try {
+      const parsed = JSON.parse(client.tags);
+      if (parsed.maxEmployees !== undefined && parsed.maxEmployees !== null && Number(parsed.maxEmployees) > 0) {
+        effectiveMax = Number(parsed.maxEmployees);
+      }
+    } catch {}
+  }
+
   const currentCount = await prisma.employee.count({
     where: {
       clientId: client.id,
@@ -127,12 +150,12 @@ export async function canAddEmployee(clientId: string): Promise<{
     },
   });
 
-  if (currentCount >= plan.maxEmployees) {
+  if (currentCount >= effectiveMax) {
     return {
       allowed: false,
-      reason: `Quota limit reached: Client "${client.companyName}" is on ${plan.name} which allows a maximum of ${plan.maxEmployees} active employees. Currently utilizing ${currentCount}/${plan.maxEmployees}. Please upgrade plan to add more staff.`,
+      reason: `Quota limit reached: Client "${client.companyName}" is set to a limit of ${effectiveMax} active employees. Currently utilizing ${currentCount}/${effectiveMax}. Please contact Platform Administrator to increase your onboarding quota.`,
       currentCount,
-      maxAllowed: plan.maxEmployees,
+      maxAllowed: effectiveMax,
       planName: plan.name,
     };
   }
@@ -140,7 +163,7 @@ export async function canAddEmployee(clientId: string): Promise<{
   return {
     allowed: true,
     currentCount,
-    maxAllowed: plan.maxEmployees,
+    maxAllowed: effectiveMax,
     planName: plan.name,
   };
 }
@@ -199,6 +222,7 @@ export async function getClientSubscriptionUsage(clientId: string) {
       subscriptionPlan: true,
       subscriptionStatus: true,
       assignedModules: true,
+      tags: true,
       dateAdded: true,
     },
   });
@@ -207,6 +231,16 @@ export async function getClientSubscriptionUsage(clientId: string) {
 
   const planKey = (client.subscriptionPlan || 'STANDARD').toUpperCase();
   const plan = SAAS_PLANS[planKey] || SAAS_PLANS.STANDARD;
+
+  let effectiveMax = plan.maxEmployees;
+  if (client.tags && client.tags.startsWith('{')) {
+    try {
+      const parsed = JSON.parse(client.tags);
+      if (parsed.maxEmployees !== undefined && parsed.maxEmployees !== null && Number(parsed.maxEmployees) > 0) {
+        effectiveMax = Number(parsed.maxEmployees);
+      }
+    } catch {}
+  }
 
   const employeeCount = await prisma.employee.count({
     where: { clientId: client.id, status: { notIn: ['ARCHIVED', 'EXITED'] } },
@@ -226,10 +260,10 @@ export async function getClientSubscriptionUsage(clientId: string) {
     usage: {
       employees: {
         current: employeeCount,
-        max: plan.maxEmployees,
-        percentage: Math.min(100, Math.round((employeeCount / plan.maxEmployees) * 100)),
-        isNearLimit: employeeCount >= plan.maxEmployees * 0.85,
-        isLimitReached: employeeCount >= plan.maxEmployees,
+        max: effectiveMax,
+        percentage: Math.min(100, Math.round((employeeCount / effectiveMax) * 100)),
+        isNearLimit: employeeCount >= effectiveMax * 0.85,
+        isLimitReached: employeeCount >= effectiveMax,
       },
       users: {
         current: userCount,

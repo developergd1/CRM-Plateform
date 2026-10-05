@@ -448,7 +448,7 @@ export const OffboardingView: React.FC = () => {
                       3. Pending Tasks & Ticket Reassignments
                     </h4>
                     <p className="text-[10px] text-slate-500 font-medium">
-                      All active CRM tickets and milestones reassigned to peers.
+                      All active tasks, operations, and milestones reassigned to peers.
                     </p>
                   </div>
                 </div>

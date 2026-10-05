@@ -392,7 +392,7 @@ export const CmsClientOnboardingView: React.FC<CmsClientOnboardingViewProps> = (
             </span>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {/* EMS Card */}
             <div
               onClick={() => toggleModule('EMS')}
@@ -417,33 +417,6 @@ export const CmsClientOnboardingView: React.FC<CmsClientOnboardingViewProps> = (
               <p className="text-[11px] font-bold text-slate-700">Employee Management System</p>
               <p className="text-[10px] text-slate-500 mt-1 leading-normal">
                 Client-specific workforce directory, clock-in tracking, leaves, tasks, and document vault.
-              </p>
-            </div>
-
-            {/* CRM Card */}
-            <div
-              onClick={() => toggleModule('CRM')}
-              className={`p-4 rounded-xl border-2 cursor-pointer transition-all ${
-                formData.assignedModules.includes('CRM')
-                  ? 'border-[#0D9488] bg-[#0D9488]/5 shadow-xs'
-                  : 'border-slate-200 bg-white hover:border-slate-300'
-              }`}
-            >
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-xs font-black text-slate-900 uppercase tracking-wider">CRM</span>
-                <div
-                  className={`w-5 h-5 rounded-md flex items-center justify-center ${
-                    formData.assignedModules.includes('CRM')
-                      ? 'bg-[#0D9488] text-white'
-                      : 'border border-slate-300'
-                  }`}
-                >
-                  {formData.assignedModules.includes('CRM') && <Check className="w-3.5 h-3.5" />}
-                </div>
-              </div>
-              <p className="text-[11px] font-bold text-slate-700">Customer Relationship Mgmt</p>
-              <p className="text-[10px] text-slate-500 mt-1 leading-normal">
-                Sales deals pipeline, lead qualification, quotes, commercial contracts, and analytics.
               </p>
             </div>
 

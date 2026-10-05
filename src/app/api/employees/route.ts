@@ -48,7 +48,8 @@ export async function GET(req: NextRequest) {
             { userId: user.id },
             ...(user.clientId ? [{ clientId: user.clientId }] : []),
             ...(isValidObjectId(user.clientId) ? [{ id: user.clientId }] : []),
-            ...(user.parentClientId ? [{ id: user.parentClientId }, { clientId: user.parentClientId }] : []),
+            ...(user.parentClientId ? [{ clientId: user.parentClientId }] : []),
+            ...(isValidObjectId(user.parentClientId) ? [{ id: user.parentClientId }] : []),
           ],
         },
       });
@@ -257,7 +258,8 @@ export async function POST(req: NextRequest) {
             { userId: user.id },
             ...(user.clientId ? [{ clientId: user.clientId }] : []),
             ...(isValidObjectId(user.clientId) ? [{ id: user.clientId }] : []),
-            ...(user.parentClientId ? [{ id: user.parentClientId }, { clientId: user.parentClientId }] : []),
+            ...(user.parentClientId ? [{ clientId: user.parentClientId }] : []),
+            ...(isValidObjectId(user.parentClientId) ? [{ id: user.parentClientId }] : []),
           ],
         },
       });

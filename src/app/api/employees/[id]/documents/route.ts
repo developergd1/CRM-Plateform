@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma, getEmployeeLookup } from '@/lib/prisma';
+import { prisma, getEmployeeLookup, isValidObjectId } from '@/lib/prisma';
 import { getSessionUser } from '@/lib/auth';
 import { isAdminOrHR } from '@/lib/rbac';
 import { logAuditEvent } from '@/lib/audit';
@@ -26,9 +26,11 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
           where: {
             OR: [
               { userId: user.id },
-              ...(user.parentClientId ? [{ id: user.parentClientId }] : []),
-              ...(user.parentUserId ? [{ userId: user.parentUserId }] : []),
               ...(user.clientId ? [{ clientId: user.clientId }] : []),
+              ...(isValidObjectId(user.clientId) ? [{ id: user.clientId }] : []),
+              ...(user.parentClientId ? [{ clientId: user.parentClientId }] : []),
+              ...(isValidObjectId(user.parentClientId) ? [{ id: user.parentClientId }] : []),
+              ...(user.parentUserId ? [{ userId: user.parentUserId }] : []),
             ],
           },
           select: { id: true },
@@ -82,9 +84,11 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
           where: {
             OR: [
               { userId: user.id },
-              ...(user.parentClientId ? [{ id: user.parentClientId }] : []),
-              ...(user.parentUserId ? [{ userId: user.parentUserId }] : []),
               ...(user.clientId ? [{ clientId: user.clientId }] : []),
+              ...(isValidObjectId(user.clientId) ? [{ id: user.clientId }] : []),
+              ...(user.parentClientId ? [{ clientId: user.parentClientId }] : []),
+              ...(isValidObjectId(user.parentClientId) ? [{ id: user.parentClientId }] : []),
+              ...(user.parentUserId ? [{ userId: user.parentUserId }] : []),
             ],
           },
           select: { id: true },

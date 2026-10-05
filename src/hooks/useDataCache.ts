@@ -14,7 +14,7 @@ export interface UseCachedDataOptions<T> {
 /**
  * Custom React hook for instant local cache rendering with background Stale-While-Revalidate (SWR).
  *
- * @param key Unique cache key (e.g. 'crm_leads', 'crm_deals')
+ * @param key Unique cache key (e.g. 'platform_clients', 'workforce_employees')
  * @param fetcher Async function that fetches data from backend
  * @param options Configuration options including TTL and callbacks
  */

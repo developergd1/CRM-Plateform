@@ -23,54 +23,53 @@ export function getTimezoneDayBounds(timezone = 'Asia/Kolkata') {
 }
 
 export interface ScheduledRunResult {
-  dueFollowUpsChecked: number;
-  dueFollowUpsTriggered: number;
-  overdueFollowUpsChecked: number;
-  overdueFollowUpsTriggered: number;
+  dueTasksChecked: number;
+  dueTasksTriggered: number;
+  overdueTasksChecked: number;
+  overdueTasksTriggered: number;
   lateAttendancesChecked: number;
   lateAttendancesTriggered: number;
-  staleDealsChecked: number;
   timestamp: string;
 }
 
 /**
- * Executes scheduled operations across CRM and Workforce.
+ * Executes scheduled operations across Platform Tasks and Workforce.
  * Idempotent, timezone-aware, and safe to run on cron or on-demand.
  */
 export async function runScheduledAutomation(timezone = 'Asia/Kolkata'): Promise<ScheduledRunResult> {
   const { dateStr, startOfDay, endOfDay } = getTimezoneDayBounds(timezone);
 
-  // 1. Process Due Follow-ups (Scheduled for Today)
-  const dueFollowUps = await prisma.followUp.findMany({
+  // 1. Process Due Tasks (Scheduled for Today)
+  const dueTasks = await prisma.task.findMany({
     where: {
-      status: 'PENDING',
-      scheduledAt: { gte: startOfDay, lte: endOfDay },
+      status: { notIn: ['COMPLETED', 'CANCELLED'] },
+      dueDate: { gte: startOfDay, lte: endOfDay },
     },
     select: { id: true },
   });
 
   let dueTriggered = 0;
-  for (const item of dueFollowUps) {
-    await triggerAutomationEvent('FOLLOW_UP_DUE', {
-      entityType: 'FollowUp',
+  for (const item of dueTasks) {
+    await triggerAutomationEvent('TASK_CREATED', {
+      entityType: 'Task',
       entityId: item.id,
     });
     dueTriggered++;
   }
 
-  // 2. Process Overdue Follow-ups (Scheduled before Start of Today)
-  const overdueFollowUps = await prisma.followUp.findMany({
+  // 2. Process Overdue Tasks (Scheduled before Start of Today)
+  const overdueTasks = await prisma.task.findMany({
     where: {
-      status: 'PENDING',
-      scheduledAt: { lt: startOfDay },
+      status: { notIn: ['COMPLETED', 'CANCELLED'] },
+      dueDate: { lt: startOfDay },
     },
     select: { id: true },
   });
 
   let overdueTriggered = 0;
-  for (const item of overdueFollowUps) {
-    await triggerAutomationEvent('FOLLOW_UP_OVERDUE', {
-      entityType: 'FollowUp',
+  for (const item of overdueTasks) {
+    await triggerAutomationEvent('TASK_OVERDUE', {
+      entityType: 'Task',
       entityId: item.id,
     });
     overdueTriggered++;
@@ -94,24 +93,13 @@ export async function runScheduledAutomation(timezone = 'Asia/Kolkata'): Promise
     lateTriggered++;
   }
 
-  // 4. Stale Deals Check (> 21 days with no updates)
-  const twentyOneDaysAgo = new Date(Date.now() - 21 * 24 * 3600 * 1000);
-  const staleDeals = await prisma.deal.findMany({
-    where: {
-      status: 'OPEN',
-      updatedAt: { lt: twentyOneDaysAgo },
-    },
-    select: { id: true, title: true, assignedToId: true },
-  });
-
   return {
-    dueFollowUpsChecked: dueFollowUps.length,
-    dueFollowUpsTriggered: dueTriggered,
-    overdueFollowUpsChecked: overdueFollowUps.length,
-    overdueFollowUpsTriggered: overdueTriggered,
+    dueTasksChecked: dueTasks.length,
+    dueTasksTriggered: dueTriggered,
+    overdueTasksChecked: overdueTasks.length,
+    overdueTasksTriggered: overdueTriggered,
     lateAttendancesChecked: lateAttendances.length,
     lateAttendancesTriggered: lateTriggered,
-    staleDealsChecked: staleDeals.length,
     timestamp: new Date().toISOString(),
   };
 }

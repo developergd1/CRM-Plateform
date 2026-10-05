@@ -71,7 +71,7 @@ export const SharedAccessManager: React.FC<SharedAccessManagerProps> = ({ role }
 
   const resolveInviteUrl = (url?: string | null, token?: string | null) => {
     const t = token || (url && url.includes('token=') ? url.split('token=')[1].split('&')[0] : '');
-    const origin = typeof window !== 'undefined' ? window.location.origin : 'https://growth-india-crm.onrender.com';
+    const origin = typeof window !== 'undefined' ? window.location.origin : 'https://growthindia.co';
     return `${origin}/accept-invite?token=${t}`;
   };
 
@@ -88,7 +88,7 @@ export const SharedAccessManager: React.FC<SharedAccessManagerProps> = ({ role }
     const inviterTitle = user?.fullName || (role === 'ADMIN' ? 'Platform Administrator' : 'Client Management');
     const roleType = role === 'ADMIN' ? 'Admin Team Member' : 'Corporate Client Workspace';
 
-    const message = `*Growth India CRM Invitation*\n\nHello *${invitation.name}*,\n\nYou have been invited by *${inviterTitle}* to access the *Growth India CRM Platform* (${roleType}).\n\n*Click here to set your password and activate your account:*\n${inviteUrl}\n\n_Note: This secure link remains active until manually revoked._`;
+    const message = `*Growth India Platform Invitation*\n\nHello *${invitation.name}*,\n\nYou have been invited by *${inviterTitle}* to access the *Growth India Enterprise Platform* (${roleType}).\n\n*Click here to set your password and activate your account:*\n${inviteUrl}\n\n_Note: This secure link remains active until manually revoked._`;
 
     const waUrl = `https://api.whatsapp.com/send?text=${encodeURIComponent(message)}`;
     window.open(waUrl, '_blank');

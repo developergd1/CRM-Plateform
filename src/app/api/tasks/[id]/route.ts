@@ -16,8 +16,6 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
         createdBy: { select: { id: true, fullName: true, employeeId: true } },
         reviewedBy: { select: { id: true, fullName: true, employeeId: true } },
         client: { select: { id: true, companyName: true, clientId: true, userId: true } },
-        lead: { select: { id: true, companyName: true, contactPerson: true } },
-        deal: { select: { id: true, title: true, dealNumber: true } },
         comments: {
           orderBy: { createdAt: 'desc' },
           include: {

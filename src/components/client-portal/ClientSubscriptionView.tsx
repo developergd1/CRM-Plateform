@@ -9,7 +9,6 @@ import {
   ArrowUpRight,
   ShieldCheck,
   Users,
-  HardDrive,
   Layers,
   Sparkles,
   RefreshCw,
@@ -126,7 +125,7 @@ export const ClientSubscriptionView: React.FC = () => {
       </div>
 
       {/* Quota Progress Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
         {/* Employees Quota */}
         <div className="bg-white border border-slate-200 rounded-3xl p-6 shadow-sm space-y-4">
           <div className="flex items-center justify-between">
@@ -196,32 +195,6 @@ export const ClientSubscriptionView: React.FC = () => {
             {userUsage.max - userUsage.current} delegated team seats remaining under this subscription.
           </p>
         </div>
-
-        {/* Storage Limit */}
-        <div className="bg-white border border-slate-200 rounded-3xl p-6 shadow-sm space-y-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2.5">
-              <div className="w-10 h-10 rounded-xl bg-purple-50 text-purple-600 border border-purple-200 flex items-center justify-center">
-                <HardDrive className="w-5 h-5" />
-              </div>
-              <div>
-                <h4 className="font-bold text-xs text-slate-500 uppercase tracking-wider">Vault Storage</h4>
-                <div className="text-xl font-black text-slate-900 mt-0.5">
-                  {subscription.usage.storageGb.limit} GB
-                </div>
-              </div>
-            </div>
-            <ShieldCheck className="w-5 h-5 text-purple-600" />
-          </div>
-
-          <div className="w-full bg-slate-100 rounded-full h-2 overflow-hidden border border-slate-200">
-            <div className="h-full bg-purple-600 rounded-full" style={{ width: '15%' }} />
-          </div>
-
-          <p className="text-[11px] text-slate-500">
-            Dedicated multi-tenant encrypted storage for KYC files, documents, and logs.
-          </p>
-        </div>
       </div>
 
       {/* Module Entitlements Card */}
@@ -233,8 +206,8 @@ export const ClientSubscriptionView: React.FC = () => {
           </p>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          {['EMS', 'CRM', 'HRM'].map((mod) => {
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          {['EMS', 'HRM'].map((mod) => {
             const isAssigned = (subscription.assignedModules || []).includes(mod);
             return (
               <div
@@ -247,11 +220,10 @@ export const ClientSubscriptionView: React.FC = () => {
               >
                 <div className="space-y-1">
                   <div className="flex items-center gap-2 font-black text-sm">
-                    <span>{mod === 'EMS' ? 'EMS — Workforce Management' : mod === 'CRM' ? 'CRM — Pipeline & Sales' : 'HRM — Enterprise HR & Payroll'}</span>
+                    <span>{mod === 'EMS' ? 'EMS — Workforce Management' : 'HRM — Enterprise HR & Payroll'}</span>
                   </div>
                   <p className="text-[11px] text-slate-500">
                     {mod === 'EMS' && 'Employee onboarding, attendance tracking, leave requests, and document vault.'}
-                    {mod === 'CRM' && 'Leads management, pipeline deals, contacts, activities, and revenue forecasting.'}
                     {mod === 'HRM' && 'Recruitment ATS, employee 360 lifecycle, payroll structures, and OKR goals.'}
                   </p>
                 </div>

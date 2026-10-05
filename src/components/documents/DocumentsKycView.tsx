@@ -109,7 +109,7 @@ export const DocumentsKycView: React.FC<DocumentsKycViewProps> = ({
 
   const fetchClients = async () => {
     try {
-      const res = await fetch('/api/crm/clients');
+      const res = await fetch('/api/clients');
       if (res.ok) {
         const data = await res.json();
         setClients(data.clients || []);

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
+import { prisma, isValidObjectId } from '@/lib/prisma';
 import { getSessionUser } from '@/lib/auth';
 
 export async function GET(
@@ -38,9 +38,11 @@ export async function GET(
       const clientRecord = await prisma.client.findFirst({
         where: {
           OR: [
-            ...(caller.parentClientId ? [{ id: caller.parentClientId }] : []),
             { userId: caller.id },
             ...(caller.clientId ? [{ clientId: caller.clientId }] : []),
+            ...(isValidObjectId(caller.clientId) ? [{ id: caller.clientId }] : []),
+            ...(caller.parentClientId ? [{ clientId: caller.parentClientId }] : []),
+            ...(isValidObjectId(caller.parentClientId) ? [{ id: caller.parentClientId }] : []),
           ],
         },
       });

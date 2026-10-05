@@ -420,23 +420,62 @@ export async function getLeaveApplications(filters?: { employeeId?: string; stat
 export async function calculateEmployeeLopDays(employeeId: string, month: number, year: number): Promise<number> {
   const resolved = await resolveEmployeeObjectId(employeeId) || employeeId;
   const monthStr = String(month).padStart(2, '0');
-  const startPrefix = `${year}-${monthStr}`;
+  const daysInMonth = new Date(year, month, 0).getDate();
+  const monthStartStr = `${year}-${monthStr}-01`;
+  const monthEndStr = `${year}-${monthStr}-${String(daysInMonth).padStart(2, '0')}`;
 
+  // 1. Fetch approved unpaid leaves that overlap with this month
   const approvedUnpaid = await prisma.leaveRequest.findMany({
     where: {
       employeeId: resolved,
       leaveType: { in: ['UNPAID', 'LOP'] },
       status: 'APPROVED',
-      startDate: { startsWith: `${year}-` },
+      startDate: { lte: monthEndStr },
+      endDate: { gte: monthStartStr },
     },
   });
 
   let lopDays = 0;
+  const coveredDates = new Set<string>();
+
   for (const app of approvedUnpaid) {
-    if (app.startDate.startsWith(startPrefix) || app.endDate.startsWith(startPrefix)) {
-      lopDays += app.totalDays;
+    const effStart = app.startDate > monthStartStr ? app.startDate : monthStartStr;
+    const effEnd = app.endDate < monthEndStr ? app.endDate : monthEndStr;
+
+    const startD = new Date(effStart);
+    const endD = new Date(effEnd);
+    const daysInOverlap = Math.max(0, Math.round((endD.getTime() - startD.getTime()) / (1000 * 60 * 60 * 24)) + 1);
+
+    // Track covered individual date strings
+    const cur = new Date(startD);
+    while (cur <= endD) {
+      coveredDates.add(cur.toISOString().split('T')[0]);
+      cur.setDate(cur.getDate() + 1);
+    }
+
+    const effectiveDays = Math.min(app.totalDays, daysInOverlap);
+    lopDays += effectiveDays;
+  }
+
+  // 2. Fetch biometric Attendance records to integrate unexcused absences and half-days
+  const attendanceRecords = await prisma.attendance.findMany({
+    where: {
+      employeeId: resolved,
+      date: { startsWith: `${year}-${monthStr}` },
+    },
+  });
+
+  for (const att of attendanceRecords) {
+    if (coveredDates.has(att.date)) continue; // avoid double counting if approved unpaid leave was logged
+
+    if (att.status === 'ABSENT') {
+      lopDays += 1;
+      coveredDates.add(att.date);
+    } else if (att.status === 'HALF_DAY') {
+      lopDays += 0.5;
+      coveredDates.add(att.date);
     }
   }
 
-  return lopDays;
+  return Number(lopDays.toFixed(1));
 }

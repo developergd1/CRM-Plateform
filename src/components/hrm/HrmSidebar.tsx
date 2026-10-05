@@ -32,15 +32,16 @@ export const HrmSidebar: React.FC<HrmSidebarProps> = ({
 
   const navItems = [
     { id: 'hrm-dashboard', label: 'Dashboard', icon: LayoutDashboard },
-    { id: 'hrm-lifecycle', label: 'Employee Lifecycle & 360', icon: Users },
-    { id: 'hrm-recruitment', label: 'Recruitment / ATS', icon: Briefcase },
-    { id: 'hrm-attendance', label: 'Attendance & Time', icon: Clock },
-    { id: 'hrm-leave', label: 'Leave Management', icon: Coffee },
+    { id: 'hrm-lifecycle', label: 'Employees & 360', icon: Users },
+    { id: 'hrm-attendance', label: 'Attendance', icon: Clock },
+    { id: 'hrm-leave', label: 'Leave', icon: Coffee },
+    { id: 'hrm-payroll', label: 'Payroll & Compliance', icon: Banknote },
+    { id: 'hrm-performance', label: 'PMS & Performance', icon: Target },
+    { id: 'hrm-reports', label: 'Reports', icon: BarChart3 },
+    { id: 'hrm-configuration', label: 'Configuration', icon: Sliders },
     { id: 'hrm-shifts', label: 'Shifts & Timesheets', icon: Calendar },
-    { id: 'hrm-payroll', label: 'Payroll & Compensation', icon: Banknote },
-    { id: 'hrm-performance', label: 'Performance & OKRs', icon: Target },
+    { id: 'hrm-recruitment', label: 'Recruitment / ATS', icon: Briefcase },
     { id: 'hrm-helpdesk', label: 'HR Requests & Helpdesk', icon: LifeBuoy },
-    { id: 'hrm-reports', label: 'HR Analytics & Reports', icon: BarChart3 },
     { id: 'hrm-organization', label: 'Organization Setup', icon: Building2 },
     { id: 'hrm-workflows', label: 'Workflow & Automation', icon: Sliders },
   ];

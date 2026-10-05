@@ -9,8 +9,29 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const body = await req.json().catch(() => ({}));
-    const { currentPath, currentTab, pageTitle } = body;
+    let body: any = {};
+    try {
+      body = await req.json();
+    } catch {
+      try {
+        const text = await req.text();
+        if (text) body = JSON.parse(text);
+      } catch {}
+    }
+
+    const { currentPath, currentTab, pageTitle, isDisconnect } = body;
+    const sessionKey = `presence_${user.id}`;
+
+    if (isDisconnect) {
+      await prisma.activeUserSession.deleteMany({
+        where: { sessionToken: sessionKey },
+      }).catch(() => {});
+
+      return NextResponse.json({
+        success: true,
+        isOnline: false,
+      });
+    }
 
     const ip = req.headers.get('x-forwarded-for') || '127.0.0.1';
     const userAgent = req.headers.get('user-agent') || 'Browser';
@@ -25,7 +46,6 @@ export async function POST(req: NextRequest) {
       .join(' • ')
       .slice(0, 120) || 'Active in Workspace';
 
-    const sessionKey = `presence_${user.id}`;
     const now = new Date();
     const expires = new Date(now.getTime() + 24 * 60 * 60 * 1000);
 

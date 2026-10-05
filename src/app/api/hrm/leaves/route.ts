@@ -107,6 +107,13 @@ export async function POST(req: NextRequest) {
       application,
     });
   } catch (error: any) {
-    return NextResponse.json({ error: error.message || 'Internal Server Error' }, { status: 500 });
+    const msg = error.message || 'Internal Server Error';
+    if (msg.includes('Overlapping leave request')) {
+      return NextResponse.json({ error: msg }, { status: 409 });
+    }
+    if (msg.includes('Insufficient leave balance') || msg.includes('Missing required')) {
+      return NextResponse.json({ error: msg }, { status: 400 });
+    }
+    return NextResponse.json({ error: msg }, { status: 500 });
   }
 }

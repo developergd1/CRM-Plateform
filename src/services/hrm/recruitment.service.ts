@@ -497,6 +497,8 @@ export async function convertCandidateToEmployee(
       status: 'ACTIVE',
       isBlocked: false,
       panNumber: options.panNumber,
+      bankAccount: options.bankAccountNumber,
+      bankIfsc: options.bankIfscCode,
     },
   });
 

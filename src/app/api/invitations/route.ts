@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import crypto from 'crypto';
-import { prisma } from '@/lib/prisma';
+import { prisma, isValidObjectId } from '@/lib/prisma';
 import { getSessionUser } from '@/lib/auth';
 import { logAuditEvent } from '@/lib/audit';
 
@@ -69,9 +69,11 @@ export async function GET(req: NextRequest) {
       const clientRecord = await prisma.client.findFirst({
         where: {
           OR: [
-            ...(user.parentClientId ? [{ id: user.parentClientId }] : []),
             { userId: user.id },
             ...(user.clientId ? [{ clientId: user.clientId }] : []),
+            ...(isValidObjectId(user.clientId) ? [{ id: user.clientId }] : []),
+            ...(user.parentClientId ? [{ clientId: user.parentClientId }] : []),
+            ...(isValidObjectId(user.parentClientId) ? [{ id: user.parentClientId }] : []),
           ],
         },
       });
@@ -215,9 +217,11 @@ export async function POST(req: NextRequest) {
       const clientRecord = await prisma.client.findFirst({
         where: {
           OR: [
-            ...(user.parentClientId ? [{ id: user.parentClientId }] : []),
             { userId: user.id },
             ...(user.clientId ? [{ clientId: user.clientId }] : []),
+            ...(isValidObjectId(user.clientId) ? [{ id: user.clientId }] : []),
+            ...(user.parentClientId ? [{ clientId: user.parentClientId }] : []),
+            ...(isValidObjectId(user.parentClientId) ? [{ id: user.parentClientId }] : []),
           ],
         },
       });

@@ -3,11 +3,12 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { GrowthIndiaLogo } from '@/components/brand/GrowthIndiaLogo';
+import { hasAdminPermission } from '@/lib/rbac';
 import {
   LayoutDashboard,
   Building2,
   Users,
-  ShieldAlert,
+  UserPlus,
   History,
   ShieldCheck,
   Clock,
@@ -17,9 +18,13 @@ import {
   Coffee,
   ChevronDown,
   ChevronUp,
-  Share2,
+  Briefcase,
+  Banknote,
+  Target,
+  LifeBuoy,
+  Sliders,
+  CheckSquare,
   LogOut,
-  TrendingUp,
 } from 'lucide-react';
 
 interface NavItem {
@@ -56,8 +61,8 @@ export const Sidebar: React.FC = () => {
 
   // Collapsible state for each section (all expanded by default)
   const [openSections, setOpenSections] = useState<Record<string, boolean>>({
-    crm: true,
     workforce: true,
+    hrm: true,
     security: true,
   });
 
@@ -70,28 +75,31 @@ export const Sidebar: React.FC = () => {
 
   const sections: NavSection[] = [
     {
-      id: 'crm',
-      title: 'CRM & Sales',
-      icon: Building2,
-      items: [
-        { id: 'crm-dashboard', label: 'CRM Dashboard', icon: LayoutDashboard },
-        { id: 'crm-leads', label: 'Leads', icon: ShieldAlert },
-        { id: 'crm-contacts', label: 'Contacts', icon: Users },
-        { id: 'crm-deals', label: 'Deals', icon: Building2 },
-        { id: 'crm-pipeline', label: 'Sales Pipeline', icon: TrendingUp },
-        { id: 'crm-activities', label: 'Activities', icon: Clock },
-        { id: 'crm-followups', label: 'Tasks & Follow-ups', icon: Calendar },
-        { id: 'crm-reports', label: 'Reports & Analytics', icon: FileText },
-      ],
-    },
-    {
       id: 'workforce',
       title: 'Workforce Portal',
       icon: Users,
       items: [
+        { id: 'clients', label: 'Clients Directory', icon: Building2 },
         { id: 'employees', label: 'Employees Directory', icon: Users },
         { id: 'attendance', label: 'Live Attendance', icon: Clock },
         { id: 'leave', label: 'Leave Ledger', icon: Coffee },
+        { id: 'tasks', label: 'Tasks & Delegation', icon: CheckSquare },
+        { id: 'reports', label: 'Workforce Reports', icon: FileText },
+      ],
+    },
+    {
+      id: 'hrm',
+      title: 'Enterprise HRM Suite',
+      icon: Briefcase,
+      items: [
+        { id: 'hrm-dashboard', label: 'HRM Dashboard', icon: LayoutDashboard },
+        { id: 'hrm-lifecycle', label: 'Staff Lifecycle & 360', icon: Users },
+        { id: 'hrm-recruitment', label: 'Recruitment & ATS', icon: Briefcase },
+        { id: 'hrm-payroll', label: 'Payroll & Compliance', icon: Banknote },
+        { id: 'hrm-performance', label: 'Performance & OKRs', icon: Target },
+        { id: 'hrm-helpdesk', label: 'Employee Helpdesk', icon: LifeBuoy },
+        { id: 'hrm-organization', label: 'Organization Setup', icon: Building2 },
+        { id: 'hrm-workflows', label: 'Workflow Engine', icon: Sliders },
       ],
     },
     {
@@ -102,26 +110,16 @@ export const Sidebar: React.FC = () => {
         { id: 'block-history', label: 'Block / Unblock Staff', icon: History },
         { id: 'password-requests', label: 'Password Requests', icon: KeyRound },
         { id: 'audit-logs', label: 'Immutable Audit Logs', icon: ShieldCheck },
-        { id: 'shared-access', label: 'Shared Team Access', icon: Share2 },
+        { id: 'admin-invites', label: 'Admin Team Invitations', icon: UserPlus },
       ],
     },
   ];
 
   const isAllowed = (tabId: string) => {
-    if (!user?.isDelegated) return true;
-    if (!user?.delegatedPermissions || user.delegatedPermissions.length === 0) return false;
-    if (tabId === 'dashboard') {
-      return user.delegatedPermissions.includes('crm-dashboard') || user.delegatedPermissions.includes('dashboard');
-    }
-    return user.delegatedPermissions.includes(tabId);
+    return hasAdminPermission(user, tabId);
   };
 
   const isDashboardActive = activeTab === 'dashboard';
-  const isClientsActive =
-    activeTab === 'clients' ||
-    activeTab === 'client-360' ||
-    activeTab === 'clients-onboarding' ||
-    activeTab === 'clients-accounts';
 
   return (
     <aside className="w-64 bg-white text-slate-800 flex flex-col shrink-0 border-r border-slate-200 select-none">
@@ -157,100 +155,75 @@ export const Sidebar: React.FC = () => {
         {sections.map((section) => {
           const isOpen = Boolean(openSections[section.id]);
           const visibleItems = section.items.filter((item) => isAllowed(item.id));
-          const hasVisibleClients = section.id === 'workforce' && isAllowed('clients');
 
-          if (visibleItems.length === 0 && !hasVisibleClients) {
+          if (visibleItems.length === 0) {
             return null;
           }
 
           return (
-            <React.Fragment key={section.id}>
-              {/* Merged Single CLIENTS Navigation Button */}
-              {section.id === 'workforce' && isAllowed('clients') && (
-                <div>
-                  <button
-                    type="button"
-                    onClick={() => setActiveTab('clients')}
-                    className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all cursor-pointer group ${
-                      isClientsActive
-                        ? 'bg-teal-600 text-white font-bold shadow-xs'
-                        : 'text-slate-600 hover:text-teal-700 hover:bg-teal-50/70 hover:font-bold'
-                    }`}
-                  >
-                    <Building2
-                      className={`w-4 h-4 shrink-0 transition-transform group-hover:scale-110 ${
-                        isClientsActive ? 'text-white' : 'text-slate-400 group-hover:text-teal-600'
-                      }`}
-                    />
-                    <span>Client Master 360</span>
-                  </button>
+            <div key={section.id} className="space-y-1">
+              {/* Section Header Toggle */}
+              <button
+                type="button"
+                onClick={() => toggleSection(section.id)}
+                className="w-full flex items-center justify-between px-3 py-1.5 rounded-lg text-[10px] font-extrabold uppercase tracking-wider text-slate-400 hover:text-slate-800 hover:bg-slate-50 transition-colors cursor-pointer"
+              >
+                <span>{section.title}</span>
+                {isOpen ? (
+                  <ChevronUp className="w-3.5 h-3.5 text-slate-400" />
+                ) : (
+                  <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
+                )}
+              </button>
+
+              {/* Sub-items List */}
+              {isOpen && (
+                <div className="space-y-1 pl-1">
+                  {visibleItems.map((item) => {
+                    const ItemIcon = item.icon;
+                    const isActive =
+                      item.id === 'attendance'
+                        ? activeTab === 'attendance' ||
+                          activeTab === 'workforce-live' ||
+                          activeTab === 'workforce-policy' ||
+                          activeTab === 'workforce-timesheets'
+                        : activeTab === item.id;
+
+                    return (
+                      <button
+                        key={item.id}
+                        type="button"
+                        onClick={() => setActiveTab(item.id)}
+                        className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-semibold transition-all cursor-pointer group ${
+                          isActive
+                            ? 'bg-teal-600 text-white font-bold shadow-xs'
+                            : 'text-slate-600 hover:text-teal-700 hover:bg-teal-50/70 hover:font-bold'
+                        }`}
+                      >
+                        <div className="flex items-center gap-3 min-w-0">
+                          <ItemIcon
+                            className={`w-4 h-4 shrink-0 transition-transform group-hover:scale-110 ${
+                              isActive ? 'text-white' : 'text-slate-400 group-hover:text-teal-600'
+                            }`}
+                          />
+                          <span className="truncate">{item.label}</span>
+                        </div>
+                        {item.id === 'password-requests' && pendingResetCount > 0 && (
+                          <span className="px-1.5 py-0.2 rounded-full text-[9px] font-black bg-teal-600 text-white animate-pulse">
+                            {pendingResetCount}
+                          </span>
+                        )}
+                      </button>
+                    );
+                  })}
                 </div>
               )}
-
-              <div className="space-y-1">
-                {/* Section Header Toggle */}
-                <button
-                  type="button"
-                  onClick={() => toggleSection(section.id)}
-                  className="w-full flex items-center justify-between px-3 py-1.5 rounded-lg text-[10px] font-extrabold uppercase tracking-wider text-slate-400 hover:text-slate-800 hover:bg-slate-50 transition-colors cursor-pointer"
-                >
-                  <span>{section.title}</span>
-                  {isOpen ? (
-                    <ChevronUp className="w-3.5 h-3.5 text-slate-400" />
-                  ) : (
-                    <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
-                  )}
-                </button>
-
-                {/* Sub-items List */}
-                {isOpen && (
-                  <div className="space-y-1 pl-1">
-                    {visibleItems.map((item) => {
-                      const ItemIcon = item.icon;
-                      const isActive =
-                        item.id === 'attendance'
-                          ? activeTab === 'attendance' ||
-                            activeTab === 'workforce-live' ||
-                            activeTab === 'workforce-policy' ||
-                            activeTab === 'workforce-timesheets'
-                          : activeTab === item.id;
-
-                      return (
-                        <button
-                          key={item.id}
-                          type="button"
-                          onClick={() => setActiveTab(item.id)}
-                          className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-semibold transition-all cursor-pointer group ${
-                            isActive
-                              ? 'bg-teal-600 text-white font-bold shadow-xs'
-                              : 'text-slate-600 hover:text-teal-700 hover:bg-teal-50/70 hover:font-bold'
-                          }`}
-                        >
-                          <div className="flex items-center gap-3 min-w-0">
-                            <ItemIcon
-                              className={`w-4 h-4 shrink-0 transition-transform group-hover:scale-110 ${
-                                isActive ? 'text-white' : 'text-slate-400 group-hover:text-teal-600'
-                              }`}
-                            />
-                            <span className="truncate">{item.label}</span>
-                          </div>
-                          {item.id === 'password-requests' && pendingResetCount > 0 && (
-                            <span className="px-1.5 py-0.2 rounded-full text-[9px] font-black bg-teal-600 text-white animate-pulse">
-                              {pendingResetCount}
-                            </span>
-                          )}
-                        </button>
-                      );
-                    })}
-                  </div>
-                )}
-              </div>
-            </React.Fragment>
+            </div>
           );
         })}
       </div>
 
-      {/* Bottom Area: Single Platform Identity Tag + User Profile / Logout */}
+      {/* Bottom Area: Platform Identity Tag + User Profile / Logout */}
       <div className="p-3 border-t border-slate-200 bg-slate-50/70 space-y-2.5">
         <div className="flex items-center justify-between px-2.5 py-1.5 rounded-lg bg-teal-50 border border-teal-200">
           <div className="flex items-center gap-1.5">

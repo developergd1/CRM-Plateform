@@ -71,6 +71,30 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
           orderBy: { createdAt: 'desc' },
           take: 15,
         },
+        salaryAssignments: {
+          include: { structure: true },
+          orderBy: { createdAt: 'desc' },
+        },
+        payrollRecords: {
+          include: { period: true },
+          orderBy: { createdAt: 'desc' },
+          take: 12,
+        },
+        payslips: {
+          orderBy: { generatedAt: 'desc' },
+          take: 12,
+        },
+        goals: {
+          include: { keyResults: true },
+          orderBy: { createdAt: 'desc' },
+        },
+        performanceReviews: {
+          include: { cycle: true },
+          orderBy: { createdAt: 'desc' },
+        },
+        pmsAppraisals: {
+          orderBy: { createdAt: 'desc' },
+        },
       },
     });
 
@@ -142,56 +166,128 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
     };
 
     // Client assignment history
-    const clientHistory = await prisma.clientAssignment.findMany({
-      where: { toEmployeeId: employee.id },
-      include: {
-        client: { select: { id: true, clientId: true, companyName: true } },
-        assignedBy: { select: { id: true, fullName: true, employeeId: true } },
-      },
-      orderBy: { assignedAt: 'desc' },
-      take: 10,
-    });
+    const clientHistory = employee.client
+      ? [{ client: { id: employee.client.id, clientId: employee.client.clientId, companyName: employee.client.companyName } }]
+      : [];
 
     // Sanitized PII & masked documents
     const sanitizedPAN = employee.panNumber ? maskPAN(employee.panNumber) : null;
     const sanitizedAadhaar = employee.aadhaarMasked || (employee as any).aadharNumber || null;
 
-    const payload = {
-      employee: {
-        id: employee.id,
-        employeeId: employee.employeeId,
-        fullName: employee.fullName,
-        fatherMotherName: employee.fatherMotherName,
-        dob: employee.dob,
-        gender: employee.gender,
-        phone: employee.phone,
-        personalEmail: employee.personalEmail || employee.user?.email,
-        address: employee.address,
-        profilePhotoUrl: employee.profilePhotoUrl,
-        emergencyContact: employee.emergencyContact,
-        emergencyName: employee.emergencyName,
-        department: employee.departmentName || employee.department?.name || 'General Operations',
-        designation: employee.designation,
-        location: employee.location || employee.jobLocation || 'Headquarters',
-        employmentType: employee.employmentType,
-        joiningDate: employee.joiningDate,
-        probationEndDate: employee.probationEndDate,
-        shiftStartTime: employee.shiftStartTime,
-        shiftEndTime: employee.shiftEndTime,
-        status: employee.status,
-        isBlocked: employee.isBlocked,
-        blockedReason: employee.blockedReason,
-        accountStatus: employee.user?.isSuspended ? 'SUSPENDED' : employee.isBlocked ? 'BLOCKED' : employee.user?.isActive === false ? 'DEACTIVATED' : 'ACTIVE',
-        client: employee.client ? {
-          id: employee.client.id,
-          clientId: employee.client.clientId,
-          companyName: employee.client.companyName,
-          status: employee.client.status,
+    // Active salary assignment
+    const currentSalary = employee.salaryAssignments.find((s) => s.isCurrent) || employee.salaryAssignments[0] || null;
+
+      let salaryCustomConfig: any = null;
+      if (currentSalary) {
+        try {
+          const rawA = (await prisma.$runCommandRaw({
+            find: 'EmployeeSalaryAssignment',
+            filter: { _id: { $oid: currentSalary.id } },
+            limit: 1,
+          })) as any;
+          const aDoc = rawA?.cursor?.firstBatch?.[0];
+          if (aDoc?.customConfig) {
+            salaryCustomConfig =
+              typeof aDoc.customConfig === 'string'
+                ? JSON.parse(aDoc.customConfig)
+                : aDoc.customConfig;
+          }
+        } catch {
+          // Ignore fallback
+        }
+      }
+
+      const payload = {
+        employee: {
+          id: employee.id,
+          employeeId: employee.employeeId,
+          fullName: employee.fullName,
+          fatherMotherName: employee.fatherMotherName,
+          dob: employee.dob,
+          gender: employee.gender,
+          phone: employee.phone,
+          personalEmail: employee.personalEmail || employee.user?.email,
+          address: employee.address,
+          profilePhotoUrl: employee.profilePhotoUrl,
+          emergencyContact: employee.emergencyContact,
+          emergencyName: employee.emergencyName,
+          department: employee.departmentName || employee.department?.name || 'General Operations',
+          designation: employee.designation,
+          location: employee.location || employee.jobLocation || 'Headquarters',
+          employmentType: employee.employmentType,
+          joiningDate: employee.joiningDate,
+          probationEndDate: employee.probationEndDate,
+          shiftStartTime: employee.shiftStartTime,
+          shiftEndTime: employee.shiftEndTime,
+          status: employee.status,
+          isBlocked: employee.isBlocked,
+          blockedReason: employee.blockedReason,
+          accountStatus: employee.user?.isSuspended ? 'SUSPENDED' : employee.isBlocked ? 'BLOCKED' : employee.user?.isActive === false ? 'DEACTIVATED' : 'ACTIVE',
+          client: employee.client ? {
+            id: employee.client.id,
+            clientId: employee.client.clientId,
+            companyName: employee.client.companyName,
+            status: employee.client.status,
+          } : null,
+          reportingManager: employee.reportingManager,
+          subordinates: employee.subordinates,
+          createdAt: employee.createdAt,
+          updatedAt: employee.updatedAt,
+        },
+        statutoryInfo: {
+          pan: employee.panNumber,
+          panMasked: sanitizedPAN,
+          aadhaarMasked: sanitizedAadhaar,
+          pfUan: employee.pfUan || 'N/A',
+          esiNumber: employee.esiNumber || 'N/A',
+          ptState: employee.ptState || 'Maharashtra',
+        },
+        bankInfo: {
+          bankName: employee.bankName || 'HDFC Bank',
+          bankAccount: employee.bankAccount || currentSalary?.bankAccount || 'N/A',
+          bankIfsc: employee.bankIfsc || currentSalary?.bankIfsc || 'N/A',
+        },
+        salaryProfile: currentSalary ? {
+          assignmentId: currentSalary.id,
+          structureCode: currentSalary.structure?.code,
+          structureName: currentSalary.structure?.name,
+          annualCtc: currentSalary.annualCtc,
+          monthlyCtc: currentSalary.monthlyCtc,
+          effectiveFrom: currentSalary.effectiveFrom,
+          version: currentSalary.version,
+          isCurrent: currentSalary.isCurrent,
+          customConfig: salaryCustomConfig,
+          history: employee.salaryAssignments,
         } : null,
-        reportingManager: employee.reportingManager,
-        subordinates: employee.subordinates,
-        createdAt: employee.createdAt,
-        updatedAt: employee.updatedAt,
+      payroll: {
+        records: employee.payrollRecords.map((r) => ({
+          id: r.id,
+          periodCode: r.period.periodCode,
+          month: r.period.month,
+          year: r.period.year,
+          baseGross: r.baseGross,
+          lopDeduction: r.lopDeduction,
+          totalEarnings: r.totalEarnings,
+          totalDeductions: r.totalDeductions,
+          netPay: r.netPay,
+          status: r.status,
+        })),
+        payslips: employee.payslips.map((p) => ({
+          id: p.id,
+          payslipNumber: p.payslipNumber,
+          periodCode: p.periodCode,
+          grossEarnings: p.grossEarnings,
+          totalDeductions: p.totalDeductions,
+          netSalary: p.netSalary,
+          generatedAt: p.generatedAt,
+          isPublished: p.isPublished,
+          downloadToken: p.downloadToken,
+        })),
+      },
+      performance: {
+        goals: employee.goals,
+        reviews: employee.performanceReviews,
+        appraisals: employee.pmsAppraisals,
       },
       attendanceSummary: {
         totalRecords: totalPunches,

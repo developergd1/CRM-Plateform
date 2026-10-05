@@ -10,13 +10,14 @@ export interface HeartbeatPayload {
   sessionId?: string;
   deltaActiveSeconds?: number;
   deltaIdleSeconds?: number;
+  isDisconnect?: boolean;
 }
 
 export interface ActivityEventData {
   employeeId: string;
   clientId?: string;
-  eventType: string; // 'PAGE_VIEW' | 'CRM_ACTION' | 'ATTENDANCE_ACTION' | 'IDLE_TRANSITION' | 'WORK_TRANSITION' | 'CHECK_IN' | 'CHECK_OUT' | 'BREAK_START' | 'BREAK_END'
-  module?: string;    // 'CRM' | 'ATTENDANCE' | 'DOCS' | 'DASHBOARD'
+  eventType: string; // 'PAGE_VIEW' | 'OPERATIONS_ACTION' | 'ATTENDANCE_ACTION' | 'IDLE_TRANSITION' | 'WORK_TRANSITION' | 'CHECK_IN' | 'CHECK_OUT' | 'BREAK_START' | 'BREAK_END'
+  module?: string;    // 'CMS' | 'HRM' | 'ATTENDANCE' | 'DOCS' | 'DASHBOARD'
   description: string;
   metadata?: Record<string, any>;
   ipAddress?: string;
@@ -40,7 +41,7 @@ export async function getOrCreateActiveSession(userId: string, employeeId: strin
     where: {
       employeeId,
       loginTimestamp: { lt: todayStart },
-      status: { in: ['ACTIVE', 'IDLE', 'ON_BREAK'] },
+      status: { in: ['ACTIVE', 'IDLE', 'ON_BREAK', 'DISCONNECTED'] },
     },
     data: {
       status: 'COMPLETED',
@@ -51,12 +52,20 @@ export async function getOrCreateActiveSession(userId: string, employeeId: strin
     where: {
       employeeId,
       loginTimestamp: { gte: todayStart },
-      status: { in: ['ACTIVE', 'IDLE', 'ON_BREAK'] },
+      status: { in: ['ACTIVE', 'IDLE', 'ON_BREAK', 'DISCONNECTED'] },
     },
     orderBy: { createdAt: 'desc' },
   });
 
   if (existing) {
+    if (existing.status === 'DISCONNECTED') {
+      return prisma.workSession.update({
+        where: { id: existing.id },
+        data: {
+          status: 'ACTIVE',
+        },
+      });
+    }
     return existing;
   }
 
@@ -97,7 +106,7 @@ export async function getEmployeeActiveSession(employeeId: string) {
     where: {
       employeeId,
       loginTimestamp: { gte: todayStart },
-      status: { in: ['ACTIVE', 'IDLE', 'ON_BREAK'] },
+      status: { in: ['ACTIVE', 'IDLE', 'ON_BREAK', 'DISCONNECTED'] },
     },
     orderBy: { createdAt: 'desc' },
   });
@@ -127,7 +136,7 @@ export async function endWorkSession(sessionId: string) {
  * Accumulates active & idle seconds, updates lastHeartbeatAt.
  */
 export async function processHeartbeat(
-  arg1: string | { employeeId: string; userId?: string; sessionId?: string; isIdle?: boolean; deltaActiveSeconds?: number; deltaIdleSeconds?: number },
+  arg1: string | { employeeId: string; userId?: string; sessionId?: string; isIdle?: boolean; deltaActiveSeconds?: number; deltaIdleSeconds?: number; isDisconnect?: boolean },
   arg2?: string,
   arg3?: HeartbeatPayload
 ) {
@@ -143,6 +152,7 @@ export async function processHeartbeat(
       activeDeltaSeconds: arg1.deltaActiveSeconds,
       idleDeltaSeconds: arg1.deltaIdleSeconds,
       sessionId: arg1.sessionId,
+      isDisconnect: arg1.isDisconnect,
     };
   } else {
     userId = arg1;
@@ -155,7 +165,7 @@ export async function processHeartbeat(
       ? { sessionId: payload.sessionId }
       : {
           employeeId,
-          status: { in: ['ACTIVE', 'IDLE', 'ON_BREAK'] },
+          status: { in: ['ACTIVE', 'IDLE', 'ON_BREAK', 'DISCONNECTED'] },
         },
     orderBy: { createdAt: 'desc' },
   });
@@ -184,8 +194,11 @@ export async function processHeartbeat(
     }
   } catch (e) {}
 
-  const activeDelta = Math.min(Math.max(0, payload.activeDeltaSeconds ?? payload.deltaActiveSeconds ?? 0), 120);
-  const idleDelta = Math.min(Math.max(0, payload.idleDeltaSeconds ?? payload.deltaIdleSeconds ?? 0), 120);
+  const rawActiveDelta = Math.max(0, payload.activeDeltaSeconds ?? payload.deltaActiveSeconds ?? 0);
+  const activeDelta = Math.min(rawActiveDelta, 14400); // Allow legitimate background work on other tabs/slides
+
+  const rawIdleDelta = Math.max(0, payload.idleDeltaSeconds ?? payload.deltaIdleSeconds ?? 0);
+  const idleDelta = Math.min(rawIdleDelta, 14400);
 
   const prevActive = meta.activeSeconds || session?.activeSeconds || 0;
   const prevIdle = meta.idleSeconds || 0;
@@ -194,7 +207,9 @@ export async function processHeartbeat(
   const newIdleSec = prevIdle + idleDelta;
 
   let sessionStatus = 'ACTIVE';
-  if (!isCheckedIn) {
+  if (payload.isDisconnect) {
+    sessionStatus = 'DISCONNECTED';
+  } else if (!isCheckedIn) {
     sessionStatus = 'ACTIVE';
   } else if (hasOpenBreak) {
     sessionStatus = 'ON_BREAK';
@@ -212,6 +227,7 @@ export async function processHeartbeat(
     currentRoute: payload.currentRoute || meta.currentRoute,
     actionContext: payload.actionContext || meta.actionContext,
     status: sessionStatus,
+    ...(payload.isDisconnect ? { disconnectedAt: now.toISOString() } : {}),
   };
 
   if (session) {
@@ -221,6 +237,16 @@ export async function processHeartbeat(
         activeSeconds: newActiveSec,
         status: sessionStatus,
         deviceInfo: JSON.stringify(updatedMeta),
+      },
+    });
+  }
+
+  // Synchronize attendance totalWorkMinutes in real-time
+  if (attendance && isCheckedIn) {
+    await prisma.attendance.update({
+      where: { id: attendance.id },
+      data: {
+        totalWorkMinutes: Math.floor(newActiveSec / 60),
       },
     });
   }
@@ -308,7 +334,7 @@ export function evaluateWorkforceStatus(params: {
 }): 'WORKING' | 'IDLE' | 'ON_BREAK' | 'OFFLINE' | 'MISSING_CHECKIN' {
   const { attendance, activeSession, staleThresholdMinutes = 5 } = params;
 
-  if (!activeSession || activeSession.status === 'COMPLETED') {
+  if (!activeSession || activeSession.status === 'COMPLETED' || activeSession.status === 'DISCONNECTED') {
     return 'OFFLINE';
   }
 
@@ -331,8 +357,9 @@ export function evaluateWorkforceStatus(params: {
   const sessionAgeMs = now.getTime() - new Date(activeSession.loginTimestamp).getTime();
   const heartbeatAgeMs = lastHeartbeat ? now.getTime() - lastHeartbeat.getTime() : sessionAgeMs;
 
-  // If no heartbeat for > 15m, user is offline
-  if (heartbeatAgeMs > 15 * 60 * 1000) {
+  // Real-time presence detection: Client sends heartbeats every 12 seconds.
+  // If no heartbeat arrives for > 35 seconds (tab closed, laptop shut down, sleep), mark OFFLINE immediately.
+  if (heartbeatAgeMs > 35 * 1000) {
     return 'OFFLINE';
   }
 
@@ -343,8 +370,8 @@ export function evaluateWorkforceStatus(params: {
 
   // Has active session but hasn't checked in for today
   if (!attendance || !attendance.checkInTime) {
-    // Only show MISSING_CHECKIN if the heartbeat is within 10 minutes, otherwise OFFLINE
-    if (heartbeatAgeMs <= 10 * 60 * 1000) {
+    // Only show MISSING_CHECKIN if the heartbeat is actively alive (<= 35s), otherwise OFFLINE
+    if (heartbeatAgeMs <= 35 * 1000) {
       return 'MISSING_CHECKIN';
     }
     return 'OFFLINE';

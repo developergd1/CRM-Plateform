@@ -5,11 +5,12 @@ import { useAuth } from '@/context/AuthContext';
 import { AdminLoginView } from '@/components/auth/AdminLoginView';
 import { AdminPlatformGateway, PlatformProfile } from '@/components/admin/AdminPlatformGateway';
 import { CmsPlatformShell } from '@/components/cms/CmsPlatformShell';
-import { CrmPlatformShell } from '@/components/layout/CrmPlatformShell';
 import { HrmPlatformShell } from '@/components/hrm/HrmPlatformShell';
+import { CrmPlatformShell } from '@/components/layout/CrmPlatformShell';
 import { GrowthIndiaLogo } from '@/components/brand/GrowthIndiaLogo';
-import { ShieldAlert, ArrowLeft, LogOut } from 'lucide-react';
+import { ShieldAlert, ArrowLeft, LogOut, Lock } from 'lucide-react';
 import Link from 'next/link';
+import { canAdminAccessPlatform } from '@/lib/rbac';
 
 export const AdminConsoleShell: React.FC = () => {
   const { user, loading, logout } = useAuth();
@@ -22,13 +23,32 @@ export const AdminConsoleShell: React.FC = () => {
       const saved = localStorage.getItem('gi_admin_selected_platform') as any;
       if (saved === 'EMPLOYEE_MANAGEMENT' || saved === 'CMS') {
         setSelectedPlatform('CMS');
-      } else if (saved === 'CRM' || saved === 'HRM' || saved === 'GATEWAY') {
+      } else if (saved === 'HRM' || saved === 'GATEWAY' || saved === 'CRM') {
         setSelectedPlatform(saved);
       }
     } catch {}
   }, []);
 
+  // When user is loaded and delegated, ensure they are directed to an authorized platform
+  useEffect(() => {
+    if (user?.isDelegated) {
+      const canCurrent = canAdminAccessPlatform(user, selectedPlatform);
+      if (!canCurrent) {
+        if (canAdminAccessPlatform(user, 'CMS')) {
+          setSelectedPlatform('CMS');
+        } else if (canAdminAccessPlatform(user, 'HRM')) {
+          setSelectedPlatform('HRM');
+        } else {
+          setSelectedPlatform('GATEWAY');
+        }
+      }
+    }
+  }, [user, selectedPlatform]);
+
   const handleSelectPlatform = (platform: PlatformProfile) => {
+    if (user?.isDelegated && !canAdminAccessPlatform(user, platform)) {
+      return;
+    }
     setSelectedPlatform(platform);
     try {
       localStorage.setItem('gi_admin_selected_platform', platform);
@@ -72,7 +92,7 @@ export const AdminConsoleShell: React.FC = () => {
             </Link>
             <button
               onClick={() => logout()}
-              className="py-2 px-4 bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white font-bold text-xs rounded-xl transition-all flex items-center justify-center gap-1.5"
+              className="py-2 px-4 bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white font-bold text-xs rounded-xl transition-all flex items-center justify-center gap-1.5 cursor-pointer"
             >
               <LogOut className="w-4 h-4" />
               <span>Sign Out & Switch Account</span>
@@ -83,14 +103,50 @@ export const AdminConsoleShell: React.FC = () => {
     );
   }
 
-  // Render the Selected Platform Environment
+  // Render Access Restricted view helper
+  const renderRestrictedPlatform = (platformName: string) => (
+    <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
+      <div className="max-w-md w-full bg-white border border-slate-200 rounded-3xl p-8 text-center space-y-5 shadow-xl">
+        <div className="w-14 h-14 mx-auto rounded-2xl bg-rose-50 text-rose-600 border border-rose-200 flex items-center justify-center font-bold">
+          <Lock className="w-7 h-7" />
+        </div>
+        <div className="space-y-1.5">
+          <h2 className="text-lg font-black text-slate-900">{platformName} Access Restricted</h2>
+          <p className="text-xs text-slate-500 leading-relaxed">
+            Your delegated administrator profile does not have authority to access the <strong className="text-slate-800">{platformName}</strong> platform.
+          </p>
+        </div>
+        <div className="pt-2 flex flex-col gap-2">
+          <button
+            type="button"
+            onClick={() => handleSelectPlatform('GATEWAY')}
+            className="w-full py-2.5 px-4 bg-[#0D9488] hover:bg-[#0F766E] text-white font-bold text-xs rounded-xl transition-all shadow-xs cursor-pointer"
+          >
+            Return to Operating Gateway
+          </button>
+          <button
+            type="button"
+            onClick={() => logout()}
+            className="w-full py-2 px-4 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-xl transition-all cursor-pointer"
+          >
+            Sign Out
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+
+  // Render the Selected Platform Environment with RBAC guard
   switch (selectedPlatform) {
     case 'CMS':
+      if (!canAdminAccessPlatform(user, 'CMS')) return renderRestrictedPlatform('Client Management (CMS)');
       return <CmsPlatformShell onSelectPlatform={handleSelectPlatform} />;
-    case 'CRM':
-      return <CrmPlatformShell onSelectPlatform={handleSelectPlatform} />;
     case 'HRM':
+      if (!canAdminAccessPlatform(user, 'HRM')) return renderRestrictedPlatform('Enterprise HRM Suite');
       return <HrmPlatformShell onSelectPlatform={handleSelectPlatform} />;
+    case 'CRM':
+      if (!canAdminAccessPlatform(user, 'CRM')) return renderRestrictedPlatform('CRM Sales Platform');
+      return <CrmPlatformShell onSelectPlatform={handleSelectPlatform} />;
     case 'GATEWAY':
     default:
       return <AdminPlatformGateway onSelectPlatform={handleSelectPlatform} />;

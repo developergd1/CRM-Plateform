@@ -19,7 +19,7 @@ import {
   Clock,
   X,
 } from 'lucide-react';
-import { AddClientModal } from '../crm/AddClientModal';
+import { AddClientModal } from '../clients/AddClientModal';
 import { AddEmployeeModal } from '../employees/AddEmployeeModal';
 import { EmployeeOnboardingWizard } from '../employees/EmployeeOnboardingWizard';
 
@@ -82,7 +82,7 @@ export const DashboardView: React.FC<{ onNavigate: (tab: string) => void }> = ({
         <div className="z-10">
           <div className="inline-flex items-center gap-2 px-3 py-1 bg-white/10 rounded-full text-xs font-semibold text-growth-gold mb-2 border border-white/10 backdrop-blur-sm">
             <Sparkles className="w-3.5 h-3.5" />
-            <span>Growth India CRM • Phase 1 Executive Console</span>
+            <span>Growth India Enterprise Platform</span>
           </div>
           <h1 className="text-2xl font-black tracking-tight">
             Welcome, {user?.fullName}!
@@ -192,123 +192,129 @@ export const DashboardView: React.FC<{ onNavigate: (tab: string) => void }> = ({
         </div>
       </div>
 
-      {/* CRM & Revenue Pipeline Executive Ribbon */}
+      {/* Workforce & Operations Management Ribbon */}
       <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 text-white shadow-xl">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-5 pb-4 border-b border-slate-800">
           <div>
             <div className="flex items-center gap-2">
               <Sparkles className="w-4 h-4 text-growth-gold" />
-              <h2 className="text-base font-extrabold tracking-tight">CRM & Pipeline Performance</h2>
+              <h2 className="text-base font-extrabold tracking-tight">Workforce & Operations Management</h2>
               <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-growth-teal/20 text-growth-teal border border-growth-teal/30">
-                Live Data
+                Live Console
               </span>
             </div>
             <p className="text-xs text-slate-400 mt-0.5">
-              Multi-tier corporate client pipeline, inbound inquiries, and deal progress
+              Client accounts, employee deployments, shift turnouts, and governance
             </p>
           </div>
 
           <div className="flex items-center gap-2">
             <button
-              onClick={() => onNavigate('crm-leads')}
+              onClick={() => onNavigate('clients')}
               className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold rounded-xl transition-all border border-slate-700"
             >
-              Leads
+              Clients
             </button>
             <button
-              onClick={() => onNavigate('crm-pipeline')}
+              onClick={() => onNavigate('employees')}
               className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold rounded-xl transition-all border border-slate-700"
             >
-              Pipeline
+              Employees
             </button>
             <button
-              onClick={() => onNavigate('crm-deals')}
+              onClick={() => onNavigate('attendance')}
               className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold rounded-xl transition-all border border-slate-700"
             >
-              Deals
+              Attendance
+            </button>
+            <button
+              onClick={() => onNavigate('tasks')}
+              className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold rounded-xl transition-all border border-slate-700"
+            >
+              Tasks
             </button>
           </div>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          {/* Total Leads */}
+          {/* Active Clients */}
           <div
-            onClick={() => onNavigate('crm-leads')}
+            onClick={() => onNavigate('clients')}
             className="bg-slate-950/60 p-4 rounded-2xl border border-slate-800 hover:border-growth-teal transition-all cursor-pointer group"
           >
             <div className="flex items-center justify-between">
-              <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Inbound Leads</span>
-              <div className="w-8 h-8 rounded-lg bg-blue-500/10 text-blue-400 flex items-center justify-center group-hover:scale-105 transition-transform">
-                <Users className="w-4 h-4" />
+              <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Client Accounts</span>
+              <div className="w-8 h-8 rounded-lg bg-teal-500/10 text-teal-400 flex items-center justify-center group-hover:scale-105 transition-transform">
+                <Building2 className="w-4 h-4" />
               </div>
             </div>
             <div className="mt-2 flex items-baseline gap-2">
-              <span className="text-2xl font-black text-white">{stats?.crm?.totalLeads ?? 0}</span>
-              <span className="text-[11px] text-blue-400 font-semibold">Active Inquiries</span>
+              <span className="text-2xl font-black text-white">{stats?.totalClients ?? 0}</span>
+              <span className="text-[11px] text-teal-400 font-semibold">Active Organizations</span>
             </div>
-            <p className="text-[10px] text-slate-500 mt-1">Direct website & campaign intake</p>
+            <p className="text-[10px] text-slate-500 mt-1">Multi-tenant client organizations</p>
           </div>
 
-          {/* Pipeline Opportunities */}
+          {/* Working Now */}
           <div
-            onClick={() => onNavigate('crm-pipeline')}
+            onClick={() => onNavigate('attendance')}
             className="bg-slate-950/60 p-4 rounded-2xl border border-slate-800 hover:border-growth-gold transition-all cursor-pointer group"
           >
             <div className="flex items-center justify-between">
-              <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Pipeline Opportunities</span>
+              <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Active On Duty</span>
               <div className="w-8 h-8 rounded-lg bg-amber-500/10 text-amber-400 flex items-center justify-center group-hover:scale-105 transition-transform">
-                <TrendingUp className="w-4 h-4" />
+                <Clock className="w-4 h-4" />
               </div>
             </div>
             <div className="mt-2 flex items-baseline gap-2">
               <span className="text-2xl font-black text-growth-gold">
-                ₹{(stats?.crm?.pipelineValue || 0).toLocaleString()}
+                {stats?.workingNow ?? 0}
               </span>
               <span className="text-[11px] text-amber-400 font-semibold">
-                ({stats?.crm?.totalOpportunities ?? 0} active)
+                Staff Clocked In
               </span>
             </div>
-            <p className="text-[10px] text-slate-500 mt-1">Proposal & negotiation stage value</p>
+            <p className="text-[10px] text-slate-500 mt-1">Currently working on active shift</p>
           </div>
 
-          {/* Closed Won Deals */}
+          {/* Present Today */}
           <div
-            onClick={() => onNavigate('crm-deals')}
+            onClick={() => onNavigate('attendance')}
             className="bg-slate-950/60 p-4 rounded-2xl border border-slate-800 hover:border-emerald-500 transition-all cursor-pointer group"
           >
             <div className="flex items-center justify-between">
-              <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Closed Won Revenue</span>
+              <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Attendance Turnout</span>
               <div className="w-8 h-8 rounded-lg bg-emerald-500/10 text-emerald-400 flex items-center justify-center group-hover:scale-105 transition-transform">
                 <CheckCircle2 className="w-4 h-4" />
               </div>
             </div>
             <div className="mt-2 flex items-baseline gap-2">
               <span className="text-2xl font-black text-emerald-400">
-                ₹{(stats?.crm?.wonDealsValue || 0).toLocaleString()}
+                {stats?.presentToday ?? 0}
               </span>
               <span className="text-[11px] text-emerald-500 font-semibold">
-                ({stats?.crm?.totalDeals ?? 0} deals)
+                ({stats?.attendancePercentage ?? 0}%)
               </span>
             </div>
-            <p className="text-[10px] text-slate-500 mt-1">Total recognized contract value</p>
+            <p className="text-[10px] text-slate-500 mt-1">Today&apos;s verified attendance</p>
           </div>
 
-          {/* Pending Tasks */}
+          {/* Restricted Accounts */}
           <div
-            onClick={() => onNavigate('crm-tasks')}
-            className="bg-slate-950/60 p-4 rounded-2xl border border-slate-800 hover:border-indigo-500 transition-all cursor-pointer group"
+            onClick={() => onNavigate('block-history')}
+            className="bg-slate-950/60 p-4 rounded-2xl border border-slate-800 hover:border-rose-500 transition-all cursor-pointer group"
           >
             <div className="flex items-center justify-between">
-              <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Open Tasks & Follow-ups</span>
-              <div className="w-8 h-8 rounded-lg bg-indigo-500/10 text-indigo-400 flex items-center justify-center group-hover:scale-105 transition-transform">
-                <Clock className="w-4 h-4" />
+              <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Security Restrictions</span>
+              <div className="w-8 h-8 rounded-lg bg-rose-500/10 text-rose-400 flex items-center justify-center group-hover:scale-105 transition-transform">
+                <ShieldAlert className="w-4 h-4" />
               </div>
             </div>
             <div className="mt-2 flex items-baseline gap-2">
-              <span className="text-2xl font-black text-indigo-400">{stats?.crm?.openTasksCount ?? 0}</span>
-              <span className="text-[11px] text-indigo-400 font-semibold">Action Required</span>
+              <span className="text-2xl font-black text-rose-400">{stats?.blockedEmployees ?? 0}</span>
+              <span className="text-[11px] text-rose-400 font-semibold">Blocked Staff</span>
             </div>
-            <p className="text-[10px] text-slate-500 mt-1">Pending activities across clients</p>
+            <p className="text-[10px] text-slate-500 mt-1">Audit log of blocked employees</p>
           </div>
         </div>
       </div>

@@ -8,14 +8,27 @@ interface TimePicker12Props {
   disabled?: boolean;
 }
 
-// Convert "HH:mm" (24h) to 12h object
-export function parseTimeTo12(time24: string) {
-  if (!time24 || time24 === 'FLEXIBLE') {
+// Convert "HH:mm" (24h) or "hh:mm AM/PM" to 12h object
+export function parseTimeTo12(time: string) {
+  if (!time || time === 'FLEXIBLE') {
     return { hour: '09', minute: '30', period: 'AM' as const };
   }
-  const parts = time24.split(':');
+  const trimmed = time.trim();
+  const match12 = trimmed.match(/^(\d{1,2}):(\d{2})\s*(AM|PM|am|pm)$/i);
+  if (match12) {
+    let h = parseInt(match12[1], 10);
+    if (h === 0) h = 12;
+    if (h > 12) h = h % 12 || 12;
+    return {
+      hour: h.toString().padStart(2, '0'),
+      minute: match12[2],
+      period: match12[3].toUpperCase() as 'AM' | 'PM',
+    };
+  }
+
+  const parts = trimmed.split(':');
   let h = parseInt(parts[0], 10);
-  const m = parts[1] ? parts[1].padStart(2, '0') : '00';
+  const m = parts[1] ? parts[1].slice(0, 2).padStart(2, '0') : '00';
   if (isNaN(h)) return { hour: '09', minute: '30', period: 'AM' as const };
 
   const period: 'AM' | 'PM' = h >= 12 ? 'PM' : 'AM';
@@ -38,12 +51,32 @@ export function formatTime12To24(hour: string, minute: string, period: 'AM' | 'P
   return `${h.toString().padStart(2, '0')}:${minute.padStart(2, '0')}`;
 }
 
-// Format "18:30" -> "06:30 PM", "09:30" -> "09:30 AM"
-export function formatTo12Hour(time24: string): string {
-  if (!time24) return '';
-  if (time24 === 'FLEXIBLE') return 'Flexible Hours';
-  const { hour, minute, period } = parseTimeTo12(time24);
-  return `${hour}:${minute} ${period}`;
+// Format "18:30" -> "06:30 PM", "09:30" -> "09:30 AM", "10:00" -> "10:00 AM", "19:00" -> "07:00 PM"
+export function formatTo12Hour(time: string | null | undefined): string {
+  if (!time) return '';
+  const trimmed = time.trim();
+  if (trimmed.toUpperCase() === 'FLEXIBLE') return 'Flexible Hours';
+
+  const match12 = trimmed.match(/^(\d{1,2}):(\d{2})\s*(AM|PM|am|pm)$/i);
+  if (match12) {
+    const h = parseInt(match12[1], 10).toString().padStart(2, '0');
+    const m = match12[2];
+    const p = match12[3].toUpperCase();
+    return `${h}:${m} ${p}`;
+  }
+
+  const match24 = trimmed.match(/^(\d{1,2}):(\d{2})/);
+  if (match24) {
+    let h = parseInt(match24[1], 10);
+    const m = match24[2];
+    if (isNaN(h)) return trimmed;
+    const period: 'AM' | 'PM' = h >= 12 ? 'PM' : 'AM';
+    h = h % 12;
+    if (h === 0) h = 12;
+    return `${h.toString().padStart(2, '0')}:${m} ${period}`;
+  }
+
+  return trimmed;
 }
 
 // Format Date object or ISO string to 12-hr string with AM/PM (e.g. "10:34 PM" or "11:10:08 PM")

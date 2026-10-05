@@ -2,11 +2,11 @@
 
 import React from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { Client360View } from '@/components/crm/clients/Client360View';
+import { CmsSelectedClientShell } from '@/components/cms/CmsSelectedClientShell';
 import { Header } from '@/components/layout/Header';
 import { Sidebar } from '@/components/layout/Sidebar';
 
-export default function Client360Page() {
+export default function ClientPage() {
   const params = useParams();
   const router = useRouter();
   const clientId = (params?.clientId || params?.id) as string;
@@ -18,21 +18,9 @@ export default function Client360Page() {
         <Header />
         <main className="flex-1 overflow-y-auto p-6 md:p-8">
           <div className="max-w-7xl mx-auto">
-            <Client360View
+            <CmsSelectedClientShell
               clientId={clientId}
               onBack={() => router.back()}
-              onNavigate={(tab, id) => {
-                if (tab === 'deals' && id) router.push(`/growthIndia/crm/deals/${id}`);
-                else if (tab === 'leads' && id) router.push(`/growthIndia/crm/leads`);
-                else if (tab === 'workforce') {
-                  try {
-                    localStorage.setItem('gi_admin_selected_platform', 'CMS');
-                    localStorage.setItem('gi_cms_selected_client_id', clientId);
-                    localStorage.setItem('gi_cms_client_subtab', 'ems');
-                  } catch {}
-                  router.push('/growthIndia');
-                }
-              }}
             />
           </div>
         </main>

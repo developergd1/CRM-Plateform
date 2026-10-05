@@ -32,37 +32,55 @@ interface PermissionOption {
 }
 
 const ADMIN_PERMISSIONS: PermissionOption[] = [
-  // CRM Modules
-  { key: 'crm-dashboard', label: 'CRM Dashboard', description: 'View CRM sales performance and executive stats', category: 'CRM Suite' },
-  { key: 'crm-leads', label: 'Leads Management', description: 'View, add, and manage CRM leads & prospects', category: 'CRM Suite' },
-  { key: 'crm-contacts', label: 'Contacts Directory', description: 'Access verified business contacts & accounts', category: 'CRM Suite' },
-  { key: 'crm-deals', label: 'Deals & Revenue', description: 'Manage sales deals, revenue stages, and contracts', category: 'CRM Suite' },
-  { key: 'crm-pipeline', label: 'Sales Pipeline (Kanban)', description: 'Interactive drag-and-drop sales pipeline', category: 'CRM Suite' },
-  { key: 'crm-activities', label: 'Activities & Calls', description: 'Log client meetings, calls, and interactions', category: 'CRM Suite' },
-  { key: 'crm-followups', label: 'Tasks & Follow-ups', description: 'Track scheduled follow-ups and deadlines', category: 'CRM Suite' },
-  { key: 'crm-reports', label: 'CRM Analytics & Reports', description: 'View advanced revenue analytics and charts', category: 'CRM Suite' },
+  // 1. Workforce & EMS Modules
+  { key: 'dashboard', label: 'Executive Dashboard', description: 'Real-time overview of workforce metrics, KPIs, and alerts', category: 'Workforce & EMS' },
+  { key: 'clients', label: 'Clients Directory', description: 'View corporate client profiles, organizations, and accounts', category: 'Workforce & EMS' },
+  { key: 'employees', label: 'Employees Directory', description: 'Access staff records, documents, IDs, and profiles', category: 'Workforce & EMS' },
+  { key: 'onboarding', label: 'Employee Onboarding Wizard', description: 'Multi-step employee provisioning and activation wizard', category: 'Workforce & EMS' },
+  { key: 'attendance', label: 'Attendance & Workforce Clock', description: 'View attendance logs, daily check-ins, and timesheets', category: 'Workforce & EMS' },
+  { key: 'leave', label: 'Leave Management', description: 'Review staff leave applications and approval workflows', category: 'Workforce & EMS' },
+  { key: 'tasks', label: 'Tasks & Delegation', description: 'Assign tasks, monitor milestone deadlines and progress', category: 'Workforce & EMS' },
+  { key: 'reports', label: 'Workforce Reports & Analytics', description: 'Generate headcount, attendance, and compliance reports', category: 'Workforce & EMS' },
 
-  // Workforce Modules
-  { key: 'clients', label: 'Clients Directory', description: 'View corporate client profiles and accounts', category: 'Workforce & Clients' },
-  { key: 'employees', label: 'Employees Directory', description: 'Access staff records, documents, and profiles', category: 'Workforce & Clients' },
-  { key: 'onboarding', label: 'Enterprise Employee Onboarding', description: 'Multi-step employee provisioning and activation wizard', category: 'Workforce & Clients' },
-  { key: 'attendance', label: 'Attendance & Workforce', description: 'View attendance logs, check-ins, and timesheets', category: 'Workforce & Clients' },
-  { key: 'leave', label: 'Leave Management', description: 'Review leave applications and approvals', category: 'Workforce & Clients' },
+  // 2. Enterprise HRM Suite Modules
+  { key: 'hrm-dashboard', label: 'HRM Dashboard & Metrics', description: 'High-level HRM KPIs, staff distribution, and department health', category: 'Human Resources (HRM)' },
+  { key: 'hrm-lifecycle', label: 'Staff Lifecycle & 360 View', description: '9-stage Kanban lifecycle, employee 360, and probation tracking', category: 'Human Resources (HRM)' },
+  { key: 'hrm-recruitment', label: 'Recruitment & Job Openings (ATS)', description: 'Job requisition, candidate tracking, and hiring pipelines', category: 'Human Resources (HRM)' },
+  { key: 'hrm-payroll', label: 'Payroll & Salary Compliance', description: 'Salary calculations, payslips, deductions, and finalization', category: 'Human Resources (HRM)' },
+  { key: 'hrm-performance', label: 'PMS & OKR Performance Reviews', description: 'Quarterly appraisals, OKRs, goals, and feedback loops', category: 'Human Resources (HRM)' },
+  { key: 'hrm-helpdesk', label: 'Employee HR Helpdesk', description: 'Internal staff grievance handling, tickets, and inquiries', category: 'Human Resources (HRM)' },
+  { key: 'hrm-organization', label: 'Organization Units & Departments', description: 'Manage corporate hierarchy, departments, and designations', category: 'Human Resources (HRM)' },
+  { key: 'hrm-workflows', label: 'Workflow & Automation Engine', description: 'Custom multi-tier approval chains and business rules', category: 'Human Resources (HRM)' },
+  { key: 'hrm-shifts', label: 'Shifts & Timesheet Policies', description: 'Shift scheduling, rotational shifts, and overtime policies', category: 'Human Resources (HRM)' },
 
-  // Security Modules
-  { key: 'block-history', label: 'Block / Unblock History', description: 'View and manage security blocks on employees', category: 'Security & Governance' },
-  { key: 'password-requests', label: 'Password Reset Requests', description: 'Process employee password reset approvals', category: 'Security & Governance' },
-  { key: 'audit-logs', label: 'Audit Logs & Governance', description: 'View audit trails, security events, and logins', category: 'Security & Governance' },
+  // 3. Security & Governance
+  { key: 'block-history', label: 'Block / Unblock Staff', description: 'View security block logs and suspend/restore staff access', category: 'Security & Governance' },
+  { key: 'password-requests', label: 'Password Reset Requests', description: 'Process employee and client password reset requests', category: 'Security & Governance' },
+  { key: 'audit-logs', label: 'Immutable Audit Logs', description: 'View immutable system audit trails and login security', category: 'Security & Governance' },
+  { key: 'admin-invites', label: 'Admin Team & Access Delegation', description: 'Manage platform invitations and access delegation', category: 'Security & Governance' },
 ];
 
 const CLIENT_PERMISSIONS: PermissionOption[] = [
-  { key: 'overview', label: 'Dashboard Overview', description: 'View company KPI summary and team count', category: 'Client Operations' },
-  { key: 'employees', label: 'My Employees Directory', description: 'Access staff assigned to your company', category: 'Client Operations' },
-  { key: 'onboarding', label: 'Employee Onboarding Wizard', description: '8-step enterprise employee provisioning and activation', category: 'Client Operations' },
-  { key: 'attendance', label: 'Attendance & Timesheets', description: 'View staff check-ins and monthly timesheets', category: 'Client Operations' },
-  { key: 'tasks', label: 'Tasks & Follow-ups', description: 'Assign tasks and track execution status', category: 'Client Operations' },
-  { key: 'requests', label: 'Password Reset Requests', description: 'View and approve employee credentials resets', category: 'Client Operations' },
-  { key: 'history', label: 'Security & Block History', description: 'View employee status audit logs and history', category: 'Client Operations' },
+  // 1. Core Workforce (EMS)
+  { key: 'overview', label: 'Company Overview Dashboard', description: 'View company KPI summary, headcount, and live team status', category: 'Core Workforce (EMS)' },
+  { key: 'employees', label: 'My Employees Directory', description: 'Access staff assigned to your company and manage records', category: 'Core Workforce (EMS)' },
+  { key: 'onboarding', label: 'Employee Onboarding Wizard', description: '8-step enterprise employee provisioning and activation', category: 'Core Workforce (EMS)' },
+  { key: 'attendance', label: 'Attendance & Timesheets', description: 'View staff check-ins, punch history, and timesheet reports', category: 'Core Workforce (EMS)' },
+  { key: 'tasks', label: 'Tasks & Follow-ups', description: 'Assign tasks to workforce and track completion status', category: 'Core Workforce (EMS)' },
+  { key: 'documents', label: 'Employee Documents Vault', description: 'Access uploaded KYC files, contracts, and certificates', category: 'Core Workforce (EMS)' },
+  { key: 'requests', label: 'Password Reset Requests', description: 'View and approve employee credentials reset requests', category: 'Core Workforce (EMS)' },
+  { key: 'history', label: 'Security & Block History', description: 'View employee security status logs and block records', category: 'Core Workforce (EMS)' },
+
+  // 2. Human Resources (HRM Suite)
+  { key: 'hrm-dashboard', label: 'HRM Dashboard & Metrics', description: 'Department KPIs, turnover metrics, and HR health cards', category: 'Human Resources (HRM)' },
+  { key: 'hrm-lifecycle', label: 'Staff Lifecycle & 360 View', description: 'Staff progression, lifecycle stages, and 360 employee dossiers', category: 'Human Resources (HRM)' },
+  { key: 'hrm-recruitment', label: 'Recruitment & Job Openings (ATS)', description: 'Create job postings, review applicant resumes, and track hires', category: 'Human Resources (HRM)' },
+  { key: 'hrm-payroll', label: 'Payroll & Compensation', description: 'Review monthly payroll sheets, compensation, and salary breakdowns', category: 'Human Resources (HRM)' },
+  { key: 'hrm-performance', label: 'Performance & OKR Reviews', description: 'Conduct performance evaluations, set OKRs, and track ratings', category: 'Human Resources (HRM)' },
+  { key: 'hrm-helpdesk', label: 'Employee Helpdesk & Tickets', description: 'Handle employee support tickets, queries, and leave issues', category: 'Human Resources (HRM)' },
+  { key: 'hrm-organization', label: 'Organization Units & Structure', description: 'View and configure organization departments and designations', category: 'Human Resources (HRM)' },
+
+  // 3. Governance Privileges
   { key: 'canBlockEmployees', label: 'Authority to Block Staff', description: 'Allow invited member to block/suspend personnel', category: 'Governance Privileges' },
   { key: 'canDeleteEmployees', label: 'Authority to Delete Staff', description: 'Allow invited member to soft-delete employee records', category: 'Governance Privileges' },
 ];
@@ -81,8 +99,8 @@ export const InviteMemberModal: React.FC<InviteMemberModalProps> = ({
   const [designation, setDesignation] = useState('');
   const [selectedPermissions, setSelectedPermissions] = useState<string[]>(() =>
     inviterRole === 'ADMIN'
-      ? ['crm-dashboard', 'crm-leads', 'crm-contacts', 'crm-deals']
-      : ['overview', 'employees', 'attendance']
+      ? ['clients', 'employees', 'attendance', 'hrm-dashboard', 'hrm-lifecycle']
+      : ['overview', 'employees', 'attendance', 'hrm-dashboard']
   );
   const [submitting, setSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
@@ -113,11 +131,21 @@ export const InviteMemberModal: React.FC<InviteMemberModalProps> = ({
     setSelectedPermissions([]);
   };
 
+  const handlePresetHrmOnly = () => {
+    const hrmKeys = permissionsList.filter((p) => p.category === 'Human Resources (HRM)').map((p) => p.key);
+    setSelectedPermissions(hrmKeys);
+  };
+
+  const handlePresetEmsOnly = () => {
+    const emsKeys = permissionsList.filter((p) => p.category.includes('Workforce') || p.category.includes('Core Workforce')).map((p) => p.key);
+    setSelectedPermissions(emsKeys);
+  };
+
   const handlePresetReadOnly = () => {
     if (inviterRole === 'ADMIN') {
-      setSelectedPermissions(['crm-dashboard', 'crm-reports', 'attendance']);
+      setSelectedPermissions(['dashboard', 'clients', 'employees', 'attendance', 'hrm-dashboard']);
     } else {
-      setSelectedPermissions(['overview', 'attendance']);
+      setSelectedPermissions(['overview', 'employees', 'attendance', 'hrm-dashboard']);
     }
   };
 
@@ -156,7 +184,7 @@ export const InviteMemberModal: React.FC<InviteMemberModalProps> = ({
       const data = await res.json();
       const resolveInviteUrl = (url?: string | null, token?: string | null) => {
         const t = token || (url && url.includes('token=') ? url.split('token=')[1].split('&')[0] : '');
-        const origin = typeof window !== 'undefined' ? window.location.origin : 'https://growth-india-crm.onrender.com';
+        const origin = typeof window !== 'undefined' ? window.location.origin : 'https://growthindia.co';
         return `${origin}/accept-invite?token=${t}`;
       };
 
@@ -189,7 +217,7 @@ export const InviteMemberModal: React.FC<InviteMemberModalProps> = ({
     const inviterTitle = user?.fullName || (inviterRole === 'ADMIN' ? 'Platform Administrator' : 'Client Management');
     const roleType = inviterRole === 'ADMIN' ? 'Admin Team Member' : 'Corporate Client Workspace';
 
-    const message = `*Growth India CRM Invitation*\n\nHello *${generatedInvite.name}*,\n\nYou have been invited by *${inviterTitle}* to access the *Growth India CRM Platform* as an authorized member (${roleType}).\n\n*Click here to set your password and activate your account:*\n${generatedInvite.invitationUrl}\n\n_Note: This secure link will remain active until manually revoked._`;
+    const message = `*Growth India Platform Invitation*\n\nHello *${generatedInvite.name}*,\n\nYou have been invited by *${inviterTitle}* to access the *Growth India Enterprise Platform* as an authorized member (${roleType}).\n\n*Click here to set your password and activate your account:*\n${generatedInvite.invitationUrl}\n\n_Note: This secure link will remain active until manually revoked._`;
 
     const waUrl = `https://api.whatsapp.com/send?text=${encodeURIComponent(message)}`;
     window.open(waUrl, '_blank');
@@ -203,7 +231,7 @@ export const InviteMemberModal: React.FC<InviteMemberModalProps> = ({
     setErrorMessage('');
     setSelectedPermissions(
       inviterRole === 'ADMIN'
-        ? ['crm-dashboard', 'crm-leads', 'crm-contacts', 'crm-deals']
+        ? ['clients', 'employees', 'attendance']
         : ['overview', 'employees', 'attendance']
     );
   };
@@ -396,13 +424,27 @@ export const InviteMemberModal: React.FC<InviteMemberModalProps> = ({
                     </p>
                   </div>
 
-                  <div className="flex items-center gap-1.5 text-[11px]">
+                  <div className="flex items-center gap-1.5 text-[11px] flex-wrap">
                     <button
                       type="button"
                       onClick={handleSelectAll}
                       className="px-2.5 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg transition-colors font-semibold border border-slate-200 cursor-pointer"
                     >
                       Select All
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handlePresetHrmOnly}
+                      className="px-2.5 py-1 bg-teal-50 hover:bg-teal-100 text-teal-800 rounded-lg transition-colors font-bold border border-teal-200 cursor-pointer"
+                    >
+                      Full HRM
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handlePresetEmsOnly}
+                      className="px-2.5 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg transition-colors font-semibold border border-slate-200 cursor-pointer"
+                    >
+                      Workforce EMS
                     </button>
                     <button
                       type="button"

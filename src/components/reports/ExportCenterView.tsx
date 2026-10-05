@@ -82,7 +82,7 @@ export const ExportCenterView: React.FC = () => {
   };
 
   useEffect(() => {
-    fetch('/api/crm/clients')
+    fetch('/api/clients')
       .then((res) => res.json())
       .then((data) => setClients(data.clients || []))
       .catch((err) => console.error('Failed to load clients', err));

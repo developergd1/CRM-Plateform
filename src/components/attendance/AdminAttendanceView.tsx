@@ -46,12 +46,12 @@ export const AdminAttendanceView: React.FC<AdminAttendanceViewProps> = ({
     }
   }, [initialTab]);
 
-  const cachedClients = clientCache.get<any[]>('crm_clients_list', 15 * 60 * 1000);
+  const cachedClients = clientCache.get<any[]>('platform_clients_list', 15 * 60 * 1000);
   const [clients, setClients] = useState<any[]>(() => cachedClients || []);
   const [selectedClientId, setSelectedClientId] = useState<string>(initialClientId || '');
 
   const workforceCacheKey = `workforce_live_${selectedClientId || 'all'}`;
-  const cachedWorkforce = clientCache.get<any>(workforceCacheKey, 5 * 60 * 1000);
+  const cachedWorkforce = clientCache.get<any>(workforceCacheKey, 10 * 1000);
   const [workforceData, setWorkforceData] = useState<any>(() => cachedWorkforce || null);
   const [loading, setLoading] = useState(() => !cachedWorkforce);
 
@@ -87,7 +87,7 @@ export const AdminAttendanceView: React.FC<AdminAttendanceViewProps> = ({
 
   // Fetch Clients list for filtering
   useEffect(() => {
-    clientCache.swrFetch('crm_clients_list', async () => {
+    clientCache.swrFetch('platform_clients_list', async () => {
       const res = await fetch('/api/clients');
       if (!res.ok) return [];
       const json = await res.json();
@@ -162,6 +162,15 @@ export const AdminAttendanceView: React.FC<AdminAttendanceViewProps> = ({
     fetchWorkforce();
     fetchHistory();
   }, [fetchWorkforce, fetchHistory]);
+
+  // Real-time telemetry: Auto-refresh live workforce every 12 seconds when on the workforce tab
+  useEffect(() => {
+    if (activeTab !== 'workforce') return;
+    const interval = setInterval(() => {
+      fetchWorkforce(true);
+    }, 12000);
+    return () => clearInterval(interval);
+  }, [activeTab, fetchWorkforce]);
 
   useEffect(() => {
     if (activeTab === 'policy') {

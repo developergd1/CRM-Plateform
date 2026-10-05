@@ -20,6 +20,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { isAdminOrHR } from '@/lib/rbac';
+import { formatTo12Hour } from '@/components/common/TimePicker12';
 
 interface ShiftPolicy {
   id: string;
@@ -86,7 +87,7 @@ export const ShiftsPolicyView: React.FC = () => {
 
   const fetchClients = async () => {
     try {
-      const res = await fetch('/api/crm/clients');
+      const res = await fetch('/api/clients');
       if (res.ok) {
         const data = await res.json();
         setClients(data.clients || []);
@@ -357,7 +358,7 @@ export const ShiftsPolicyView: React.FC = () => {
                   <div>
                     <span className="text-[10px] uppercase font-bold text-slate-400 block">Working Window</span>
                     <span className="text-xs font-black text-slate-800 font-mono">
-                      {shift.startTime} - {shift.endTime}
+                      {formatTo12Hour(shift.startTime)} – {formatTo12Hour(shift.endTime)}
                     </span>
                   </div>
                   <div className="text-right">
@@ -478,7 +479,9 @@ export const ShiftsPolicyView: React.FC = () => {
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="text-[11px] font-bold text-slate-600 block mb-1">Start Time (24h) *</label>
+                  <label className="text-[11px] font-bold text-slate-600 block mb-1">
+                    Start Time * {formData.startTime && <span className="text-teal-600 font-normal">({formatTo12Hour(formData.startTime)})</span>}
+                  </label>
                   <input
                     type="time"
                     required
@@ -488,7 +491,9 @@ export const ShiftsPolicyView: React.FC = () => {
                   />
                 </div>
                 <div>
-                  <label className="text-[11px] font-bold text-slate-600 block mb-1">End Time (24h) *</label>
+                  <label className="text-[11px] font-bold text-slate-600 block mb-1">
+                    End Time * {formData.endTime && <span className="text-teal-600 font-normal">({formatTo12Hour(formData.endTime)})</span>}
+                  </label>
                   <input
                     type="time"
                     required

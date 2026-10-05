@@ -34,6 +34,7 @@ interface ClientItem {
   dateAdded: string;
   assignedModules?: string[];
   subscriptionPlan?: string;
+  maxEmployees?: number;
   _count?: {
     employees: number;
   };
@@ -352,8 +353,12 @@ export const CmsClientsListView: React.FC<CmsClientsListViewProps> = ({
                         >
                           {client.companyName}
                         </button>
-                        <div className="text-[10px] text-slate-400 mt-0.5">
-                          {client.companyType || 'Private Limited'}
+                        <div className="flex items-center gap-1.5 text-[10px] text-slate-500 mt-0.5">
+                          <span>{client.companyType || 'Private Limited'}</span>
+                          <span>•</span>
+                          <span className="font-bold text-teal-700 bg-teal-50 px-1.5 py-0.5 rounded border border-teal-200">
+                            {client._count?.employees || 0} / {client.maxEmployees || 100} Staff
+                          </span>
                         </div>
                       </td>
 
@@ -544,8 +549,8 @@ export const CmsClientsListView: React.FC<CmsClientsListViewProps> = ({
               {/* Module Toggles */}
               <div>
                 <label className="block font-bold text-slate-700 mb-1.5">Assigned Modules</label>
-                <div className="grid grid-cols-3 gap-2">
-                  {['EMS', 'CRM', 'HRM'].map((mod) => {
+                <div className="grid grid-cols-2 gap-2">
+                  {['EMS', 'HRM'].map((mod) => {
                     const isChecked = editingClient.assignedModules?.includes(mod);
                     return (
                       <div

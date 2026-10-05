@@ -2,10 +2,10 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getSessionUser } from '@/lib/auth';
 import { logAuditEvent } from '@/lib/audit';
-import { buildTenantWhereClause, verifyClientOrganizationAccess } from '@/lib/tenant';
-import { generateCrmTaskNumber } from '@/lib/id-generator';
+import { generateTaskNumber } from '@/lib/id-generator';
 import { isAdminOrHR, isManagerOrAbove } from '@/lib/rbac';
 import { notifyTaskAssigned } from '@/lib/notifications';
+import { buildTenantWhereClause, verifyClientOrganizationAccess } from '@/lib/tenant';
 
 export async function GET(req: NextRequest) {
   try {
@@ -74,8 +74,6 @@ export async function GET(req: NextRequest) {
         assignedTo: { select: { id: true, fullName: true, employeeId: true, phone: true, designation: true } },
         createdBy: { select: { id: true, fullName: true, employeeId: true } },
         client: { select: { id: true, companyName: true, clientId: true, contactPerson: true } },
-        lead: { select: { id: true, companyName: true, contactPerson: true } },
-        deal: { select: { id: true, title: true, dealNumber: true } },
         _count: { select: { comments: true } },
       },
     });
@@ -177,7 +175,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized: Your role does not have task assignment permissions.' }, { status: 403 });
     }
 
-    const taskNumber = await generateCrmTaskNumber();
+    const taskNumber = await generateTaskNumber();
 
     const task = await prisma.task.create({
       data: {
@@ -191,8 +189,6 @@ export async function POST(req: NextRequest) {
         expectedDeliverable: expectedDeliverable?.trim() || null,
         assignedToId: assignedEmployee.id,
         clientId: resolvedClientId,
-        leadId: leadId || null,
-        dealId: dealId || null,
         createdById: creatorEmployeeId,
       },
       include: {

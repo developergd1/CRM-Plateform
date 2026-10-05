@@ -39,10 +39,9 @@ import {
   TrendingDown,
   X,
 } from 'lucide-react';
-import { AddClientModal } from '../crm/AddClientModal';
+import { AddClientModal } from '../clients/AddClientModal';
 import { AddEmployeeModal } from '../employees/AddEmployeeModal';
 import { EmployeeOnboardingWizard } from '../employees/EmployeeOnboardingWizard';
-import { CreateLeadModal } from '../crm/leads/CreateLeadModal';
 
 import { clientCache } from '@/lib/client-cache';
 
@@ -66,7 +65,6 @@ export const ExecutiveDashboardView: React.FC<ExecutiveDashboardProps> = ({ onNa
   const [activeTaskTab, setActiveTaskTab] = useState<'followups' | 'tasks'>('followups');
 
   // Modals state
-  const [showAddLead, setShowAddLead] = useState(false);
   const [showAddClient, setShowAddClient] = useState(false);
   const [showAddEmployee, setShowAddEmployee] = useState(false);
 
@@ -141,12 +139,6 @@ export const ExecutiveDashboardView: React.FC<ExecutiveDashboardProps> = ({ onNa
 
   // Resolved metrics fallbacks
   const kpis = stats?.kpis || {
-    totalLeads: stats?.crm?.totalLeads ?? 0,
-    qualifiedLeads: stats?.crm?.qualifiedLeads ?? 0,
-    openOpportunities: stats?.crm?.openOpportunities ?? 0,
-    pipelineValue: stats?.crm?.pipelineValue ?? 0,
-    wonRevenue: stats?.crm?.monthlyRevenue ?? 0,
-    conversionRate: stats?.crm?.conversionRate ?? 0,
     totalClients: stats?.totalClients ?? 0,
     totalEmployees: stats?.totalEmployees ?? 0,
     workingNow: stats?.workingNow ?? 0,
@@ -155,7 +147,6 @@ export const ExecutiveDashboardView: React.FC<ExecutiveDashboardProps> = ({ onNa
     attendancePercentage: stats?.attendancePercentage ?? 0,
   };
 
-  const crmOverview = stats?.crmOverview || null;
   const workforceOverview = stats?.workforceOverview || {
     workingNow: stats?.workingNow ?? 0,
     onBreak: stats?.onBreak ?? 0,
@@ -212,15 +203,6 @@ export const ExecutiveDashboardView: React.FC<ExecutiveDashboardProps> = ({ onNa
 
           {/* Quick Action Buttons - Clean text buttons, no icons */}
           <div className="flex flex-wrap items-center gap-2">
-            {!isClientUser && (
-              <button
-                onClick={() => setShowAddLead(true)}
-                className="px-4 py-2 bg-teal-600 hover:bg-teal-700 text-white font-bold text-xs rounded-xl shadow-xs transition-all active:scale-95 cursor-pointer"
-              >
-                Add Lead
-              </button>
-            )}
-
             <button
               onClick={() => setShowAddClient(true)}
               className="px-4 py-2 bg-growth-orange hover:bg-orange-600 text-white font-bold text-xs rounded-xl shadow-xs transition-all active:scale-95 cursor-pointer"
@@ -235,17 +217,8 @@ export const ExecutiveDashboardView: React.FC<ExecutiveDashboardProps> = ({ onNa
               Add Employee
             </button>
 
-            {!isClientUser && (
-              <button
-                onClick={() => onNavigate('crm-deals')}
-                className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold text-xs rounded-xl border border-slate-200 transition-all active:scale-95 cursor-pointer"
-              >
-                Create Deal
-              </button>
-            )}
-
             <button
-              onClick={() => onNavigate('crm-tasks')}
+              onClick={() => onNavigate('tasks')}
               className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-[#0D9488] font-bold text-xs rounded-xl border border-slate-200 transition-all active:scale-95 cursor-pointer"
             >
               Create Task
@@ -345,86 +318,8 @@ export const ExecutiveDashboardView: React.FC<ExecutiveDashboardProps> = ({ onNa
               </h2>
             </div>
 
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-3.5">
-              {/* 1. Total Leads */}
-              {!isClientUser && (
-                <div
-                  onClick={() => onNavigate('crm-leads')}
-                  className="card-premium rounded-2xl p-4 border border-slate-200 shadow-xs cursor-pointer"
-                >
-                  <div className="text-xs font-semibold text-slate-500">Total Leads</div>
-                  <div className="mt-2 text-2xl font-black text-slate-900 font-mono tracking-tight">
-                    {kpis.totalLeads}
-                  </div>
-                </div>
-              )}
-
-              {/* 2. Qualified Leads */}
-              {!isClientUser && (
-                <div
-                  onClick={() => onNavigate('crm-leads')}
-                  className="card-premium rounded-2xl p-4 border border-slate-200 shadow-xs cursor-pointer"
-                >
-                  <div className="text-xs font-semibold text-teal-700">Qualified Leads</div>
-                  <div className="mt-2 text-2xl font-black text-teal-700 font-mono tracking-tight">
-                    {kpis.qualifiedLeads}
-                  </div>
-                </div>
-              )}
-
-              {/* 3. Open Deals */}
-              {!isClientUser && (
-                <div
-                  onClick={() => onNavigate('crm-pipeline')}
-                  className="card-premium rounded-2xl p-4 border border-slate-200 shadow-xs cursor-pointer"
-                >
-                  <div className="text-xs font-semibold text-slate-500">Open Deals</div>
-                  <div className="mt-2 text-2xl font-black text-slate-900 font-mono tracking-tight">
-                    {kpis.openOpportunities}
-                  </div>
-                </div>
-              )}
-
-              {/* 4. Pipeline Value */}
-              {!isClientUser && (
-                <div
-                  onClick={() => onNavigate('crm-pipeline')}
-                  className="card-premium rounded-2xl p-4 border border-slate-200 shadow-xs cursor-pointer"
-                >
-                  <div className="text-xs font-semibold text-teal-700">Pipeline Value</div>
-                  <div className="mt-2 text-xl font-black text-teal-700 font-mono tracking-tight truncate">
-                    ₹{(kpis.pipelineValue || 0).toLocaleString('en-IN')}
-                  </div>
-                </div>
-              )}
-
-              {/* 5. Won Revenue */}
-              {!isClientUser && (
-                <div
-                  onClick={() => onNavigate('crm-deals')}
-                  className="card-premium rounded-2xl p-4 border border-slate-200 shadow-xs cursor-pointer"
-                >
-                  <div className="text-xs font-semibold text-teal-700">Won Revenue</div>
-                  <div className="mt-2 text-xl font-black text-teal-700 font-mono tracking-tight truncate">
-                    ₹{(kpis.wonRevenue || 0).toLocaleString('en-IN')}
-                  </div>
-                </div>
-              )}
-
-              {/* 6. Conversion Rate */}
-              {!isClientUser && (
-                <div
-                  onClick={() => onNavigate('crm-analytics')}
-                  className="card-premium rounded-2xl p-4 border border-slate-200 shadow-xs cursor-pointer"
-                >
-                  <div className="text-xs font-semibold text-slate-500">Conversion Rate</div>
-                  <div className="mt-2 text-2xl font-black text-slate-900 font-mono tracking-tight">
-                    {kpis.conversionRate}%
-                  </div>
-                </div>
-              )}
-
-              {/* 7. Total Clients */}
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3.5">
+              {/* 1. Total Clients */}
               <div
                 onClick={() => onNavigate('clients')}
                 className="card-premium rounded-2xl p-4 border border-slate-200 shadow-xs cursor-pointer"
@@ -493,181 +388,11 @@ export const ExecutiveDashboardView: React.FC<ExecutiveDashboardProps> = ({ onNa
           </div>
 
           {/* ========================================================================= */}
-          {/* SECTION 2 & SECTION 3: CRM Overview & Workforce Overview */}
+          {/* SECTION 2: Workforce Overview */}
           {/* ========================================================================= */}
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-            {/* ----------------------------------------------------------------------- */}
-            {/* SECTION 2: CRM Overview */}
-            {/* ----------------------------------------------------------------------- */}
-            {!isClientUser && (
-              <div className="lg:col-span-7 panel-premium rounded-3xl p-6 border border-slate-200 shadow-sm space-y-6">
-                <div className="flex items-center justify-between border-b border-slate-100 pb-4">
-                  <div>
-                    <h3 className="text-sm font-bold text-slate-900 uppercase tracking-wider">
-                      CRM & Pipeline Analytics
-                    </h3>
-                  </div>
-                  <button
-                    onClick={() => onNavigate('crm-analytics')}
-                    className="text-xs font-bold text-teal-700 hover:text-teal-800 flex items-center gap-1 transition-colors px-2 py-1 rounded-lg"
-                  >
-                    Deep Dive <ChevronRight className="w-3.5 h-3.5" />
-                  </button>
-                </div>
-
-                {/* Lead Conversion Funnel Progression */}
-                <div className="bg-slate-50/80 rounded-2xl p-4 border border-slate-200 space-y-3">
-                  <div className="flex items-center justify-between text-xs font-bold text-slate-800">
-                    <span>Lead Conversion Funnel</span>
-                    <span className="text-[11px] text-slate-500 font-normal">Retention Rate</span>
-                  </div>
-
-                  {crmOverview?.funnel && crmOverview.funnel.length > 0 ? (
-                    <div className="space-y-3">
-                      {crmOverview.funnel.map((step: any, idx: number) => {
-                        const colors = ['bg-slate-900', 'bg-teal-600', 'bg-orange-500', 'bg-teal-700', 'bg-slate-700'];
-                        const stepColor = colors[idx % colors.length];
-                        return (
-                          <div key={step.step} className="space-y-1">
-                            <div className="flex items-center justify-between text-[11px] font-bold">
-                              <span className="text-slate-800">{step.step}</span>
-                              <div className="flex items-center gap-2">
-                                <span className="text-slate-900 font-mono font-bold">{step.count}</span>
-                                <span className="text-[10px] text-slate-500 font-normal">({step.rate}%)</span>
-                              </div>
-                            </div>
-                            <div className="w-full bg-slate-200 rounded-full h-2 overflow-hidden">
-                              <div
-                                className={`${stepColor} h-2 rounded-full transition-all duration-500`}
-                                style={{ width: `${Math.min(100, Math.max(4, step.rate))}%` }}
-                              />
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  ) : (
-                    <div className="p-4 bg-white rounded-xl text-center text-xs text-slate-400">
-                      No funnel telemetry available for this range.
-                    </div>
-                  )}
-                </div>
-
-                {/* Pipeline by Stage Allocation */}
-                <div className="bg-slate-50/80 rounded-2xl p-4 border border-slate-200 space-y-3">
-                  <div className="flex items-center justify-between text-xs font-bold text-slate-800">
-                    <span>Deals Pipeline by Stage</span>
-                    <span className="text-[11px] text-slate-500 font-normal">Distribution</span>
-                  </div>
-
-                  {(() => {
-                    const stages = crmOverview?.pipelineByStage || [];
-                    const totalVal = stages.reduce((acc: number, s: any) => acc + (s.value || 0), 0);
-                    const stageColors: Record<string, string> = {
-                      NEW: 'bg-slate-400',
-                      QUALIFIED: 'bg-teal-600',
-                      PROPOSAL: 'bg-orange-400',
-                      NEGOTIATION: 'bg-orange-500',
-                      WON: 'bg-teal-700',
-                      LOST: 'bg-slate-600',
-                    };
-
-                    return (
-                      <div className="space-y-3">
-                        {totalVal > 0 && (
-                          <div className="w-full h-2.5 bg-slate-200 rounded-full overflow-hidden flex">
-                            {stages.map((stg: any) => {
-                              const pct = (stg.value / totalVal) * 100;
-                              if (pct <= 0) return null;
-                              return (
-                                <div
-                                  key={stg.stage}
-                                  className={`${stageColors[stg.stage] || 'bg-slate-400'} h-full transition-all`}
-                                  style={{ width: `${pct}%` }}
-                                  title={`${stg.stage}: ₹${(stg.value || 0).toLocaleString('en-IN')}`}
-                                />
-                              );
-                            })}
-                          </div>
-                        )}
-
-                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                          {stages.map((stg: any) => (
-                            <div
-                              key={stg.stage}
-                              className="p-2.5 bg-white rounded-xl border border-slate-200 flex items-center justify-between"
-                            >
-                              <div className="min-w-0">
-                                <div className="text-[10px] font-bold uppercase text-slate-600 truncate">
-                                  {stg.stage}
-                                </div>
-                                <div className="text-xs font-bold text-slate-900 font-mono mt-0.5 truncate">
-                                  ₹{(stg.value || 0).toLocaleString('en-IN')}
-                                </div>
-                              </div>
-                              <span className="text-[10px] font-bold px-1.5 py-0.5 bg-slate-100 rounded text-slate-700 font-mono shrink-0 ml-1">
-                                {stg.count}
-                              </span>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    );
-                  })()}
-                </div>
-
-                {/* Won vs Lost Deals & Monthly Won Revenue */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 pt-2">
-                  <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200 flex flex-col justify-between">
-                    <div className="flex items-center justify-between text-xs font-bold text-slate-700 mb-1">
-                      <span>Won vs Lost</span>
-                      <span className="text-teal-700 font-black">
-                        Win Rate: {crmOverview?.wonVsLost?.winRate ?? 0}%
-                      </span>
-                    </div>
-
-                    <div className="mt-2 space-y-2">
-                      <div className="flex items-center justify-between text-xs">
-                        <span className="font-semibold text-teal-800">
-                          Won Deals ({crmOverview?.wonVsLost?.wonDeals ?? 0})
-                        </span>
-                        <span className="font-mono font-bold text-slate-900">
-                          ₹{(crmOverview?.wonVsLost?.wonRevenue ?? 0).toLocaleString()}
-                        </span>
-                      </div>
-                      <div className="flex items-center justify-between text-xs">
-                        <span className="font-semibold text-orange-700">
-                          Lost Deals ({crmOverview?.wonVsLost?.lostDeals ?? 0})
-                        </span>
-                        <span className="font-mono font-bold text-slate-900">
-                          ₹{(crmOverview?.wonVsLost?.lostRevenue ?? 0).toLocaleString()}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="p-4 bg-teal-50 rounded-2xl border border-teal-200 flex flex-col justify-between">
-                    <span className="text-[11px] font-bold uppercase text-teal-800">
-                      Current Month Won Revenue
-                    </span>
-                    <div className="my-1 text-2xl font-black text-teal-800 font-mono">
-                      ₹{(crmOverview?.monthlyWonRevenue ?? 0).toLocaleString()}
-                    </div>
-                    <span className="text-[10px] text-teal-700 font-medium">
-                      Realized closed-won revenue
-                    </span>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* ----------------------------------------------------------------------- */}
-            {/* SECTION 3: Workforce Overview */}
-            {/* ----------------------------------------------------------------------- */}
             <div
-              className={`${
-                isClientUser ? 'lg:col-span-12' : 'lg:col-span-5'
-              } panel-premium rounded-3xl p-6 border border-slate-200 shadow-sm space-y-5`}
+              className="lg:col-span-12 panel-premium rounded-3xl p-6 border border-slate-200 shadow-sm space-y-5"
             >
               <div className="flex items-center justify-between border-b border-slate-100 pb-4">
                 <div>
@@ -798,7 +523,7 @@ export const ExecutiveDashboardView: React.FC<ExecutiveDashboardProps> = ({ onNa
                   </h3>
                 </div>
                 <button
-                  onClick={() => onNavigate('crm-tasks')}
+                  onClick={() => onNavigate('tasks')}
                   className="text-xs font-bold text-teal-700 hover:text-teal-800 flex items-center gap-1 transition-colors px-2 py-1 rounded-lg"
                 >
                   Manage All <ChevronRight className="w-3.5 h-3.5" />
@@ -1183,14 +908,6 @@ export const ExecutiveDashboardView: React.FC<ExecutiveDashboardProps> = ({ onNa
       {/* ========================================================================= */}
       {/* MODALS */}
       {/* ========================================================================= */}
-      <CreateLeadModal
-        isOpen={showAddLead}
-        onClose={() => setShowAddLead(false)}
-        onSuccess={() => {
-          setShowAddLead(false);
-          fetchDashboardMetrics(preset);
-        }}
-      />
 
       <AddClientModal
         isOpen={showAddClient}

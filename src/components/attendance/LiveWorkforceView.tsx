@@ -15,7 +15,7 @@ import {
   AlertTriangle,
   UserX,
 } from 'lucide-react';
-import { formatClockTime } from '@/components/common/TimePicker12';
+import { formatClockTime, formatTo12Hour } from '@/components/common/TimePicker12';
 
 interface LiveWorkforceViewProps {
   onSelectEmployee?: (empId: string) => void;
@@ -294,8 +294,10 @@ export const LiveWorkforceView: React.FC<LiveWorkforceViewProps> = ({ onSelectEm
                       <td className="py-3 px-4 text-slate-600">
                         {emp.clientName || 'Internal Staff'}
                       </td>
-                      <td className="py-3 px-4 font-mono text-slate-700">
-                        {emp.shiftStartTime || '10:00'} – {emp.shiftEndTime || '19:00'}
+                      <td className="py-3 px-4 font-mono text-slate-700 text-xs">
+                        {emp.shiftStartTime === 'FLEXIBLE'
+                          ? 'Flexible'
+                          : `${formatTo12Hour(emp.shiftStartTime || '10:00')} – ${formatTo12Hour(emp.shiftEndTime || '19:00')}`}
                       </td>
                       <td className="py-3 px-4 font-mono text-slate-800">
                         {checkIn ? (

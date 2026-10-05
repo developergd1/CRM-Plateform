@@ -39,6 +39,11 @@ function AcceptInviteContent() {
       return;
     }
 
+    if (token.startsWith('adm_inv_')) {
+      router.replace(`/admin/accept-invite?token=${token}`);
+      return;
+    }
+
     const verifyToken = async () => {
       try {
         setLoading(true);

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
+import { prisma, isValidObjectId } from '@/lib/prisma';
 import { getSessionUser } from '@/lib/auth';
 import { isAdminOrHR } from '@/lib/rbac';
 import { getLifecycleEvents, transitionLifecycleStage } from '@/lib/services/ems-service';
@@ -20,9 +20,17 @@ export async function GET(req: NextRequest) {
 
     // Role-based filter
     const whereClause: any = { employeeId: { not: 'GI-EMP-000001' } };
-    if (user.role === 'CLIENT' && user.clientId) {
+    if (user.role === 'CLIENT' && (user.clientId || user.parentClientId)) {
       const client = await prisma.client.findFirst({
-        where: { OR: [{ id: user.clientId }, { clientId: user.clientId }] },
+        where: {
+          OR: [
+            { userId: user.id },
+            ...(user.clientId ? [{ clientId: user.clientId }] : []),
+            ...(isValidObjectId(user.clientId) ? [{ id: user.clientId }] : []),
+            ...(user.parentClientId ? [{ clientId: user.parentClientId }] : []),
+            ...(isValidObjectId(user.parentClientId) ? [{ id: user.parentClientId }] : []),
+          ],
+        },
       });
       if (client) whereClause.clientId = client.id;
     }

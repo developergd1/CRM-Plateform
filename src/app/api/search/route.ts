@@ -19,10 +19,7 @@ export async function GET(req: NextRequest) {
         results: {
           clients: [],
           employees: [],
-          leads: [],
-          contacts: [],
-          opportunities: [],
-          deals: [],
+          tasks: [],
         },
       });
     }
@@ -30,7 +27,7 @@ export async function GET(req: NextRequest) {
     const tenantWhere = await buildTenantWhereClause(user);
 
     // Run parallel queries across models
-    const [clients, employees, leads, contacts, opportunities, deals] = await Promise.all([
+    const [clients, employees, tasks] = await Promise.all([
       // Clients
       user.role === 'CLIENT'
         ? prisma.client.findMany({
@@ -102,136 +99,34 @@ export async function GET(req: NextRequest) {
         },
       }),
 
-      // Leads
-      prisma.lead.findMany({
+      // Tasks
+      prisma.task.findMany({
         where: {
           ...tenantWhere,
-          isArchived: false,
           OR: [
-            { fullName: { contains: q, mode: 'insensitive' } },
-            { contactPerson: { contains: q, mode: 'insensitive' } },
-            { leadNumber: { contains: q, mode: 'insensitive' } },
-            { companyName: { contains: q, mode: 'insensitive' } },
-            { phone: { contains: q, mode: 'insensitive' } },
-            { email: { contains: q, mode: 'insensitive' } },
-            { city: { contains: q, mode: 'insensitive' } },
+            { title: { contains: q, mode: 'insensitive' } },
+            { taskNumber: { contains: q, mode: 'insensitive' } },
+            { description: { contains: q, mode: 'insensitive' } },
           ],
         },
         take: 5,
         select: {
           id: true,
-          leadNumber: true,
-          fullName: true,
-          contactPerson: true,
-          companyName: true,
+          taskNumber: true,
+          title: true,
           status: true,
-          phone: true,
-          city: true,
-          estimatedValue: true,
-        },
-      }),
-
-      // Contacts
-      prisma.contact.findMany({
-        where: {
-          ...tenantWhere,
-          isArchived: false,
-          OR: [
-            { fullName: { contains: q, mode: 'insensitive' } },
-            { contactNumber: { contains: q, mode: 'insensitive' } },
-            { designation: { contains: q, mode: 'insensitive' } },
-            { department: { contains: q, mode: 'insensitive' } },
-            { phone: { contains: q, mode: 'insensitive' } },
-            { alternatePhone: { contains: q, mode: 'insensitive' } },
-            { email: { contains: q, mode: 'insensitive' } },
-          ],
-        },
-        take: 5,
-        select: {
-          id: true,
-          contactNumber: true,
-          fullName: true,
-          designation: true,
-          department: true,
-          phone: true,
-          isDecisionMaker: true,
+          priority: true,
           client: {
             select: { companyName: true },
           },
-          lead: {
-            select: { leadNumber: true, fullName: true },
+          assignedTo: {
+            select: { fullName: true, employeeId: true },
           },
         },
       }),
-
-      // Opportunities (Internal CRM only - never exposed to CLIENT role)
-      user.role === 'CLIENT'
-        ? Promise.resolve([])
-        : prisma.opportunity.findMany({
-            where: {
-              ...tenantWhere,
-              OR: [
-                { title: { contains: q, mode: 'insensitive' } },
-                { opportunityNumber: { contains: q, mode: 'insensitive' } },
-                { productService: { contains: q, mode: 'insensitive' } },
-              ],
-            },
-            take: 5,
-            select: {
-              id: true,
-              opportunityNumber: true,
-              title: true,
-              stage: true,
-              value: true,
-              probability: true,
-              client: {
-                select: { companyName: true },
-              },
-              lead: {
-                select: { companyName: true },
-              },
-            },
-          }),
-
-      // Deals (Internal CRM only - never exposed to CLIENT role)
-      user.role === 'CLIENT'
-        ? Promise.resolve([])
-        : prisma.deal.findMany({
-            where: {
-              ...tenantWhere,
-              OR: [
-                { title: { contains: q, mode: 'insensitive' } },
-                { dealNumber: { contains: q, mode: 'insensitive' } },
-                { productService: { contains: q, mode: 'insensitive' } },
-              ],
-            },
-            take: 5,
-            select: {
-              id: true,
-              dealNumber: true,
-              title: true,
-              amount: true,
-              stage: true,
-              status: true,
-              probability: true,
-              weightedValue: true,
-              client: {
-                select: { companyName: true },
-              },
-              lead: {
-                select: { companyName: true },
-              },
-            },
-          }),
     ]);
 
-    const totalMatches =
-      clients.length +
-      employees.length +
-      leads.length +
-      contacts.length +
-      opportunities.length +
-      deals.length;
+    const totalMatches = clients.length + employees.length + tasks.length;
 
     return NextResponse.json({
       query: q,
@@ -239,10 +134,7 @@ export async function GET(req: NextRequest) {
       results: {
         clients,
         employees,
-        leads,
-        contacts,
-        opportunities,
-        deals,
+        tasks,
       },
     });
   } catch (error: any) {

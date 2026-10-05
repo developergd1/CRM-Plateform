@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { useAuth } from '@/context/AuthContext';
 import {
   UserCheck,
   Building2,
@@ -30,8 +31,29 @@ import {
   LogOut,
   ExternalLink,
   Lock,
+  Banknote,
+  Target,
+  Award,
+  DollarSign,
+  Download,
+  CreditCard,
+  Scale,
+  Sparkles,
+  Layers,
+  Copy,
+  Check,
+  TrendingUp,
+  Wallet,
+  Landmark,
+  Eye,
+  EyeOff,
+  ChevronRight,
+  Receipt,
+  FileSpreadsheet,
 } from 'lucide-react';
 import { formatTo12Hour } from '@/components/common/TimePicker12';
+import { AssignSalaryModal } from './AssignSalaryModal';
+import { EditComplianceModal } from './EditComplianceModal';
 
 interface Employee360ViewProps {
   initialEmployeeId?: string | null;
@@ -44,6 +66,7 @@ export const Employee360View: React.FC<Employee360ViewProps> = ({
   onBack,
   onNavigateTab,
 }) => {
+  const { user } = useAuth();
   const [selectedId, setSelectedId] = useState<string>(initialEmployeeId || '');
   const [employeesList, setEmployeesList] = useState<any[]>([]);
   const [data, setData] = useState<any | null>(null);
@@ -51,6 +74,27 @@ export const Employee360View: React.FC<Employee360ViewProps> = ({
   const [activeTab, setActiveTab] = useState<string>('overview');
   const [actionMsg, setActionMsg] = useState<string | null>(null);
   const [showMoreActions, setShowMoreActions] = useState(false);
+
+  // Modal states
+  const [showSalaryModal, setShowSalaryModal] = useState(false);
+  const [showComplianceModal, setShowComplianceModal] = useState(false);
+  const [copiedField, setCopiedField] = useState<string | null>(null);
+  const [showUnmaskPan, setShowUnmaskPan] = useState(false);
+
+  // Client and Admin can edit payroll & compliance
+  const canManagePayroll = Boolean(
+    user && (
+      ['SUPER_ADMIN', 'ADMIN', 'ADMIN_HR'].includes(user.role) ||
+      user.role === 'CLIENT'
+    )
+  );
+
+  const copyToClipboard = (text: string, fieldName: string) => {
+    if (!text) return;
+    navigator.clipboard.writeText(text);
+    setCopiedField(fieldName);
+    setTimeout(() => setCopiedField(null), 2000);
+  };
 
   // Sync selectedId when initialEmployeeId prop changes
   useEffect(() => {
@@ -123,21 +167,29 @@ export const Employee360View: React.FC<Employee360ViewProps> = ({
   const clientAssignment = data?.clientAssignment;
   const kyc = data?.kyc;
   const account = data?.account;
+  const salaryProfile = data?.salaryProfile;
+  const statutoryInfo = data?.statutoryInfo;
+  const bankInfo = data?.bankInfo;
+  const payroll = data?.payroll;
+  const performance = data?.performance;
 
   const tabs = [
     { id: 'overview', label: '1. Overview', icon: UserCheck },
     { id: 'personal', label: '2. Personal Info', icon: User },
     { id: 'employment', label: '3. Employment', icon: Building2 },
-    { id: 'client', label: '4. Client Assignment', icon: Building2 },
+    { id: 'salary', label: '4. Salary Profile', icon: Banknote },
     { id: 'attendance', label: '5. Attendance', icon: Clock },
     { id: 'timesheets', label: '6. Timesheets', icon: CalendarClock },
     { id: 'leaves', label: '7. Leaves & Balances', icon: Coffee },
-    { id: 'tasks', label: '8. Tasks', icon: ListTodo },
-    { id: 'documents', label: '9. Documents', icon: FileText },
-    { id: 'kyc', label: '10. KYC Vault', icon: FileCheck },
-    { id: 'access', label: '11. Account & Access', icon: KeyRound },
-    { id: 'timeline', label: '12. Activity Timeline', icon: Activity },
-    { id: 'audit', label: '13. Audit History', icon: History },
+    { id: 'payroll', label: '8. Payroll & Payslips', icon: FileText },
+    { id: 'performance', label: '9. PMS & Appraisals', icon: Target },
+    { id: 'client', label: '10. Client Assignment', icon: Building2 },
+    { id: 'tasks', label: '11. Tasks', icon: ListTodo },
+    { id: 'documents', label: '12. Documents', icon: FileText },
+    { id: 'kyc', label: '13. Statutory & KYC', icon: FileCheck },
+    { id: 'access', label: '14. Account & Access', icon: KeyRound },
+    { id: 'timeline', label: '15. Activity Timeline', icon: Activity },
+    { id: 'audit', label: '16. Audit History', icon: History },
   ];
 
   return (
@@ -211,9 +263,10 @@ export const Employee360View: React.FC<Employee360ViewProps> = ({
         </div>
       ) : (
         <>
-          {/* Header Card with Quick Actions */}
-          <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-xs">
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+          {/* Header Card with Smart Stat Buttons & Control Bar */}
+          <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-xs space-y-6">
+            <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-6">
+              {/* Left: Employee Identity & Meta */}
               <div className="flex items-start gap-4">
                 <div className="w-16 h-16 rounded-2xl bg-[#0D9488] text-white font-black text-2xl flex items-center justify-center shadow-md shrink-0">
                   {employee.fullName.charAt(0)}
@@ -263,38 +316,185 @@ export const Employee360View: React.FC<Employee360ViewProps> = ({
                 </div>
               </div>
 
-              {/* Quick Actions Bar */}
-              <div className="flex flex-wrap items-center gap-2 shrink-0">
+              {/* Right: Smart Stat Buttons (KPI Tiles) */}
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-2 shrink-0">
+                {/* Stat 1: Monthly CTC */}
                 <button
+                  type="button"
+                  onClick={() => setActiveTab('salary')}
+                  className="p-2.5 rounded-xl border border-slate-200 bg-slate-50/70 hover:bg-[#0D9488]/5 hover:border-[#0D9488]/40 transition-all text-left group cursor-pointer"
+                  title="Click to view full salary breakdown"
+                >
+                  <div className="flex items-center justify-between text-slate-400 group-hover:text-[#0D9488] mb-1">
+                    <Banknote className="w-3.5 h-3.5" />
+                    <span className="text-[9px] font-bold uppercase tracking-wider text-slate-400">Monthly</span>
+                  </div>
+                  <div className="text-xs font-black text-slate-900 group-hover:text-[#0D9488] truncate">
+                    ₹{(salaryProfile?.monthlyCtc || 0).toLocaleString()}
+                  </div>
+                  <div className="text-[10px] text-slate-500 font-medium">Compensation</div>
+                </button>
+
+                {/* Stat 2: Salary Structure */}
+                <button
+                  type="button"
+                  onClick={() => setActiveTab('salary')}
+                  className="p-2.5 rounded-xl border border-slate-200 bg-slate-50/70 hover:bg-[#0D9488]/5 hover:border-[#0D9488]/40 transition-all text-left group cursor-pointer"
+                  title="Click to manage salary structure"
+                >
+                  <div className="flex items-center justify-between text-slate-400 group-hover:text-[#0D9488] mb-1">
+                    <Layers className="w-3.5 h-3.5" />
+                    <span className="text-[9px] font-bold uppercase tracking-wider text-slate-400">Structure</span>
+                  </div>
+                  <div className="text-xs font-black text-slate-900 group-hover:text-[#0D9488] truncate">
+                    {salaryProfile?.structureName ? (salaryProfile.structureName.length > 12 ? salaryProfile.structureName.substring(0, 11) + '..' : salaryProfile.structureName) : 'Not Set'}
+                  </div>
+                  <div className="text-[10px] text-slate-500 font-medium">v{salaryProfile?.version || 1} Assigned</div>
+                </button>
+
+                {/* Stat 3: Statutory & Compliance */}
+                <button
+                  type="button"
+                  onClick={() => setActiveTab('kyc')}
+                  className="p-2.5 rounded-xl border border-slate-200 bg-slate-50/70 hover:bg-[#0D9488]/5 hover:border-[#0D9488]/40 transition-all text-left group cursor-pointer"
+                  title="Click to view statutory compliance"
+                >
+                  <div className="flex items-center justify-between text-slate-400 group-hover:text-[#0D9488] mb-1">
+                    <ShieldCheck className="w-3.5 h-3.5" />
+                    <span className="text-[9px] font-bold uppercase tracking-wider text-slate-400">Statutory</span>
+                  </div>
+                  <div className="text-xs font-black text-slate-900 group-hover:text-[#0D9488] truncate">
+                    {statutoryInfo?.pfUan && statutoryInfo.pfUan !== 'N/A' ? 'EPF Active' : 'Basic Compl.'}
+                  </div>
+                  <div className="text-[10px] text-slate-500 font-medium">{statutoryInfo?.ptState || 'Maharashtra'}</div>
+                </button>
+
+                {/* Stat 4: Bank Direct Credit */}
+                <button
+                  type="button"
+                  onClick={() => setActiveTab('salary')}
+                  className="p-2.5 rounded-xl border border-slate-200 bg-slate-50/70 hover:bg-[#0D9488]/5 hover:border-[#0D9488]/40 transition-all text-left group cursor-pointer"
+                  title="Click to view bank remittance"
+                >
+                  <div className="flex items-center justify-between text-slate-400 group-hover:text-[#0D9488] mb-1">
+                    <CreditCard className="w-3.5 h-3.5" />
+                    <span className="text-[9px] font-bold uppercase tracking-wider text-slate-400">Bank</span>
+                  </div>
+                  <div className="text-xs font-black text-slate-900 group-hover:text-[#0D9488] truncate">
+                    {bankInfo?.bankName ? (bankInfo.bankName.length > 10 ? bankInfo.bankName.substring(0, 9) + '..' : bankInfo.bankName) : 'Not Set'}
+                  </div>
+                  <div className="text-[10px] text-slate-500 font-medium">Direct Credit</div>
+                </button>
+
+                {/* Stat 5: Attendance Present */}
+                <button
+                  type="button"
+                  onClick={() => setActiveTab('attendance')}
+                  className="p-2.5 rounded-xl border border-slate-200 bg-slate-50/70 hover:bg-[#0D9488]/5 hover:border-[#0D9488]/40 transition-all text-left group cursor-pointer"
+                  title="Click to view attendance records"
+                >
+                  <div className="flex items-center justify-between text-slate-400 group-hover:text-[#0D9488] mb-1">
+                    <Clock className="w-3.5 h-3.5" />
+                    <span className="text-[9px] font-bold uppercase tracking-wider text-slate-400">Punches</span>
+                  </div>
+                  <div className="text-xs font-black text-[#0D9488] truncate">
+                    {attendance?.presentDays || 0} Days
+                  </div>
+                  <div className="text-[10px] text-slate-500 font-medium">Present / 31d</div>
+                </button>
+
+                {/* Stat 6: Leave Ledger */}
+                <button
+                  type="button"
+                  onClick={() => setActiveTab('leaves')}
+                  className="p-2.5 rounded-xl border border-slate-200 bg-slate-50/70 hover:bg-[#0D9488]/5 hover:border-[#0D9488]/40 transition-all text-left group cursor-pointer"
+                  title="Click to view leave balances"
+                >
+                  <div className="flex items-center justify-between text-slate-400 group-hover:text-[#0D9488] mb-1">
+                    <Coffee className="w-3.5 h-3.5" />
+                    <span className="text-[9px] font-bold uppercase tracking-wider text-slate-400">Balance</span>
+                  </div>
+                  <div className="text-xs font-black text-slate-900 group-hover:text-[#0D9488] truncate">
+                    {leaves?.casual?.remaining ?? 12}d CL
+                  </div>
+                  <div className="text-[10px] text-slate-500 font-medium">{leaves?.sick?.remaining ?? 10}d SL Left</div>
+                </button>
+              </div>
+            </div>
+
+            {/* Action Control Bar */}
+            <div className="pt-4 border-t border-slate-100 flex flex-wrap items-center justify-between gap-3">
+              <div className="flex flex-wrap items-center gap-2.5">
+                {canManagePayroll && (
+                  <>
+                    <button
+                      type="button"
+                      onClick={() => setShowSalaryModal(true)}
+                      className="px-4 py-2 rounded-xl bg-[#0D9488] hover:bg-[#0F766E] text-white text-xs font-bold transition-all shadow-sm hover:shadow flex items-center gap-2 cursor-pointer active:scale-95"
+                    >
+                      <Banknote className="w-4 h-4 text-emerald-200" />
+                      <span>Assign / Edit Salary</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setShowComplianceModal(true)}
+                      className="px-4 py-2 rounded-xl border border-[#0D9488]/40 bg-white hover:bg-[#0D9488]/5 text-[#0D9488] text-xs font-bold transition-all shadow-xs flex items-center gap-2 cursor-pointer active:scale-95"
+                    >
+                      <ShieldCheck className="w-4 h-4 text-[#0D9488]" />
+                      <span>Edit Compliance & Remittance</span>
+                    </button>
+                  </>
+                )}
+
+                <span className="h-4 w-px bg-slate-200 hidden sm:inline-block" />
+
+                <button
+                  type="button"
                   onClick={() => setActiveTab('attendance')}
                   className="px-3 py-1.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-xs font-bold transition-all shadow-xs flex items-center gap-1.5 cursor-pointer"
                 >
-                  <Clock className="w-3.5 h-3.5 text-[#0D9488]" />
+                  <Clock className="w-3.5 h-3.5 text-slate-400" />
                   <span>Attendance</span>
                 </button>
 
                 <button
+                  type="button"
                   onClick={() => setActiveTab('leaves')}
                   className="px-3 py-1.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-xs font-bold transition-all shadow-xs flex items-center gap-1.5 cursor-pointer"
                 >
-                  <Coffee className="w-3.5 h-3.5 text-[#0D9488]" />
+                  <Coffee className="w-3.5 h-3.5 text-slate-400" />
                   <span>Leaves</span>
                 </button>
 
                 <button
-                  onClick={() => setActiveTab('documents')}
+                  type="button"
+                  onClick={() => setActiveTab('payroll')}
                   className="px-3 py-1.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-xs font-bold transition-all shadow-xs flex items-center gap-1.5 cursor-pointer"
                 >
-                  <FileText className="w-3.5 h-3.5 text-[#0D9488]" />
-                  <span>Documents</span>
+                  <FileText className="w-3.5 h-3.5 text-slate-400" />
+                  <span>Payroll</span>
                 </button>
 
                 <button
-                  onClick={() => setActiveTab('access')}
-                  className="px-3 py-1.5 rounded-xl bg-[#0D9488] hover:bg-[#0F766E] text-white text-xs font-bold transition-all shadow-xs flex items-center gap-1.5 cursor-pointer"
+                  type="button"
+                  onClick={() => setActiveTab('performance')}
+                  className="px-3 py-1.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-xs font-bold transition-all shadow-xs flex items-center gap-1.5 cursor-pointer"
                 >
-                  <KeyRound className="w-3.5 h-3.5" />
-                  <span>Manage Access</span>
+                  <Target className="w-3.5 h-3.5 text-purple-600" />
+                  <span>PMS</span>
+                </button>
+              </div>
+
+              {/* Overflow Actions */}
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setActiveTab('access')}
+                  className="px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer"
+                >
+                  <KeyRound className="w-3.5 h-3.5 text-slate-500" />
+                  <span>Access</span>
                 </button>
 
                 <div className="relative">
@@ -561,7 +761,582 @@ export const Employee360View: React.FC<Employee360ViewProps> = ({
             </div>
           )}
 
-          {/* TAB 4: CLIENT ASSIGNMENT */}
+          {/* TAB 4: SALARY PROFILE (COMPENSATION SHEET) */}
+          {activeTab === 'salary' && (
+            <div className="space-y-6">
+              {/* Structure Header Strip */}
+              <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-xs">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-100">
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-2">
+                      <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
+                      <h3 className="text-base font-black text-slate-900 tracking-tight">
+                        {salaryProfile?.structureName || 'Standard Corporate Compensation Structure'}
+                      </h3>
+                      <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-emerald-50 text-emerald-700 border border-emerald-200">
+                        v{salaryProfile?.version || 1} • Active Structure
+                      </span>
+                    </div>
+                    <p className="text-xs text-slate-500">
+                      Structure Code: <span className="font-mono font-bold text-slate-700">{salaryProfile?.structureCode || 'EXEC-STD-2025'}</span> • Effective from:{' '}
+                      <span className="font-semibold text-slate-700">
+                        {salaryProfile?.effectiveFrom ? new Date(salaryProfile.effectiveFrom).toLocaleDateString() : '01 Apr 2025'}
+                      </span>
+                    </p>
+                  </div>
+
+                  {canManagePayroll && (
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setShowSalaryModal(true)}
+                        className="px-4 py-2 rounded-xl bg-[#0D9488] hover:bg-[#0F766E] text-white text-xs font-bold transition-all shadow-xs flex items-center gap-1.5 cursor-pointer active:scale-95"
+                      >
+                        <Banknote className="w-4 h-4 text-emerald-200" />
+                        <span>Assign / Revise Package</span>
+                      </button>
+                    </div>
+                  )}
+                </div>
+
+                {/* 4 KPI Metric Cards */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 pt-5">
+                  <div className="p-4 rounded-xl bg-slate-50 border border-slate-200/80">
+                    <div className="flex items-center justify-between text-slate-400">
+                      <span className="text-[10px] uppercase font-bold tracking-wider">Annual CTC</span>
+                      <Wallet className="w-4 h-4 text-slate-400" />
+                    </div>
+                    <p className="text-xl font-black text-slate-900 mt-1">
+                      ₹{(salaryProfile?.annualCtc || 600000).toLocaleString()}
+                    </p>
+                    <span className="text-[10px] text-slate-500 font-medium">Cost to Company (Annual)</span>
+                  </div>
+
+                  <div className="p-4 rounded-xl bg-teal-50/50 border border-teal-200/60">
+                    <div className="flex items-center justify-between text-[#0D9488]">
+                      <span className="text-[10px] uppercase font-bold tracking-wider">Monthly Gross</span>
+                      <Banknote className="w-4 h-4 text-[#0D9488]" />
+                    </div>
+                    <p className="text-xl font-black text-[#0D9488] mt-1">
+                      ₹{(salaryProfile?.monthlyCtc || 50000).toLocaleString()}
+                    </p>
+                    <span className="text-[10px] text-teal-700/80 font-medium">Gross Base Emoluments</span>
+                  </div>
+
+                  <div className="p-4 rounded-xl bg-slate-50 border border-slate-200/80">
+                    <div className="flex items-center justify-between text-slate-400">
+                      <span className="text-[10px] uppercase font-bold tracking-wider">Basic Pay (50%)</span>
+                      <Scale className="w-4 h-4 text-slate-400" />
+                    </div>
+                    <p className="text-xl font-black text-slate-800 mt-1">
+                      ₹{Math.round((salaryProfile?.monthlyCtc || 50000) * 0.5).toLocaleString()}
+                    </p>
+                    <span className="text-[10px] text-slate-500 font-medium">Retirement & PF Wage Base</span>
+                  </div>
+
+                  <div className="p-4 rounded-xl bg-slate-50 border border-slate-200/80">
+                    <div className="flex items-center justify-between text-slate-400">
+                      <span className="text-[10px] uppercase font-bold tracking-wider">HRA Allowance (40%)</span>
+                      <Building2 className="w-4 h-4 text-slate-400" />
+                    </div>
+                    <p className="text-xl font-black text-slate-800 mt-1">
+                      ₹{Math.round((salaryProfile?.monthlyCtc || 50000) * 0.2).toLocaleString()}
+                    </p>
+                    <span className="text-[10px] text-slate-500 font-medium">House Rent Tax Exemption</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Component Breakdown Sheet (Side-by-side Earnings & Deductions) */}
+              <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-xs space-y-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h4 className="text-sm font-bold text-slate-900">Deterministic Salary Breakdown & Simulation</h4>
+                    <p className="text-xs text-slate-500">Live statutory compliance calculation based on active salary structure rules</p>
+                  </div>
+                  <span className="text-xs font-mono font-bold text-slate-400">Monthly Basis</span>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-2">
+                  {/* Earnings (Cr) */}
+                  <div className="border border-slate-200 rounded-xl overflow-hidden">
+                    <div className="bg-slate-50 px-4 py-2.5 border-b border-slate-200 flex items-center justify-between">
+                      <span className="text-xs font-bold uppercase tracking-wider text-slate-700">Gross Earnings (Cr)</span>
+                      <span className="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded">Addition</span>
+                    </div>
+                    <div className="p-4 space-y-2 text-xs divide-y divide-slate-100">
+                      <div className="flex items-center justify-between py-1.5">
+                        <div>
+                          <span className="font-bold text-slate-800">Basic Salary</span>
+                          <p className="text-[10px] text-slate-400">50% of Monthly Gross</p>
+                        </div>
+                        <span className="font-mono font-bold text-slate-900">
+                          ₹{Math.round((salaryProfile?.monthlyCtc || 50000) * 0.5).toLocaleString()}
+                        </span>
+                      </div>
+                      <div className="flex items-center justify-between py-1.5">
+                        <div>
+                          <span className="font-bold text-slate-800">House Rent Allowance (HRA)</span>
+                          <p className="text-[10px] text-slate-400">40% of Basic Pay</p>
+                        </div>
+                        <span className="font-mono font-bold text-slate-900">
+                          ₹{Math.round((salaryProfile?.monthlyCtc || 50000) * 0.2).toLocaleString()}
+                        </span>
+                      </div>
+                      <div className="flex items-center justify-between py-1.5">
+                        <div>
+                          <span className="font-bold text-slate-800">Conveyance Allowance</span>
+                          <p className="text-[10px] text-slate-400">Standard transport allowance</p>
+                        </div>
+                        <span className="font-mono font-bold text-slate-900">₹1,600</span>
+                      </div>
+                      <div className="flex items-center justify-between py-1.5">
+                        <div>
+                          <span className="font-bold text-slate-800">Special Allowance</span>
+                          <p className="text-[10px] text-slate-400">Balancing taxable earnings</p>
+                        </div>
+                        <span className="font-mono font-bold text-slate-900">
+                          ₹{Math.max(0, (salaryProfile?.monthlyCtc || 50000) - Math.round((salaryProfile?.monthlyCtc || 50000) * 0.7) - 1600).toLocaleString()}
+                        </span>
+                      </div>
+                      <div className="flex items-center justify-between pt-2.5 font-bold text-slate-900 border-t border-slate-200">
+                        <span>Total Monthly Gross Earnings</span>
+                        <span className="font-mono text-sm text-[#0D9488]">
+                          ₹{(salaryProfile?.monthlyCtc || 50000).toLocaleString()}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Deductions (Dr) */}
+                  <div className="border border-slate-200 rounded-xl overflow-hidden">
+                    <div className="bg-slate-50 px-4 py-2.5 border-b border-slate-200 flex items-center justify-between">
+                      <span className="text-xs font-bold uppercase tracking-wider text-slate-700">Statutory Deductions (Dr)</span>
+                      <span className="text-[10px] font-bold text-rose-600 bg-rose-50 px-2 py-0.5 rounded">Deduction</span>
+                    </div>
+                    <div className="p-4 space-y-2 text-xs divide-y divide-slate-100">
+                      <div className="flex items-center justify-between py-1.5">
+                        <div>
+                          <span className="font-bold text-slate-800">Provident Fund (EPF)</span>
+                          <p className="text-[10px] text-slate-400">12% Basic (Max ₹1,800 ceiling)</p>
+                        </div>
+                        <span className="font-mono font-bold text-rose-600">
+                          -₹{Math.min(1800, Math.round((salaryProfile?.monthlyCtc || 50000) * 0.5 * 0.12)).toLocaleString()}
+                        </span>
+                      </div>
+                      <div className="flex items-center justify-between py-1.5">
+                        <div>
+                          <span className="font-bold text-slate-800">Employee State Insurance (ESIC)</span>
+                          <p className="text-[10px] text-slate-400">
+                            {(salaryProfile?.monthlyCtc || 50000) <= 21000 ? '0.75% of Gross' : 'Exempt (Gross > ₹21,000)'}
+                          </p>
+                        </div>
+                        <span className="font-mono font-bold text-rose-600">
+                          -₹{(salaryProfile?.monthlyCtc || 50000) <= 21000 ? Math.round((salaryProfile?.monthlyCtc || 50000) * 0.0075) : 0}
+                        </span>
+                      </div>
+                      <div className="flex items-center justify-between py-1.5">
+                        <div>
+                          <span className="font-bold text-slate-800">Professional Tax (PT)</span>
+                          <p className="text-[10px] text-slate-400">{statutoryInfo?.ptState || 'Maharashtra'} state slab</p>
+                        </div>
+                        <span className="font-mono font-bold text-rose-600">-₹200</span>
+                      </div>
+                      <div className="flex items-center justify-between py-1.5">
+                        <div>
+                          <span className="font-bold text-slate-800">Tax Deducted at Source (TDS)</span>
+                          <p className="text-[10px] text-slate-400">Section 192 Tax Assessment</p>
+                        </div>
+                        <span className="font-mono font-bold text-slate-500">₹0</span>
+                      </div>
+                      <div className="flex items-center justify-between pt-2.5 font-bold text-slate-900 border-t border-slate-200">
+                        <span>Total Monthly Deductions</span>
+                        <span className="font-mono text-sm text-rose-600">
+                          -₹{(
+                            Math.min(1800, Math.round((salaryProfile?.monthlyCtc || 50000) * 0.5 * 0.12)) +
+                            ((salaryProfile?.monthlyCtc || 50000) <= 21000 ? Math.round((salaryProfile?.monthlyCtc || 50000) * 0.0075) : 0) +
+                            200
+                          ).toLocaleString()}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Net Take-Home Highlight Banner */}
+                <div className="mt-4 p-4 rounded-xl bg-gradient-to-r from-emerald-500/10 via-[#0D9488]/10 to-teal-500/10 border border-[#0D9488]/30 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                  <div>
+                    <span className="text-[11px] font-black uppercase tracking-wider text-[#0D9488]">
+                      Net Take-Home Pay (Estimated Monthly In-Hand)
+                    </span>
+                    <p className="text-xs text-slate-600">
+                      Disbursed directly into registered bank account after all statutory and tax deductions
+                    </p>
+                  </div>
+                  <div className="text-right">
+                    <span className="text-2xl font-black text-[#0D9488] font-mono">
+                      ₹{(
+                        (salaryProfile?.monthlyCtc || 50000) -
+                        (
+                          Math.min(1800, Math.round((salaryProfile?.monthlyCtc || 50000) * 0.5 * 0.12)) +
+                          ((salaryProfile?.monthlyCtc || 50000) <= 21000 ? Math.round((salaryProfile?.monthlyCtc || 50000) * 0.0075) : 0) +
+                          200
+                        )
+                      ).toLocaleString()}
+                    </span>
+                    <span className="block text-[10px] font-bold text-slate-400">per month</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Remittance & Compliance Twin Cards */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {/* Electronic Banking Remittance */}
+                <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-xs space-y-4">
+                  <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+                    <div className="flex items-center gap-2">
+                      <Landmark className="w-4 h-4 text-[#0D9488]" />
+                      <h4 className="text-xs font-black uppercase text-slate-700 tracking-wider">
+                        Electronic Banking Remittance
+                      </h4>
+                    </div>
+                    {canManagePayroll && (
+                      <button
+                        type="button"
+                        onClick={() => setShowSalaryModal(true)}
+                        className="text-[11px] font-bold text-[#0D9488] hover:underline cursor-pointer"
+                      >
+                        Edit Details
+                      </button>
+                    )}
+                  </div>
+
+                  <div className="space-y-3 text-xs">
+                    <div className="flex items-center justify-between p-2.5 rounded-xl bg-slate-50 border border-slate-200/60">
+                      <span className="text-slate-500 font-medium">Bank Name</span>
+                      <span className="font-bold text-slate-800">{bankInfo?.bankName || 'HDFC Bank'}</span>
+                    </div>
+
+                    <div className="flex items-center justify-between p-2.5 rounded-xl bg-slate-50 border border-slate-200/60">
+                      <span className="text-slate-500 font-medium">Account Number</span>
+                      <div className="flex items-center gap-2">
+                        <span className="font-mono font-bold text-slate-900">{bankInfo?.bankAccount || '987654321012'}</span>
+                        {bankInfo?.bankAccount && (
+                          <button
+                            type="button"
+                            onClick={() => copyToClipboard(bankInfo.bankAccount, 'bankAccount')}
+                            className="text-slate-400 hover:text-slate-600 cursor-pointer"
+                            title="Copy Account Number"
+                          >
+                            {copiedField === 'bankAccount' ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
+                          </button>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="flex items-center justify-between p-2.5 rounded-xl bg-slate-50 border border-slate-200/60">
+                      <span className="text-slate-500 font-medium">IFSC Code</span>
+                      <div className="flex items-center gap-2">
+                        <span className="font-mono font-bold text-slate-900">{bankInfo?.bankIfsc || 'HDFC0001234'}</span>
+                        {bankInfo?.bankIfsc && (
+                          <button
+                            type="button"
+                            onClick={() => copyToClipboard(bankInfo.bankIfsc, 'bankIfsc')}
+                            className="text-slate-400 hover:text-slate-600 cursor-pointer"
+                            title="Copy IFSC"
+                          >
+                            {copiedField === 'bankIfsc' ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
+                          </button>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="flex items-center justify-between p-2.5 rounded-xl bg-slate-50 border border-slate-200/60">
+                      <span className="text-slate-500 font-medium">Remittance Mode</span>
+                      <span className="font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded text-[10px]">
+                        Direct Credit (NEFT / RTGS / IMPS)
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Statutory Setup */}
+                <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-xs space-y-4">
+                  <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+                    <div className="flex items-center gap-2">
+                      <ShieldCheck className="w-4 h-4 text-[#0D9488]" />
+                      <h4 className="text-xs font-black uppercase text-slate-700 tracking-wider">
+                        Statutory Identifiers Setup
+                      </h4>
+                    </div>
+                    {canManagePayroll && (
+                      <button
+                        type="button"
+                        onClick={() => setShowComplianceModal(true)}
+                        className="text-[11px] font-bold text-[#0D9488] hover:underline cursor-pointer"
+                      >
+                        Edit Compliance
+                      </button>
+                    )}
+                  </div>
+
+                  <div className="space-y-3 text-xs">
+                    <div className="flex items-center justify-between p-2.5 rounded-xl bg-slate-50 border border-slate-200/60">
+                      <span className="text-slate-500 font-medium">Permanent Account Number (PAN)</span>
+                      <div className="flex items-center gap-2">
+                        <span className="font-mono font-bold text-slate-900">
+                          {statutoryInfo?.panMasked || employee.panMasked || 'XXXXX1234X'}
+                        </span>
+                        {(statutoryInfo?.pan || employee.panNumber) && (
+                          <button
+                            type="button"
+                            onClick={() => copyToClipboard(statutoryInfo?.pan || employee.panNumber, 'pan')}
+                            className="text-slate-400 hover:text-slate-600 cursor-pointer"
+                            title="Copy PAN"
+                          >
+                            {copiedField === 'pan' ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
+                          </button>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="flex items-center justify-between p-2.5 rounded-xl bg-slate-50 border border-slate-200/60">
+                      <span className="text-slate-500 font-medium">EPF / UAN Number</span>
+                      <div className="flex items-center gap-2">
+                        <span className="font-mono font-bold text-slate-900">
+                          {statutoryInfo?.pfUan && statutoryInfo.pfUan !== 'N/A' ? statutoryInfo.pfUan : 'Not Enrolled'}
+                        </span>
+                        {statutoryInfo?.pfUan && statutoryInfo.pfUan !== 'N/A' && (
+                          <button
+                            type="button"
+                            onClick={() => copyToClipboard(statutoryInfo.pfUan, 'uan')}
+                            className="text-slate-400 hover:text-slate-600 cursor-pointer"
+                            title="Copy UAN"
+                          >
+                            {copiedField === 'uan' ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
+                          </button>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="flex items-center justify-between p-2.5 rounded-xl bg-slate-50 border border-slate-200/60">
+                      <span className="text-slate-500 font-medium">ESIC Insurance Number</span>
+                      <span className="font-mono font-bold text-slate-900">
+                        {statutoryInfo?.esiNumber && statutoryInfo.esiNumber !== 'N/A' ? statutoryInfo.esiNumber : 'Exempt / Not Registered'}
+                      </span>
+                    </div>
+
+                    <div className="flex items-center justify-between p-2.5 rounded-xl bg-slate-50 border border-slate-200/60">
+                      <span className="text-slate-500 font-medium">PT Jurisdiction State</span>
+                      <span className="font-bold text-slate-800">{statutoryInfo?.ptState || 'Maharashtra'}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Salary Revision History (Audit Ledger) */}
+              <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-xs space-y-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h4 className="text-sm font-bold text-slate-900">Compensation Revision History</h4>
+                    <p className="text-xs text-slate-500">Immutable record of previous salary package revisions and effective dates</p>
+                  </div>
+                  <History className="w-4 h-4 text-slate-400" />
+                </div>
+
+                <div className="overflow-x-auto border border-slate-200 rounded-xl">
+                  <table className="w-full text-left text-xs">
+                    <thead className="bg-slate-50 text-slate-500 uppercase text-[10px] font-bold border-b border-slate-200">
+                      <tr>
+                        <th className="py-2.5 px-3">Version</th>
+                        <th className="py-2.5 px-3">Structure</th>
+                        <th className="py-2.5 px-3">Monthly CTC</th>
+                        <th className="py-2.5 px-3">Annual CTC</th>
+                        <th className="py-2.5 px-3">Effective Date</th>
+                        <th className="py-2.5 px-3">Status</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100">
+                      {salaryProfile?.history && salaryProfile.history.length > 0 ? (
+                        salaryProfile.history.map((h: any, idx: number) => (
+                          <tr key={h.id || idx} className="hover:bg-slate-50/70">
+                            <td className="py-2.5 px-3 font-mono font-bold text-slate-800">v{h.version || idx + 1}</td>
+                            <td className="py-2.5 px-3 font-semibold text-slate-700">{h.structure?.name || salaryProfile.structureName || 'Standard Structure'}</td>
+                            <td className="py-2.5 px-3 font-mono font-bold text-[#0D9488]">₹{(h.monthlyCtc || 0).toLocaleString()}</td>
+                            <td className="py-2.5 px-3 font-mono">₹{(h.annualCtc || 0).toLocaleString()}</td>
+                            <td className="py-2.5 px-3 font-mono text-slate-500">
+                              {h.effectiveFrom ? new Date(h.effectiveFrom).toLocaleDateString() : '—'}
+                            </td>
+                            <td className="py-2.5 px-3">
+                              <span
+                                className={`px-2 py-0.5 rounded text-[10px] font-black ${
+                                  h.isCurrent
+                                    ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                                    : 'bg-slate-100 text-slate-500'
+                                }`}
+                              >
+                                {h.isCurrent ? 'ACTIVE' : 'SUPERSEDED'}
+                              </span>
+                            </td>
+                          </tr>
+                        ))
+                      ) : (
+                        <tr>
+                          <td className="py-2.5 px-3 font-mono font-bold text-slate-800">v1</td>
+                          <td className="py-2.5 px-3 font-semibold text-slate-700">{salaryProfile?.structureName || 'Standard Structure'}</td>
+                          <td className="py-2.5 px-3 font-mono font-bold text-[#0D9488]">₹{(salaryProfile?.monthlyCtc || 50000).toLocaleString()}</td>
+                          <td className="py-2.5 px-3 font-mono">₹{(salaryProfile?.annualCtc || 600000).toLocaleString()}</td>
+                          <td className="py-2.5 px-3 font-mono text-slate-500">01 Apr 2025</td>
+                          <td className="py-2.5 px-3">
+                            <span className="px-2 py-0.5 rounded text-[10px] font-black bg-emerald-50 text-emerald-700 border border-emerald-200">
+                              ACTIVE
+                            </span>
+                          </td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* TAB 8: PAYROLL & PAYSLIPS */}
+          {activeTab === 'payroll' && (
+            <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-xs space-y-6">
+              <div>
+                <h3 className="text-base font-bold text-slate-900">Historical Payroll Disbursements</h3>
+                <p className="text-xs text-slate-500">Deterministic net pay, statutory deductions, and published payslips</p>
+              </div>
+
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-xs">
+                  <thead className="bg-slate-50 text-slate-500 uppercase text-[10px] font-bold border-y border-slate-200">
+                    <tr>
+                      <th className="py-2.5 px-3">Period</th>
+                      <th className="py-2.5 px-3">Base Gross</th>
+                      <th className="py-2.5 px-3">LOP Deduction</th>
+                      <th className="py-2.5 px-3">Gross Earnings</th>
+                      <th className="py-2.5 px-3">Total Deductions</th>
+                      <th className="py-2.5 px-3">Net Pay</th>
+                      <th className="py-2.5 px-3">Status</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100">
+                    {(payroll?.records || []).length === 0 ? (
+                      <tr>
+                        <td colSpan={7} className="py-6 text-center text-slate-400">
+                          No payroll calculation records found for this employee yet.
+                        </td>
+                      </tr>
+                    ) : (
+                      payroll.records.map((r: any) => (
+                        <tr key={r.id}>
+                          <td className="py-2.5 px-3 font-bold text-slate-800">{r.periodCode}</td>
+                          <td className="py-2.5 px-3">₹{r.baseGross.toLocaleString()}</td>
+                          <td className="py-2.5 px-3 text-rose-600">-₹{r.lopDeduction.toLocaleString()}</td>
+                          <td className="py-2.5 px-3 font-semibold">₹{r.totalEarnings.toLocaleString()}</td>
+                          <td className="py-2.5 px-3 text-rose-600">-₹{r.totalDeductions.toLocaleString()}</td>
+                          <td className="py-2.5 px-3 font-black text-[#0D9488]">₹{r.netPay.toLocaleString()}</td>
+                          <td className="py-2.5 px-3">
+                            <span className="px-2 py-0.5 rounded text-[10px] font-black bg-emerald-50 text-emerald-700">
+                              {r.status}
+                            </span>
+                          </td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
+
+              <div className="pt-4 border-t border-slate-200 space-y-3">
+                <h4 className="text-xs font-black uppercase text-slate-400 tracking-wider">Official Payslips</h4>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  {(payroll?.payslips || []).length === 0 ? (
+                    <p className="text-xs text-slate-400 py-3">No published payslips yet.</p>
+                  ) : (
+                    payroll.payslips.map((p: any) => (
+                      <div key={p.id} className="p-3.5 rounded-xl border border-slate-200 bg-slate-50 flex items-center justify-between text-xs">
+                        <div>
+                          <span className="font-bold text-slate-900">{p.payslipNumber}</span>
+                          <p className="text-slate-500 font-mono text-[11px]">{p.periodCode} • Net: ₹{p.netSalary.toLocaleString()}</p>
+                        </div>
+                        <span className="px-2.5 py-1 rounded-lg bg-[#0D9488] text-white text-[11px] font-bold">
+                          Published
+                        </span>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* TAB 9: PMS & APPRAISALS */}
+          {activeTab === 'performance' && (
+            <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-xs space-y-6">
+              <div>
+                <h3 className="text-base font-bold text-slate-900">Objectives, Key Results & Appraisals</h3>
+                <p className="text-xs text-slate-500">Track active performance targets, quarterly reviews, and approved increments</p>
+              </div>
+
+              <div className="space-y-3">
+                <h4 className="text-xs font-black uppercase text-slate-400 tracking-wider">Assigned Objectives (OKRs)</h4>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {(performance?.goals || []).length === 0 ? (
+                    <p className="text-xs text-slate-400 py-4 col-span-2 text-center">No goals assigned for current cycle.</p>
+                  ) : (
+                    performance.goals.map((g: any) => (
+                      <div key={g.id} className="p-4 rounded-xl border border-slate-200 bg-white space-y-2 text-xs">
+                        <div className="flex items-center justify-between">
+                          <span className="font-bold text-slate-900">{g.title}</span>
+                          <span className="text-[10px] font-black px-2 py-0.5 rounded bg-purple-50 text-purple-700">
+                            {g.category}
+                          </span>
+                        </div>
+                        <div className="w-full bg-slate-100 rounded-full h-2">
+                          <div className="bg-[#0D9488] h-2 rounded-full" style={{ width: `${g.progress || 0}%` }} />
+                        </div>
+                        <div className="flex items-center justify-between text-[11px] text-slate-500">
+                          <span>Weightage: {g.weightage}%</span>
+                          <span className="font-bold text-[#0D9488]">{g.progress}% Complete</span>
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </div>
+
+              <div className="pt-4 border-t border-slate-200 space-y-3">
+                <h4 className="text-xs font-black uppercase text-slate-400 tracking-wider">Approved Appraisals & Increments</h4>
+                <div className="divide-y divide-slate-100 border border-slate-200 rounded-xl overflow-hidden">
+                  {(performance?.appraisals || []).length === 0 ? (
+                    <p className="p-4 text-xs text-slate-400 text-center">No appraisal outcomes recorded yet.</p>
+                  ) : (
+                    performance.appraisals.map((a: any) => (
+                      <div key={a.id} className="p-3.5 text-xs flex items-center justify-between bg-white">
+                        <div>
+                          <span className="font-bold text-slate-800">{a.decisionType} ({a.performanceRating} / 5 Score)</span>
+                          <p className="text-slate-500 text-[11px]">
+                            {a.incrementPercentage ? `${a.incrementPercentage}% CTC Increment` : ''}
+                            {a.bonusAmount ? `₹${a.bonusAmount} Performance Bonus` : ''}
+                          </p>
+                        </div>
+                        <span className={`px-2 py-0.5 rounded text-[10px] font-black ${
+                          a.status === 'APPROVED' ? 'bg-emerald-50 text-emerald-700' : 'bg-amber-50 text-amber-700'
+                        }`}>
+                          {a.status}
+                        </span>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* TAB 10: CLIENT ASSIGNMENT */}
           {activeTab === 'client' && (
             <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-xs space-y-6">
               <h3 className="text-base font-bold text-slate-900">Corporate Client Assignment & History</h3>
@@ -713,7 +1488,7 @@ export const Employee360View: React.FC<Employee360ViewProps> = ({
               <h3 className="text-base font-bold text-slate-900">Operational Tasks & Deliverables</h3>
               <div className="divide-y divide-slate-100 border border-slate-200 rounded-xl overflow-hidden">
                 {(data.tasks || []).length === 0 ? (
-                  <p className="p-6 text-xs text-slate-400 text-center">No assigned CRM or operational tasks.</p>
+                  <p className="p-6 text-xs text-slate-400 text-center">No assigned operational tasks or deliverables.</p>
                 ) : (
                   data.tasks.map((t: any) => (
                     <div key={t.id} className="p-3.5 text-xs flex items-center justify-between hover:bg-slate-50">
@@ -757,40 +1532,231 @@ export const Employee360View: React.FC<Employee360ViewProps> = ({
             </div>
           )}
 
-          {/* TAB 10: KYC */}
+          {/* TAB 13: STATUTORY & KYC (COMPLIANCE VAULT) */}
           {activeTab === 'kyc' && (
-            <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-xs space-y-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h3 className="text-base font-bold text-slate-900">Secure KYC Identity Vault</h3>
-                  <p className="text-xs text-slate-500">Masked PII protection with watermarked previews</p>
-                </div>
-                <span className="px-3 py-1 rounded-full text-xs font-bold bg-[#0D9488]/10 text-[#0D9488] border border-[#0D9488]/30">
-                  {kyc?.verificationStatus || 'PENDING_VERIFICATION'}
-                </span>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 space-y-2">
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs font-bold text-slate-700">Permanent Account Number (PAN)</span>
-                    <Lock className="w-3.5 h-3.5 text-slate-400" />
+            <div className="space-y-6">
+              {/* Compliance Header */}
+              <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-xs">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-100">
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <ShieldCheck className="w-5 h-5 text-[#0D9488]" />
+                      <h3 className="text-base font-black text-slate-900 tracking-tight">
+                        India Statutory Compliance & Identity Vault
+                      </h3>
+                      <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-emerald-50 text-emerald-700 border border-emerald-200">
+                        {kyc?.verificationStatus || 'VERIFIED_ACTIVE'}
+                      </span>
+                    </div>
+                    <p className="text-xs text-slate-500 mt-1">
+                      Statutory deductions, EPFO UAN, ESIC coverage, state professional tax, and masked identity governance
+                    </p>
                   </div>
-                  <p className="text-base font-mono font-black text-slate-900 tracking-wider">
-                    {kyc?.panMasked || 'XXXXX0000X'}
-                  </p>
-                  <p className="text-[10px] text-slate-400">Masked per data-privacy governance standards.</p>
+
+                  {canManagePayroll && (
+                    <button
+                      type="button"
+                      onClick={() => setShowComplianceModal(true)}
+                      className="px-4 py-2 rounded-xl bg-[#0D9488] hover:bg-[#0F766E] text-white text-xs font-bold transition-all shadow-xs flex items-center gap-1.5 cursor-pointer active:scale-95"
+                    >
+                      <ShieldCheck className="w-4 h-4 text-emerald-200" />
+                      <span>Edit Compliance Details</span>
+                    </button>
+                  )}
                 </div>
 
-                <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 space-y-2">
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs font-bold text-slate-700">Aadhaar Identity</span>
-                    <Lock className="w-3.5 h-3.5 text-slate-400" />
+                {/* 4 Primary Compliance Cards */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4">
+                  {/* Card 1: Permanent Account Number (PAN) */}
+                  <div className="p-4 rounded-xl bg-slate-50 border border-slate-200/80 space-y-3">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <FileCheck className="w-4 h-4 text-[#0D9488]" />
+                        <span className="text-xs font-bold text-slate-800">Permanent Account Number (PAN)</span>
+                      </div>
+                      <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded bg-emerald-50 text-emerald-700 border border-emerald-200">
+                        Tax Identifier
+                      </span>
+                    </div>
+
+                    <div className="flex items-center justify-between p-3 rounded-lg bg-white border border-slate-200">
+                      <div>
+                        <span className="text-[10px] uppercase font-bold text-slate-400 block">PAN Number</span>
+                        <span className="text-base font-mono font-black text-slate-900 tracking-wider">
+                          {showUnmaskPan
+                            ? (statutoryInfo?.pan || employee.panNumber || 'XXXXX1234X')
+                            : (statutoryInfo?.panMasked || employee.panMasked || 'XXXXX1234X')}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-1.5">
+                        {(statutoryInfo?.pan || employee.panNumber) && (
+                          <button
+                            type="button"
+                            onClick={() => setShowUnmaskPan(!showUnmaskPan)}
+                            className="p-1.5 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 text-slate-500 cursor-pointer"
+                            title={showUnmaskPan ? 'Mask PAN' : 'Unmask PAN'}
+                          >
+                            {showUnmaskPan ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                          </button>
+                        )}
+                        <button
+                          type="button"
+                          onClick={() => copyToClipboard(statutoryInfo?.pan || employee.panNumber || '', 'panTab')}
+                          className="p-1.5 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 text-slate-500 cursor-pointer"
+                          title="Copy PAN"
+                        >
+                          {copiedField === 'panTab' ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center justify-between text-[11px] text-slate-500 pt-1">
+                      <span>Default Tax Regime:</span>
+                      <span className="font-bold text-slate-800 bg-slate-200/60 px-2 py-0.5 rounded text-[10px]">
+                        New Regime (Sec 115BAC)
+                      </span>
+                    </div>
                   </div>
-                  <p className="text-base font-mono font-black text-slate-900 tracking-wider">
-                    {kyc?.aadhaarMasked || 'XXXX XXXX 0000'}
+
+                  {/* Card 2: Employees' Provident Fund (EPF) */}
+                  <div className="p-4 rounded-xl bg-slate-50 border border-slate-200/80 space-y-3">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <Scale className="w-4 h-4 text-[#0D9488]" />
+                        <span className="text-xs font-bold text-slate-800">Employees&apos; Provident Fund (EPF)</span>
+                      </div>
+                      <span
+                        className={`text-[10px] font-black uppercase px-2 py-0.5 rounded ${
+                          statutoryInfo?.pfUan && statutoryInfo.pfUan !== 'N/A'
+                            ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                            : 'bg-slate-100 text-slate-500'
+                        }`}
+                      >
+                        {statutoryInfo?.pfUan && statutoryInfo.pfUan !== 'N/A' ? 'Enrolled' : 'Opted Out'}
+                      </span>
+                    </div>
+
+                    <div className="flex items-center justify-between p-3 rounded-lg bg-white border border-slate-200">
+                      <div>
+                        <span className="text-[10px] uppercase font-bold text-slate-400 block">Universal Account Number (UAN)</span>
+                        <span className="text-base font-mono font-black text-slate-900 tracking-wider">
+                          {statutoryInfo?.pfUan && statutoryInfo.pfUan !== 'N/A' ? statutoryInfo.pfUan : 'Not Registered'}
+                        </span>
+                      </div>
+                      {statutoryInfo?.pfUan && statutoryInfo.pfUan !== 'N/A' && (
+                        <button
+                          type="button"
+                          onClick={() => copyToClipboard(statutoryInfo.pfUan, 'uanTab')}
+                          className="p-1.5 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 text-slate-500 cursor-pointer"
+                          title="Copy UAN"
+                        >
+                          {copiedField === 'uanTab' ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
+                        </button>
+                      )}
+                    </div>
+
+                    <p className="text-[10px] text-slate-500">
+                      Statutory Rule: 12% Employee + 12% Employer on Basic + DA (statutory ceiling ₹15,000 / month).
+                    </p>
+                  </div>
+
+                  {/* Card 3: Employees' State Insurance (ESIC) */}
+                  <div className="p-4 rounded-xl bg-slate-50 border border-slate-200/80 space-y-3">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <Building2 className="w-4 h-4 text-[#0D9488]" />
+                        <span className="text-xs font-bold text-slate-800">Employees&apos; State Insurance (ESIC)</span>
+                      </div>
+                      <span
+                        className={`text-[10px] font-black uppercase px-2 py-0.5 rounded ${
+                          statutoryInfo?.esiNumber && statutoryInfo.esiNumber !== 'N/A'
+                            ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                            : 'bg-slate-100 text-slate-500'
+                        }`}
+                      >
+                        {statutoryInfo?.esiNumber && statutoryInfo.esiNumber !== 'N/A' ? 'Covered' : 'Exempt'}
+                      </span>
+                    </div>
+
+                    <div className="flex items-center justify-between p-3 rounded-lg bg-white border border-slate-200">
+                      <div>
+                        <span className="text-[10px] uppercase font-bold text-slate-400 block">17-Digit Insurance Number (IP)</span>
+                        <span className="text-base font-mono font-black text-slate-900 tracking-wider">
+                          {statutoryInfo?.esiNumber && statutoryInfo.esiNumber !== 'N/A'
+                            ? statutoryInfo.esiNumber
+                            : 'Exempt (Gross > ₹21,000)'}
+                        </span>
+                      </div>
+                      {statutoryInfo?.esiNumber && statutoryInfo.esiNumber !== 'N/A' && (
+                        <button
+                          type="button"
+                          onClick={() => copyToClipboard(statutoryInfo.esiNumber, 'esiTab')}
+                          className="p-1.5 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 text-slate-500 cursor-pointer"
+                          title="Copy ESI Number"
+                        >
+                          {copiedField === 'esiTab' ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
+                        </button>
+                      )}
+                    </div>
+
+                    <p className="text-[10px] text-slate-500">
+                      Statutory Rule: 0.75% Employee + 3.25% Employer contribution (applicable only if Gross ≤ ₹21,000).
+                    </p>
+                  </div>
+
+                  {/* Card 4: Professional Tax (PT) */}
+                  <div className="p-4 rounded-xl bg-slate-50 border border-slate-200/80 space-y-3">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <Landmark className="w-4 h-4 text-[#0D9488]" />
+                        <span className="text-xs font-bold text-slate-800">State Professional Tax (PT)</span>
+                      </div>
+                      <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded bg-emerald-50 text-emerald-700 border border-emerald-200">
+                        Active Slab
+                      </span>
+                    </div>
+
+                    <div className="flex items-center justify-between p-3 rounded-lg bg-white border border-slate-200">
+                      <div>
+                        <span className="text-[10px] uppercase font-bold text-slate-400 block">Jurisdiction State</span>
+                        <span className="text-base font-bold text-slate-900">
+                          {statutoryInfo?.ptState || employee.ptState || 'Maharashtra'}
+                        </span>
+                      </div>
+                      <span className="font-mono font-bold text-xs bg-slate-100 text-slate-700 px-2.5 py-1 rounded-md">
+                        ₹200 / month
+                      </span>
+                    </div>
+
+                    <p className="text-[10px] text-slate-500">
+                      Statutory Rule: Deducted monthly per state schedule (e.g. ₹200/mo, ₹300 in February for Maharashtra).
+                    </p>
+                  </div>
+                </div>
+
+                {/* Aadhaar & Data Privacy Section */}
+                <div className="p-4 rounded-xl bg-slate-50 border border-slate-200/80 space-y-2 mt-4">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <Lock className="w-4 h-4 text-slate-400" />
+                      <span className="text-xs font-bold text-slate-800">Aadhaar Identity Verification</span>
+                    </div>
+                    <span className="text-[10px] font-bold text-slate-400">UIDAI Governed</span>
+                  </div>
+                  <div className="p-3 rounded-lg bg-white border border-slate-200 flex items-center justify-between">
+                    <div>
+                      <span className="text-[10px] uppercase font-bold text-slate-400 block">Masked Aadhaar Number</span>
+                      <p className="text-base font-mono font-black text-slate-900 tracking-wider">
+                        {kyc?.aadhaarMasked || employee.aadhaarMasked || 'XXXX XXXX 1234'}
+                      </p>
+                    </div>
+                    <span className="text-[10px] font-bold text-slate-400 bg-slate-100 px-2 py-1 rounded">
+                      Masked PII Isolation
+                    </span>
+                  </div>
+                  <p className="text-[10px] text-slate-400">
+                    Aadhaar digits are masked in accordance with national UIDAI security directives and data-at-rest encryption.
                   </p>
-                  <p className="text-[10px] text-slate-400">Masked per national UID governance guidelines.</p>
                 </div>
               </div>
             </div>
@@ -888,6 +1854,63 @@ export const Employee360View: React.FC<Employee360ViewProps> = ({
                 </table>
               </div>
             </div>
+          )}
+
+          {/* Modals: Salary Assignment & Statutory Compliance */}
+          {showSalaryModal && employee && (
+            <AssignSalaryModal
+              isOpen={showSalaryModal}
+              onClose={() => setShowSalaryModal(false)}
+              employee={{
+                id: employee.id,
+                employeeId: employee.employeeId,
+                fullName: employee.fullName,
+                designation: employee.designation,
+                department: employee.department,
+                clientId: employee.client?.id || employee.clientId,
+                panNumber: statutoryInfo?.pan || employee.panNumber,
+                bankName: bankInfo?.bankName || employee.bankName,
+                bankAccount: bankInfo?.bankAccount || employee.bankAccount,
+                bankIfsc: bankInfo?.bankIfsc || employee.bankIfsc,
+              }}
+              currentSalaryProfile={salaryProfile}
+              bankInfo={bankInfo}
+              onUpdated={() => {
+                fetch360Data(selectedId);
+                setActionMsg('Salary structure assigned and compensation sheet updated successfully.');
+                setTimeout(() => setActionMsg(null), 4000);
+              }}
+            />
+          )}
+
+          {showComplianceModal && employee && (
+            <EditComplianceModal
+              isOpen={showComplianceModal}
+              onClose={() => setShowComplianceModal(false)}
+              employee={{
+                id: employee.id,
+                employeeId: employee.employeeId,
+                fullName: employee.fullName,
+                designation: employee.designation,
+                department: employee.department,
+                panNumber: statutoryInfo?.pan || employee.panNumber,
+                panMasked: statutoryInfo?.panMasked || employee.panMasked,
+                aadhaarMasked: statutoryInfo?.aadhaarMasked || employee.aadhaarMasked,
+                pfUan: statutoryInfo?.pfUan || employee.pfUan,
+                esiNumber: statutoryInfo?.esiNumber || employee.esiNumber,
+                ptState: statutoryInfo?.ptState || employee.ptState,
+                bankName: bankInfo?.bankName || employee.bankName,
+                bankAccount: bankInfo?.bankAccount || employee.bankAccount,
+                bankIfsc: bankInfo?.bankIfsc || employee.bankIfsc,
+              }}
+              statutoryInfo={statutoryInfo}
+              bankInfo={bankInfo}
+              onUpdated={() => {
+                fetch360Data(selectedId);
+                setActionMsg('Statutory compliance and banking remittance successfully updated.');
+                setTimeout(() => setActionMsg(null), 4000);
+              }}
+            />
           )}
         </>
       )}

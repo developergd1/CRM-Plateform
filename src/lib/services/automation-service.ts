@@ -15,6 +15,8 @@ export type AutomationEventType =
   | 'DEAL_LOST'
   | 'CLIENT_CREATED'
   | 'EMPLOYEE_ASSIGNED'
+  | 'TASK_CREATED'
+  | 'TASK_OVERDUE'
   | 'ATTENDANCE_LATE'
   | 'ATTENDANCE_ABSENT';
 

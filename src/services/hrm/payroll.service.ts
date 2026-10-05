@@ -8,6 +8,9 @@ import {
 } from '@/lib/id-generator';
 import { logAuditEvent } from '@/lib/audit';
 import { calculateEmployeeLopDays } from './leave.service';
+import { getEffectiveStatutoryRule } from './statutory.service';
+import { getHrmConfiguration } from './config.service';
+import { scanPayrollPeriodExceptions } from './exception.service';
 
 /**
  * Utility to convert numbers to Indian Rupee Words for official payslips
@@ -107,6 +110,11 @@ export async function assignSalaryStructure(
     structureId: string;
     baseCtcAnnual: number;
     effectiveFrom?: string;
+    bankName?: string;
+    bankAccount?: string;
+    bankIfsc?: string;
+    panNumber?: string;
+    customConfig?: any;
   },
   user: { id: string; fullName: string }
 ) {
@@ -127,6 +135,9 @@ export async function assignSalaryStructure(
       monthlyCtc: grossMonthly,
       effectiveFrom: input.effectiveFrom ? new Date(input.effectiveFrom) : new Date(),
       isCurrent: true,
+      bankAccount: input.bankAccount?.trim() || null,
+      bankIfsc: input.bankIfsc?.trim().toUpperCase() || null,
+      panNumber: input.panNumber?.trim().toUpperCase() || null,
       assignedById: user.id,
     },
     include: {
@@ -142,13 +153,67 @@ export async function assignSalaryStructure(
     },
   });
 
+  // Persist custom manual configurations (PF, PT, TDS, component splits)
+  if (input.customConfig) {
+    try {
+      await prisma.$runCommandRaw({
+        update: 'EmployeeSalaryAssignment',
+        updates: [
+          {
+            q: { _id: { $oid: assignment.id } },
+            u: {
+              $set: {
+                customConfig:
+                  typeof input.customConfig === 'string'
+                    ? input.customConfig
+                    : JSON.stringify(input.customConfig),
+              },
+            },
+          },
+        ],
+      });
+    } catch (err) {
+      console.error('Failed to persist customConfig on EmployeeSalaryAssignment:', err);
+    }
+  }
+
+  // Synchronize banking details with Employee Master record
+  if (input.bankAccount || input.bankIfsc || input.bankName || input.panNumber) {
+    const { maskPAN } = await import('@/lib/audit');
+    await prisma.employee.update({
+      where: { id: resolvedEmpId },
+      data: {
+        ...(input.bankName ? { bankName: input.bankName.trim() } : {}),
+        ...(input.bankAccount ? { bankAccount: input.bankAccount.trim() } : {}),
+        ...(input.bankIfsc ? { bankIfsc: input.bankIfsc.trim().toUpperCase() } : {}),
+        ...(input.panNumber ? {
+          panNumber: input.panNumber.trim().toUpperCase(),
+          panMasked: maskPAN(input.panNumber.trim().toUpperCase()),
+        } : {}),
+      },
+    });
+  }
+
+  await logAuditEvent({
+    actorUserId: user.id,
+    action: 'CREATE',
+    entityType: 'PAYROLL',
+    entityId: assignment.id,
+    reason: `Assigned salary structure ${input.structureId} (CTC: ₹${input.baseCtcAnnual}) to employee ${resolvedEmpId}`,
+  });
+
   return assignment;
 }
 
-export async function getEmployeeSalaryAssignments() {
+export async function getEmployeeSalaryAssignments(clientId?: string | null) {
   await ensureDefaultSalaryComponentsAndStructures();
+  const where: any = { isCurrent: true };
+  if (clientId) {
+    where.employee = { clientId };
+  }
+
   const assignments = await prisma.employeeSalaryAssignment.findMany({
-    where: { isCurrent: true },
+    where,
     include: {
       structure: true,
       employee: {
@@ -159,6 +224,9 @@ export async function getEmployeeSalaryAssignments() {
           designation: true,
           departmentName: true,
           panNumber: true,
+          bankAccount: true,
+          bankIfsc: true,
+          bankName: true,
         },
       },
     },
@@ -171,59 +239,52 @@ export async function getEmployeeSalaryAssignments() {
     grossSalaryMonthly: a.monthlyCtc,
     employee: {
       ...a.employee,
-      bankAccountNumber: a.bankAccount,
-      bankIfscCode: a.bankIfsc,
+      bankAccountNumber: a.employee.bankAccount || a.bankAccount,
+      bankIfscCode: a.employee.bankIfsc || a.bankIfsc,
     },
   }));
 }
 
 export async function getPayrollPeriods(tenantClientId?: string | null) {
+  const where: any = {};
   if (tenantClientId) {
-    const periods = await prisma.payrollPeriod.findMany({
-      where: {
-        payrollRecords: {
-          some: {
-            employee: { clientId: tenantClientId },
-          },
-        },
-      },
-      include: {
-        payrollRecords: {
-          where: { employee: { clientId: tenantClientId } },
-        },
-      },
-      orderBy: [{ year: 'desc' }, { month: 'desc' }],
-    });
-
-    return periods.map((p) => {
-      const recordsCount = p.payrollRecords.length;
-      const totalGrossPay = p.payrollRecords.reduce((sum, r) => sum + (r.totalEarnings || 0), 0);
-      const totalNetPay = p.payrollRecords.reduce((sum, r) => sum + (r.netPay || 0), 0);
-      return {
-        ...p,
-        payrollRecords: undefined,
-        recordsCount,
-        totalGrossPay,
-        totalNetPay,
-        workingDays: 26,
-      };
-    });
+    where.OR = [
+      { clientId: tenantClientId },
+      { payrollRecords: { some: { employee: { clientId: tenantClientId } } } },
+    ];
   }
 
   const periods = await prisma.payrollPeriod.findMany({
+    where,
     include: {
-      _count: { select: { payrollRecords: true } },
+      _count: { select: { payrollRecords: true, exceptions: true } },
+      payrollRecords: tenantClientId
+        ? { where: { employee: { clientId: tenantClientId } } }
+        : false,
     },
     orderBy: [{ year: 'desc' }, { month: 'desc' }],
   });
 
-  return periods.map((p) => ({
-    ...p,
-    recordsCount: p.totalEmployees,
-    totalGrossPay: p.totalGross,
-    totalNetPay: p.totalNet,
-    workingDays: 26,
-  }));
+  return periods.map((p) => {
+    let recordsCount = p.totalEmployees;
+    let totalGrossPay = p.totalGross;
+    let totalNetPay = p.totalNet;
+
+    if (tenantClientId && Array.isArray(p.payrollRecords)) {
+      recordsCount = p.payrollRecords.length;
+      totalGrossPay = p.payrollRecords.reduce((s, r) => s + (r.totalEarnings || 0), 0);
+      totalNetPay = p.payrollRecords.reduce((s, r) => s + (r.netPay || 0), 0);
+    }
+
+    return {
+      ...p,
+      recordsCount,
+      totalGrossPay,
+      totalNetPay,
+      pendingExceptions: p._count?.exceptions || 0,
+      workingDays: 26,
+    };
+  });
 }
 
 export async function getPayrollPeriodDetail(periodId: string, tenantClientId?: string | null) {
@@ -241,6 +302,8 @@ export async function getPayrollPeriodDetail(periodId: string, tenantClientId?: 
               designation: true,
               departmentName: true,
               panNumber: true,
+              bankAccount: true,
+              bankIfsc: true,
             },
           },
           earningsItems: true,
@@ -251,6 +314,14 @@ export async function getPayrollPeriodDetail(periodId: string, tenantClientId?: 
       },
       approvals: {
         orderBy: { timestamp: 'desc' },
+      },
+      exceptions: {
+        include: {
+          employee: {
+            select: { id: true, employeeId: true, fullName: true },
+          },
+        },
+        orderBy: [{ severity: 'asc' }, { createdAt: 'desc' }],
       },
     },
   });
@@ -267,6 +338,8 @@ export async function getPayrollPeriodDetail(periodId: string, tenantClientId?: 
     totalGrossPay,
     totalNetPay,
     workingDays: 26,
+    pendingExceptions: period.exceptions.filter((e) => e.status === 'OPEN').length,
+    blockingExceptions: period.exceptions.filter((e) => e.status === 'OPEN' && e.severity === 'BLOCKING').length,
     records: period.payrollRecords.map((r) => ({
       ...r,
       baseSalary: r.baseGross,
@@ -295,15 +368,29 @@ export async function getPayrollPeriodDetail(periodId: string, tenantClientId?: 
       remarks: a.remarks,
       timestamp: a.timestamp,
     })),
+    exceptionsList: period.exceptions.map((e) => ({
+      id: e.id,
+      exceptionType: e.exceptionType,
+      severity: e.severity,
+      reason: e.reason,
+      resolution: e.resolution,
+      status: e.status,
+      employeeName: e.employee?.fullName,
+      employeeCode: e.employee?.employeeId,
+    })),
   };
 }
 
 export async function createPayrollPeriod(
   month: number,
   year: number,
-  user: { id: string; fullName: string }
+  user: { id: string; fullName: string },
+  clientId?: string | null
 ) {
-  const periodCode = await generatePayrollPeriodCode(year, month);
+  const m = String(month).padStart(2, '0');
+  const periodCode = clientId
+    ? `PAY-${clientId.slice(-6).toUpperCase()}-${year}-${m}`
+    : `PAY-${year}-${m}`;
 
   let period = await prisma.payrollPeriod.findUnique({
     where: { periodCode },
@@ -332,7 +419,16 @@ export async function createPayrollPeriod(
       totalGross: 0,
       totalNet: 0,
       totalDeductions: 0,
+      clientId: clientId || null,
     },
+  });
+
+  await logAuditEvent({
+    actorUserId: user.id,
+    action: 'CREATE',
+    entityType: 'PAYROLL',
+    entityId: period.id,
+    reason: `Created payroll period ${periodCode}`,
   });
 
   return {
@@ -344,23 +440,44 @@ export async function createPayrollPeriod(
   };
 }
 
+/**
+ * 5-Step Deterministic Payroll Calculation Engine:
+ * Ingests Employee salary assignment, EMS live attendance, approved leaves, LOP policy,
+ * overtime hours, versioned statutory compliance rules (PF/ESI/TDS/PT), approved adjustments,
+ * loan EMIs, and reimbursements.
+ */
 export async function processPayrollPeriod(
   periodId: string,
-  user: { id: string; fullName: string; role: string }
+  user: { id: string; fullName: string; role: string },
+  tenantClientId?: string | null
 ) {
   const period = await prisma.payrollPeriod.findUnique({ where: { id: periodId } });
   if (!period) throw new Error('Payroll period not found');
-  if (period.status === 'FINALIZED') throw new Error('Cannot re-process a finalized period');
+  if (period.status === 'FINALIZED') throw new Error('Cannot re-process a finalized payroll period');
+
+  // Load tenant configuration policies
+  const config = await getHrmConfiguration(period.clientId || tenantClientId);
+  const workingDays = config.workingDaysPerMonth || 26;
+  const calendarDays = new Date(period.year, period.month, 0).getDate();
+
+  // Scope employees to tenant organization if applicable
+  const employeeWhere: any = {
+    status: 'ACTIVE',
+    ...(tenantClientId || period.clientId ? { clientId: tenantClientId || period.clientId } : {}),
+  };
 
   // Ensure active salary assignments exist
   let assignments = await prisma.employeeSalaryAssignment.findMany({
-    where: { isCurrent: true },
+    where: {
+      isCurrent: true,
+      employee: employeeWhere,
+    },
     include: { employee: true },
   });
 
   if (assignments.length === 0) {
     const activeEmployees = await prisma.employee.findMany({
-      where: { status: 'ACTIVE', employeeId: { not: 'GI-EMP-000001' } },
+      where: employeeWhere,
     });
 
     const structure = await ensureDefaultSalaryComponentsAndStructures();
@@ -379,14 +496,20 @@ export async function processPayrollPeriod(
     }
 
     assignments = await prisma.employeeSalaryAssignment.findMany({
-      where: { isCurrent: true },
+      where: {
+        isCurrent: true,
+        employee: employeeWhere,
+      },
       include: { employee: true },
     });
   }
 
-  // Clear existing records for this period
+  // Clear existing payroll records for this period (scoped to tenant if applicable)
   await prisma.payrollRecord.deleteMany({
-    where: { periodId },
+    where: {
+      periodId,
+      ...(tenantClientId ? { employee: { clientId: tenantClientId } } : {}),
+    },
   });
 
   let periodTotalGross = 0;
@@ -394,49 +517,238 @@ export async function processPayrollPeriod(
   let periodTotalNet = 0;
   let count = 0;
 
+  const monthStr = String(period.month).padStart(2, '0');
+  const periodPrefix = `${period.year}-${monthStr}`;
+
   for (const assign of assignments) {
     const emp = assign.employee;
     if (!emp || emp.status !== 'ACTIVE') continue;
 
-    const baseMonthly = assign.monthlyCtc;
-    const workingDays = 26;
+    // Resolve salary assignment effective for this period
+    const effectiveAssignment = await prisma.employeeSalaryAssignment.findFirst({
+      where: {
+        employeeId: emp.id,
+        effectiveFrom: { lte: period.endDate },
+        OR: [
+          { effectiveTo: null },
+          { effectiveTo: { gte: period.startDate } },
+        ],
+      },
+      orderBy: [{ effectiveFrom: 'desc' }, { version: 'desc' }],
+    }) || assign;
 
-    // Attendance & LOP
+    // Check for Admin/Client manual salary overrides (PF, PT, TDS, ESIC, Earnings)
+    let customCfg: any = null;
+    try {
+      const rawAssign = (await prisma.$runCommandRaw({
+        find: 'EmployeeSalaryAssignment',
+        filter: { _id: { $oid: effectiveAssignment.id } },
+        limit: 1,
+      })) as any;
+      const rawDoc = rawAssign?.cursor?.firstBatch?.[0];
+      if (rawDoc?.customConfig) {
+        customCfg =
+          typeof rawDoc.customConfig === 'string'
+            ? JSON.parse(rawDoc.customConfig)
+            : rawDoc.customConfig;
+      }
+    } catch (e) {
+      // Fallback to standard automated calculation
+    }
+
+    const baseMonthly = effectiveAssignment.monthlyCtc;
+
+    // 1. Loss of Pay (LOP) based on configured LOP policy
     const lopDays = await calculateEmployeeLopDays(emp.id, period.month, period.year);
-    const perDayRate = baseMonthly / workingDays;
-    const lopDeduction = Math.round(perDayRate * lopDays);
+    let perDayRate = baseMonthly / workingDays;
+    let lopDeduction = 0;
+
+    if (config.lopPolicy === 'CALENDAR_DAYS') {
+      perDayRate = baseMonthly / calendarDays;
+      lopDeduction = Math.round(perDayRate * lopDays);
+    } else if (config.lopPolicy === 'PAYABLE_DAYS') {
+      const scheduledPayableDays = Math.max(1, calendarDays - 4); // accounting for weekends
+      perDayRate = baseMonthly / scheduledPayableDays;
+      lopDeduction = Math.round(perDayRate * lopDays);
+    } else {
+      lopDeduction = Math.round(perDayRate * lopDays);
+    }
+
     const adjustedGross = Math.max(0, baseMonthly - lopDeduction);
 
-    // Earnings
-    const basicAmount = Math.round(adjustedGross * 0.5);
-    const hraAmount = Math.round(basicAmount * 0.4);
-    const specialAllowance = Math.max(0, adjustedGross - (basicAmount + hraAmount));
+    // 2. Base Earnings components (Basic, HRA, Special Allowance - Auto or Custom)
+    let basicAmount: number;
+    let hraAmount: number;
+    let specialAllowance: number;
 
-    const earnings = [
+    if (customCfg?.earningsMode === 'CUSTOM' && customCfg.basicAmount !== undefined) {
+      const scaleFactor = baseMonthly > 0 ? adjustedGross / baseMonthly : 1;
+      basicAmount = Math.round((Number(customCfg.basicAmount) || 0) * scaleFactor);
+      hraAmount = Math.round((Number(customCfg.hraAmount) || 0) * scaleFactor);
+      specialAllowance = Math.max(0, adjustedGross - (basicAmount + hraAmount));
+    } else {
+      basicAmount = Math.round(adjustedGross * 0.5);
+      hraAmount = Math.round(basicAmount * 0.4);
+      specialAllowance = Math.max(0, adjustedGross - (basicAmount + hraAmount));
+    }
+
+    const earningsList: Array<{ code: string; name: string; amount: number }> = [
       { code: 'BASIC', name: 'Basic Salary', amount: basicAmount },
       { code: 'HRA', name: 'House Rent Allowance', amount: hraAmount },
       { code: 'SPECIAL_ALLOWANCE', name: 'Special Allowance', amount: specialAllowance },
     ];
 
-    // Deductions
-    const pfAmount = Math.min(1800, Math.round(basicAmount * 0.12));
-    const ptAmount = adjustedGross > 15000 ? 200 : 0;
-    const tdsAmount = adjustedGross > 50000 ? Math.round(adjustedGross * 0.05) : 0;
+    // 3. Overtime computation from EMS Attendance
+    const attendanceRecords = await prisma.attendance.findMany({
+      where: {
+        employeeId: emp.id,
+        date: { startsWith: periodPrefix },
+      },
+    });
 
-    const deductions = [
-      { code: 'PF_EMP', name: 'Provident Fund (Employee)', amount: pfAmount },
-      { code: 'PT', name: 'Professional Tax (PT)', amount: ptAmount },
+    const totalOvertimeMinutes = attendanceRecords.reduce((sum, a) => sum + (a.overtimeMinutes || 0), 0);
+    const overtimeHours = Number((totalOvertimeMinutes / 60).toFixed(1));
+    const overtimePay = Math.round(overtimeHours * config.overtimeRatePerHour * config.overtimeMultiplier);
+
+    if (overtimePay > 0) {
+      earningsList.push({
+        code: 'OVERTIME',
+        name: `Overtime Pay (${overtimeHours} hrs @ ${config.overtimeMultiplier}x)`,
+        amount: overtimePay,
+      });
+    }
+
+    // 4. Approved Adjustments (Bonus, Incentive, Arrears, etc.)
+    const approvedAdjustments = await prisma.payrollAdjustment.findMany({
+      where: {
+        employeeId: emp.id,
+        effectivePeriodCode: period.periodCode,
+        status: 'APPROVED',
+      },
+    });
+
+    let totalAdjustmentEarnings = 0;
+    let totalAdjustmentDeductions = 0;
+
+    for (const adj of approvedAdjustments) {
+      if (adj.category === 'EARNING') {
+        totalAdjustmentEarnings += adj.amount;
+        earningsList.push({
+          code: adj.type,
+          name: `${adj.type} (${adj.reason})`,
+          amount: adj.amount,
+        });
+      } else {
+        totalAdjustmentDeductions += adj.amount;
+      }
+    }
+
+    const totalGrossEarnings = adjustedGross + overtimePay + totalAdjustmentEarnings;
+
+    // 5. Statutory Compliance Deductions (Manual Overrides & Versioned Rule Engine)
+    const empState = emp.ptState || 'Maharashtra';
+    const [pfRule, esiRule, tdsRule, ptRule] = await Promise.all([
+      getEffectiveStatutoryRule('PF', period.startDate, empState, emp.clientId),
+      getEffectiveStatutoryRule('ESI', period.startDate, empState, emp.clientId),
+      getEffectiveStatutoryRule('TDS', period.startDate, empState, emp.clientId),
+      getEffectiveStatutoryRule('PT', period.startDate, empState, emp.clientId),
+    ]);
+
+    // PF Deduction (Manual override vs Automatic)
+    let pfEmployee = 0;
+    let pfEmployer = 0;
+    if (customCfg?.pfOption === 'EXEMPT') {
+      pfEmployee = 0;
+      pfEmployer = 0;
+    } else if (customCfg?.pfOption === 'CUSTOM' && customCfg.pfAmount !== undefined) {
+      pfEmployee = Number(customCfg.pfAmount) || 0;
+      pfEmployer = Number(customCfg.pfEmployerAmount ?? pfEmployee);
+    } else if (pfRule && pfRule.isActive) {
+      const pfRate = pfRule.employeeRate / 100;
+      const employerPfRate = (pfRule.employerRate || 12) / 100;
+      if (pfRule.ceiling && pfRule.ceiling > 0) {
+        pfEmployee = Math.min(Math.round(pfRule.ceiling * pfRate), Math.round(basicAmount * pfRate));
+        pfEmployer = Math.min(Math.round(pfRule.ceiling * employerPfRate), Math.round(basicAmount * employerPfRate));
+      } else {
+        pfEmployee = Math.round(basicAmount * pfRate);
+        pfEmployer = Math.round(basicAmount * employerPfRate);
+      }
+    }
+
+    // ESI Deduction (Manual override vs Automatic)
+    let esiEmployee = 0;
+    let esiEmployer = 0;
+    if (customCfg?.esiOption === 'EXEMPT') {
+      esiEmployee = 0;
+      esiEmployer = 0;
+    } else if (customCfg?.esiOption === 'CUSTOM' && customCfg.esiAmount !== undefined) {
+      esiEmployee = Number(customCfg.esiAmount) || 0;
+      esiEmployer = Number(customCfg.esiEmployerAmount ?? Math.round(esiEmployee * 4.33));
+    } else if (esiRule && esiRule.isActive && totalGrossEarnings <= (esiRule.threshold || 21000)) {
+      esiEmployee = Math.round(totalGrossEarnings * (esiRule.employeeRate / 100));
+      esiEmployer = Math.round(totalGrossEarnings * ((esiRule.employerRate || 3.25) / 100));
+    }
+
+    // TDS Deduction (Manual override vs Automatic)
+    let tdsAmount = 0;
+    if (customCfg?.tdsOption === 'EXEMPT') {
+      tdsAmount = 0;
+    } else if (customCfg?.tdsOption === 'CUSTOM' && customCfg.tdsAmount !== undefined) {
+      tdsAmount = Number(customCfg.tdsAmount) || 0;
+    } else if (tdsRule && tdsRule.isActive && totalGrossEarnings >= (tdsRule.threshold || 50000)) {
+      tdsAmount = Math.round(totalGrossEarnings * (tdsRule.employeeRate / 100));
+    }
+
+    // PT Deduction (Manual override vs Automatic)
+    let ptAmount = 0;
+    if (customCfg?.ptOption === 'EXEMPT') {
+      ptAmount = 0;
+    } else if (customCfg?.ptOption === 'CUSTOM' && customCfg.ptAmount !== undefined) {
+      ptAmount = Number(customCfg.ptAmount) || 0;
+    } else if (ptRule && ptRule.isActive) {
+      if (ptRule.rateType === 'SLAB' && ptRule.slabConfigJson) {
+        try {
+          const slabs = JSON.parse(ptRule.slabConfigJson);
+          for (const s of slabs) {
+            const minW = s.min ?? s.minWage ?? 0;
+            const maxW = s.max ?? s.maxWage ?? 999999999;
+            if (totalGrossEarnings >= minW && totalGrossEarnings <= maxW) {
+              const standardPt = s.pt ?? s.deduction ?? 200;
+              const febDeduct = s.febPt ?? s.februaryDeduction ?? standardPt;
+              ptAmount = period.month === 2 ? febDeduct : standardPt;
+              break;
+            }
+          }
+        } catch {
+          ptAmount = totalGrossEarnings > 15000 ? 200 : 0;
+        }
+      } else {
+        ptAmount = totalGrossEarnings > (ptRule.threshold || 15000) ? ptRule.employeeRate : 0;
+      }
+    }
+
+    const deductionsList: Array<{ code: string; name: string; amount: number }> = [
+      { code: 'PF_EMP', name: `Provident Fund (${pfRule?.employeeRate || 12}%)`, amount: pfEmployee },
+      { code: 'PT', name: `Professional Tax (${empState})`, amount: ptAmount },
       { code: 'TDS', name: 'Tax Deducted at Source', amount: tdsAmount },
     ];
 
-    // Loans deduction check
+    if (esiEmployee > 0) {
+      deductionsList.push({
+        code: 'ESI_EMP',
+        name: `ESI Contribution (${esiRule?.employeeRate || 0.75}%)`,
+        amount: esiEmployee,
+      });
+    }
+
+    // Active Loans Deduction
     const activeLoans = await prisma.employeeLoan.findMany({
       where: { employeeId: emp.id, status: 'ACTIVE' },
     });
 
     for (const loan of activeLoans) {
       if (loan.remainingBalance > 0) {
-        deductions.push({
+        deductionsList.push({
           code: `LOAN_${loan.loanNumber}`,
           name: `Loan Repayment (${loan.loanNumber})`,
           amount: loan.monthlyEmi,
@@ -444,9 +756,20 @@ export async function processPayrollPeriod(
       }
     }
 
-    const totalDeds = deductions.reduce((sum, d) => sum + d.amount, 0);
+    // Deduction Adjustments
+    for (const adj of approvedAdjustments) {
+      if (adj.category === 'DEDUCTION') {
+        deductionsList.push({
+          code: adj.type,
+          name: `${adj.type} (${adj.reason})`,
+          amount: adj.amount,
+        });
+      }
+    }
 
-    // Reimbursements
+    const totalDeductions = deductionsList.reduce((sum, d) => sum + d.amount, 0);
+
+    // 6. Approved Expense Reimbursements
     const approvedReimbursements = await prisma.reimbursementClaim.findMany({
       where: {
         employeeId: emp.id,
@@ -455,26 +778,69 @@ export async function processPayrollPeriod(
     });
     const totalReimb = approvedReimbursements.reduce((sum, r) => sum + r.amount, 0);
 
-    const netPay = Math.max(0, adjustedGross - totalDeds + totalReimb);
+    // 7. Final Net Pay Calculation
+    const rawNetPay = totalGrossEarnings - totalDeductions + totalReimb;
+    const isNegativeNet = rawNetPay < 0 || totalDeductions > (totalGrossEarnings + totalReimb);
+    const netPay = Math.max(0, rawNetPay);
+    const employerContributions = pfEmployer + esiEmployer;
 
-    // Create record
+    // Mathematical Step Trace
+    const calculationTrace = JSON.stringify({
+      steps: [
+        `Base Monthly CTC: ₹${baseMonthly.toLocaleString()}`,
+        `LOP Deductions: ${lopDays} days @ ₹${Math.round(perDayRate)}/day = ₹${lopDeduction.toLocaleString()}`,
+        `Adjusted Gross: ₹${adjustedGross.toLocaleString()}`,
+        `Overtime Hours: ${overtimeHours} hrs -> ₹${overtimePay.toLocaleString()}`,
+        `Statutory PF: Employee ₹${pfEmployee.toLocaleString()}, Employer ₹${pfEmployer.toLocaleString()}`,
+        `Statutory PT (${empState}): ₹${ptAmount.toLocaleString()}`,
+        `Statutory TDS: ₹${tdsAmount.toLocaleString()}`,
+        `Statutory ESI: Employee ₹${esiEmployee.toLocaleString()}, Employer ₹${esiEmployer.toLocaleString()}`,
+        `Approved Reimbursements: ₹${totalReimb.toLocaleString()}`,
+        `Raw Net Pay: ₹${rawNetPay.toLocaleString()}`,
+        `Final Net Pay: ₹${netPay.toLocaleString()}`,
+      ],
+      rawNetPay,
+      statutoryRulesUsed: {
+        pfVersion: pfRule?.version,
+        esiVersion: esiRule?.version,
+        tdsVersion: tdsRule?.version,
+        ptVersion: ptRule?.version,
+      },
+    });
+
+    // Create Payroll Record
     await prisma.payrollRecord.create({
       data: {
         periodId,
         employeeId: emp.id,
-        totalDaysInMonth: 30,
-        payableDays: workingDays - lopDays,
-        presentDays: workingDays - lopDays,
+        totalDaysInMonth: calendarDays,
+        payableDays: Math.max(0, workingDays - lopDays),
+        presentDays: Math.max(0, workingDays - lopDays),
         unpaidDays: lopDays,
+        overtimeHours,
         baseGross: baseMonthly,
         lopDeduction,
-        totalEarnings: adjustedGross,
-        totalDeductions: totalDeds,
+        totalEarnings: totalGrossEarnings,
+        totalDeductions,
         reimbursements: totalReimb,
         netPay,
-        status: 'PROCESSED',
+        basic: basicAmount,
+        hra: hraAmount,
+        allowances: specialAllowance,
+        overtimePay,
+        bonus: totalAdjustmentEarnings,
+        pfEmployee,
+        pfEmployer,
+        esiEmployee,
+        esiEmployer,
+        tds: tdsAmount,
+        pt: ptAmount,
+        otherDeductions: totalDeductions - (pfEmployee + ptAmount + tdsAmount + esiEmployee),
+        employerContributions,
+        status: isNegativeNet ? 'HOLD' : 'PROCESSED',
+        calculationTrace,
         earningsItems: {
-          create: earnings.map((e) => ({
+          create: earningsList.map((e) => ({
             componentCode: e.code,
             componentName: e.name,
             standardAmount: e.amount,
@@ -482,7 +848,7 @@ export async function processPayrollPeriod(
           })),
         },
         deductionItems: {
-          create: deductions.map((d) => ({
+          create: deductionsList.map((d) => ({
             componentCode: d.code,
             componentName: d.name,
             amount: d.amount,
@@ -491,11 +857,14 @@ export async function processPayrollPeriod(
       },
     });
 
-    periodTotalGross += adjustedGross;
-    periodTotalDeductions += totalDeds;
+    periodTotalGross += totalGrossEarnings;
+    periodTotalDeductions += totalDeductions;
     periodTotalNet += netPay;
     count++;
   }
+
+  // Scan for audit exceptions
+  const exceptionCount = await scanPayrollPeriodExceptions(periodId);
 
   const updatedPeriod = await prisma.payrollPeriod.update({
     where: { id: periodId },
@@ -515,7 +884,7 @@ export async function processPayrollPeriod(
       action: 'PROCESSED',
       actorId: user.id,
       actorName: user.fullName || 'Payroll Specialist',
-      remarks: `Processed ${count} staff records. Net: ₹${periodTotalNet.toLocaleString()}`,
+      remarks: `Processed ${count} staff records. Net: ₹${periodTotalNet.toLocaleString()}. Found ${exceptionCount} exception(s).`,
     },
   });
 
@@ -524,6 +893,7 @@ export async function processPayrollPeriod(
     recordsCount: count,
     totalGrossPay: periodTotalGross,
     totalNetPay: periodTotalNet,
+    exceptionCount,
     workingDays: 26,
   };
 }
@@ -535,7 +905,22 @@ export async function approvePayrollPeriod(
 ) {
   const period = await prisma.payrollPeriod.findUnique({ where: { id: periodId } });
   if (!period) throw new Error('Payroll period not found');
-  if (period.status === 'FINALIZED') throw new Error('Period is already finalized');
+  if (period.status === 'FINALIZED') throw new Error('Period is already finalized and locked');
+
+  // Enforce exception gate: Cannot approve if blocking exceptions remain unresolved
+  const blockingExceptions = await prisma.payrollException.count({
+    where: {
+      periodId,
+      severity: 'BLOCKING',
+      status: 'OPEN',
+    },
+  });
+
+  if (blockingExceptions > 0) {
+    throw new Error(
+      `Cannot approve payroll: ${blockingExceptions} blocking audit exception(s) remain unresolved. Please review exceptions.`
+    );
+  }
 
   const updated = await prisma.payrollPeriod.update({
     where: { id: periodId },
@@ -578,9 +963,24 @@ export async function finalizePayrollPeriod(
   });
 
   if (!period) throw new Error('Payroll period not found');
-  if (period.status === 'FINALIZED') throw new Error('Period is already finalized');
+  if (period.status === 'FINALIZED') throw new Error('Period is already finalized and permanently locked');
 
-  // Generate payslips
+  // Finalization Exception gate
+  const blockingExceptions = await prisma.payrollException.count({
+    where: {
+      periodId,
+      severity: 'BLOCKING',
+      status: 'OPEN',
+    },
+  });
+
+  if (blockingExceptions > 0) {
+    throw new Error(
+      `Cannot finalize payroll: ${blockingExceptions} blocking audit exception(s) must be resolved before financial locking.`
+    );
+  }
+
+  // Generate payslips & lock reimbursements/adjustments
   for (const record of period.payrollRecords) {
     const payslipNumber = await generatePayslipNumber(period.year, period.month);
     const token = crypto.randomBytes(24).toString('hex');
@@ -609,10 +1009,20 @@ export async function finalizePayrollPeriod(
       },
     });
 
-    // Mark reimbursements as PAID
+    // Mark approved reimbursements as PAID
     await prisma.reimbursementClaim.updateMany({
       where: { employeeId: record.employeeId, status: 'APPROVED' },
       data: { status: 'PAID' },
+    });
+
+    // Mark adjustments as PROCESSED
+    await prisma.payrollAdjustment.updateMany({
+      where: {
+        employeeId: record.employeeId,
+        effectivePeriodCode: period.periodCode,
+        status: 'APPROVED',
+      },
+      data: { status: 'PROCESSED' },
     });
   }
 
@@ -631,7 +1041,7 @@ export async function finalizePayrollPeriod(
       action: 'FINALIZED',
       actorId: user.id,
       actorName: user.fullName || 'Super Administrator',
-      remarks: 'Permanently locked and finalized payroll. Payslips published.',
+      remarks: 'Permanently locked and finalized payroll. Payslips published and disbursements recorded.',
     },
   });
 
@@ -666,6 +1076,8 @@ export async function getPayslips(filters?: { employeeId?: string; periodCode?: 
           designation: true,
           departmentName: true,
           panNumber: true,
+          bankAccount: true,
+          bankIfsc: true,
         },
       },
       payrollRecord: {
@@ -744,12 +1156,13 @@ export async function approveReimbursementClaim(
   return claim;
 }
 
-export async function getReimbursementClaims(filters?: { employeeId?: string; status?: string }) {
+export async function getReimbursementClaims(filters?: { employeeId?: string; status?: string; clientId?: string | null }) {
   const where: any = {};
   if (filters?.employeeId) {
     where.employeeId = await resolveEmployeeObjectId(filters.employeeId) || filters.employeeId;
   }
   if (filters?.status) where.status = filters.status;
+  if (filters?.clientId) where.employee = { clientId: filters.clientId };
 
   const claims = await prisma.reimbursementClaim.findMany({
     where,
@@ -813,10 +1226,13 @@ export async function createEmployeeLoan(
   return loan;
 }
 
-export async function getEmployeeLoans(employeeId?: string) {
+export async function getEmployeeLoans(employeeId?: string, clientId?: string | null) {
   const where: any = {};
   if (employeeId) {
     where.employeeId = await resolveEmployeeObjectId(employeeId) || employeeId;
+  }
+  if (clientId) {
+    where.employee = { clientId };
   }
 
   const loans = await prisma.employeeLoan.findMany({

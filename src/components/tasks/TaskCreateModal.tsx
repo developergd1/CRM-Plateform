@@ -44,7 +44,7 @@ export const TaskCreateModal: React.FC<TaskCreateModalProps> = ({ isOpen, onClos
         .catch(console.error);
 
       if (!isClient) {
-        fetch('/api/crm/clients')
+        fetch('/api/clients')
           .then((res) => res.json())
           .then((data) => {
             setClients(Array.isArray(data) ? data : data.clients || []);

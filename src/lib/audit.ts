@@ -32,6 +32,7 @@ interface LogAuditParams {
   entityId?: string | null;
   previousData?: any;
   newData?: any;
+  details?: any;
   reason?: string | null;
   ipAddress?: string | null;
   userAgent?: string | null;

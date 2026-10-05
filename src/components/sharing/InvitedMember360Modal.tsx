@@ -112,7 +112,7 @@ export const InvitedMember360Modal: React.FC<InvitedMember360ModalProps> = ({
       (invitation.invitationUrl && invitation.invitationUrl.includes('token=')
         ? invitation.invitationUrl.split('token=')[1].split('&')[0]
         : '');
-    const origin = typeof window !== 'undefined' ? window.location.origin : 'https://growth-india-crm.onrender.com';
+    const origin = typeof window !== 'undefined' ? window.location.origin : 'https://growthindia.co';
     const finalUrl = `${origin}/accept-invite?token=${token}`;
     navigator.clipboard.writeText(finalUrl);
     setCopiedLink(true);

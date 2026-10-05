@@ -42,6 +42,7 @@ import { EmployeeDocumentsView } from './EmployeeDocumentsView';
 import { EmployeePayrollView } from './EmployeePayrollView';
 import { EmployeeHelpdeskView } from './EmployeeHelpdeskView';
 import { NotificationBell } from '@/components/notifications/NotificationBell';
+import { PresenceTracker } from '../presence/PresenceTracker';
 
 export const EmployeePortalShell: React.FC = () => {
   const { user, logout } = useAuth();
@@ -109,6 +110,7 @@ export const EmployeePortalShell: React.FC = () => {
 
   return (
     <div className="flex h-screen bg-slate-100/70 overflow-hidden font-sans">
+      <PresenceTracker activeTab={activeTab} />
       {/* LEFT SIDEBAR (Clean Modern White Theme) */}
       <aside className="w-64 bg-white text-slate-800 flex flex-col shrink-0 border-r border-slate-200 select-none">
         {/* Brand Header */}
@@ -553,6 +555,13 @@ export const EmployeePortalShell: React.FC = () => {
               </div>
             ) : (
               <EmployeeAttendanceView />
+            )}
+
+            {/* Background continuous work tracking telemetry when viewing other internal tabs */}
+            {activeTab !== 'work-today' && activeTab !== 'dashboard' && (
+              <div className="hidden" aria-hidden="true">
+                <EmployeeAttendanceView />
+              </div>
             )}
           </div>
         </main>

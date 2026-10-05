@@ -9,6 +9,7 @@ interface PasswordResetRequestsModalProps {
   onClose: () => void;
   viewerRole?: 'ADMIN' | 'CLIENT';
   userRole?: string;
+  clientId?: string;
   onPasswordResetSuccess?: () => void;
 }
 

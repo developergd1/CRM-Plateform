@@ -1,5 +1,5 @@
 {
-  "name": "growth-india-crm-platform",
+  "name": "growth-india-platform",
   "version": "1.0.0",
   "private": true,
   "scripts": {
@@ -26,9 +26,11 @@
     "date-fns": "^3.6.0",
     "jsonwebtoken": "^9.0.2",
     "lucide-react": "^0.453.0",
+    "marked": "^18.0.14",
     "next": "^14.2.15",
     "postcss": "^8.4.47",
     "prisma": "^5.21.1",
+    "puppeteer-core": "^25.12.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "recharts": "^2.13.0",

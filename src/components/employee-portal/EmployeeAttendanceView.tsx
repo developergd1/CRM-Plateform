@@ -107,44 +107,38 @@ export const EmployeeAttendanceView: React.FC = () => {
   const isCheckedOut = Boolean(attendance?.checkInTime && attendance?.checkOutTime);
   const isNotCheckedIn = !attendance?.checkInTime;
 
-  // Live elapsed working time ticker (updates every 1 second)
-  const [liveElapsedSeconds, setLiveElapsedSeconds] = useState<number>(0);
-
-  useEffect(() => {
-    if (!attendance?.checkInTime || isCheckedOut) {
-      setLiveElapsedSeconds(0);
-      return;
+  const totalCompletedBreakSeconds = (attendance?.breaks || []).reduce((acc: number, b: any) => {
+    if (b.breakStartTime && b.breakEndTime) {
+      return acc + Math.max(0, Math.floor((new Date(b.breakEndTime).getTime() - new Date(b.breakStartTime).getTime()) / 1000));
     }
+    return acc;
+  }, 0);
 
-    const checkInMs = new Date(attendance.checkInTime).getTime();
+  // Authoritative active seconds: seamlessly accounts for real elapsed time since check-in
+  const serverActiveSeconds = (() => {
+    const rawSessSec = todayData?.activeSession?.activeSeconds;
+    const attWorkSec = todayData?.attendance?.totalWorkMinutes ? todayData.attendance.totalWorkMinutes * 60 : 0;
+    const base = rawSessSec !== undefined ? rawSessSec : attWorkSec;
 
-    const updateLiveTimer = () => {
-      const nowMs = Date.now();
-      const totalElapsed = Math.max(0, Math.floor((nowMs - checkInMs) / 1000));
-      
-      // Calculate total break seconds so far today
-      let breakSeconds = 0;
-      if (attendance.breaks && Array.isArray(attendance.breaks)) {
-        attendance.breaks.forEach((b: any) => {
-          const bStart = new Date(b.breakStartTime).getTime();
-          const bEnd = b.breakEndTime ? new Date(b.breakEndTime).getTime() : nowMs;
-          breakSeconds += Math.max(0, Math.floor((bEnd - bStart) / 1000));
-        });
-      }
+    if (isCheckedIn && !isCheckedOut && !activeBreak && attendance?.checkInTime) {
+      const elapsedSinceCheckIn = Math.max(
+        0,
+        Math.floor((Date.now() - new Date(attendance.checkInTime).getTime()) / 1000) - totalCompletedBreakSeconds
+      );
+      return Math.max(base, elapsedSinceCheckIn);
+    }
+    return base;
+  })();
 
-      setLiveElapsedSeconds(Math.max(0, totalElapsed - breakSeconds));
-    };
-
-    updateLiveTimer();
-    const interval = setInterval(updateLiveTimer, 1000);
-    return () => clearInterval(interval);
-  }, [attendance?.checkInTime, attendance?.breaks, isCheckedOut]);
-
-  // Client telemetry hook (silent heartbeat, no full page auto-refresh)
-  const { isIdle, dismissIdleWarning } = useWorkTracker({
+  // Continuous background work telemetry:
+  // - High-precision Web Worker + wall-clock ticker continues even when on other tabs or slides
+  // - Never stops on tab switch, only terminates when browser tab is completely closed or checked out
+  const { isIdle, activeSeconds, dismissIdleWarning, flushHeartbeat } = useWorkTracker({
     sessionId: activeSessionId,
     enabled: isCheckedIn && !isCheckedOut && !activeBreak,
     idleThresholdMinutes: todayData?.policy?.idleThresholdMinutes || 5,
+    heartbeatIntervalSec: 12,
+    initialActiveSeconds: serverActiveSeconds,
   });
 
   // Handlers
@@ -169,6 +163,7 @@ export const EmployeeAttendanceView: React.FC = () => {
     if (!confirm('Are you sure you want to Check-Out? This will end your active working session for today.')) return;
     setActionLoading(true);
     try {
+      await flushHeartbeat(false);
       const res = await fetch('/api/attendance/check-out', { method: 'POST' });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Check-out failed');
@@ -186,6 +181,7 @@ export const EmployeeAttendanceView: React.FC = () => {
   const handleStartBreak = async () => {
     setActionLoading(true);
     try {
+      await flushHeartbeat(false);
       const res = await fetch('/api/attendance/break/start', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -305,15 +301,12 @@ export const EmployeeAttendanceView: React.FC = () => {
             </div>
             <div className="flex items-baseline gap-3 flex-wrap">
               <h2 className="text-3xl font-bold text-slate-900 font-mono tracking-tight">
-                ⏱️ {formatSecondsToClock(liveElapsedSeconds)}
+                ⏱️ {formatSecondsToClock(activeSeconds)}
               </h2>
               <span className="text-xs text-teal-800 font-semibold bg-white border border-teal-200 px-2.5 py-1 rounded-lg shadow-xs">
                 Checked in at {formatClockTime(attendance.checkInTime)}
               </span>
             </div>
-            <p className="text-xs text-slate-600 max-w-xl">
-              Your working hours are actively logging. Stay engaged to register continuous productivity.
-            </p>
           </div>
 
           <div className="flex items-center gap-3 flex-wrap">

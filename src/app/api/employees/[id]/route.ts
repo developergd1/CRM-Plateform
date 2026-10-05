@@ -51,6 +51,20 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
             verifiedAt: true,
           },
         },
+        salaryAssignments: {
+          include: { structure: true },
+          orderBy: { createdAt: 'desc' },
+          take: 5,
+        },
+        attendanceRecords: {
+          orderBy: { date: 'desc' },
+          take: 90,
+          include: { breaks: true },
+        },
+        leaveRequests: {
+          orderBy: { createdAt: 'desc' },
+          take: 50,
+        },
         _count: {
           select: {
             blockHistories: true,
@@ -101,6 +115,44 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
       }
     }
 
+    const approvedLeaves = employee.leaveRequests?.filter((l) => l.status === 'APPROVED') || [];
+    const casualUsed = approvedLeaves.filter((l) => l.leaveType === 'CASUAL' || l.leaveType === 'CL').reduce((a, c) => a + c.totalDays, 0);
+    const sickUsed = approvedLeaves.filter((l) => l.leaveType === 'SICK' || l.leaveType === 'SL').reduce((a, c) => a + c.totalDays, 0);
+    const earnedUsed = approvedLeaves.filter((l) => l.leaveType === 'EARNED' || l.leaveType === 'EL' || l.leaveType === 'PAID').reduce((a, c) => a + c.totalDays, 0);
+    const unpaidUsed = approvedLeaves.filter((l) => l.leaveType === 'UNPAID' || l.leaveType === 'LOP').reduce((a, c) => a + c.totalDays, 0);
+
+    const leaveBalances = {
+      casual: { allocated: 12, used: casualUsed, remaining: Math.max(0, 12 - casualUsed) },
+      sick: { allocated: 10, used: sickUsed, remaining: Math.max(0, 10 - sickUsed) },
+      earned: { allocated: 15, used: earnedUsed, remaining: Math.max(0, 15 - earnedUsed) },
+      unpaid: { allocated: 0, used: unpaidUsed, remaining: 0 },
+    };
+
+    const attendanceRecords = employee.attendanceRecords || [];
+    const presentCount = attendanceRecords.filter((a) => a.status === 'PRESENT').length;
+    const lateCount = attendanceRecords.filter((a) => a.status === 'LATE' || a.isLate).length;
+    const halfDayCount = attendanceRecords.filter((a) => a.status === 'HALF_DAY').length;
+    const onLeaveCount = attendanceRecords.filter((a) => a.status === 'ON_LEAVE').length;
+    const absentCount = attendanceRecords.filter((a) => a.status === 'ABSENT').length;
+    const totalWorkedMinutes = attendanceRecords.reduce((acc, cur) => acc + (cur.totalWorkMinutes || 0), 0);
+    const totalOvertimeMinutes = attendanceRecords.reduce((acc, cur) => acc + (cur.overtimeMinutes || 0), 0);
+
+    const payableDays = presentCount + lateCount + (halfDayCount * 0.5) + approvedLeaves.reduce((a, c) => (c.leaveType !== 'UNPAID' && c.leaveType !== 'LOP' ? a + c.totalDays : a), 0);
+    const lopDays = absentCount + unpaidUsed;
+
+    const attendanceSummary = {
+      totalRecords: attendanceRecords.length,
+      presentDays: presentCount,
+      lateDays: lateCount,
+      halfDays: halfDayCount,
+      onLeaveDays: onLeaveCount,
+      absentDays: absentCount,
+      payableDays,
+      lopDays,
+      totalWorkHours: parseFloat((totalWorkedMinutes / 60).toFixed(1)),
+      totalOvertimeHours: parseFloat((totalOvertimeMinutes / 60).toFixed(1)),
+    };
+
     const sanitized = {
       ...employee,
       panMasked: employee.panMasked || (employee.panNumber ? maskPAN(employee.panNumber) : null),
@@ -111,6 +163,8 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
         : employee.user?.isActive === false
         ? 'DEACTIVATED'
         : 'ACTIVE',
+      leaveBalances,
+      attendanceSummary,
     };
 
     return NextResponse.json({ success: true, employee: sanitized });
@@ -181,6 +235,12 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
       password,
       customPassword,
       reportingManagerId,
+      pfUan,
+      esiNumber,
+      ptState,
+      bankName,
+      bankAccount,
+      bankIfsc,
     } = data;
 
     let finalAddress = address !== undefined ? (address ? address.trim() : null) : undefined;
@@ -272,6 +332,12 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
         ...(remarks !== undefined ? { remarks: remarks ? remarks.trim() : null } : {}),
         ...(reportingManagerId !== undefined ? { reportingManagerId: reportingManagerId || null } : {}),
         ...(status && status !== 'BLOCKED' ? { status, isBlocked: false } : {}),
+        ...(pfUan !== undefined ? { pfUan: pfUan ? pfUan.trim() : null } : {}),
+        ...(esiNumber !== undefined ? { esiNumber: esiNumber ? esiNumber.trim() : null } : {}),
+        ...(ptState !== undefined ? { ptState: ptState ? ptState.trim() : 'Maharashtra' } : {}),
+        ...(bankName !== undefined ? { bankName: bankName ? bankName.trim() : null } : {}),
+        ...(bankAccount !== undefined ? { bankAccount: bankAccount ? bankAccount.trim() : null } : {}),
+        ...(bankIfsc !== undefined ? { bankIfsc: bankIfsc ? bankIfsc.trim().toUpperCase() : null } : {}),
         updatedBy: `${user.fullName} (${user.employeeId})`,
       },
       include: {

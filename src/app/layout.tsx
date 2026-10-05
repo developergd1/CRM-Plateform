@@ -6,20 +6,21 @@ import { GoogleAnalytics } from '@/components/analytics/GoogleAnalytics';
 export const metadata: Metadata = {
   metadataBase: new URL('https://growthindia.co'),
   title: {
-    default: 'Growth India — Enterprise CRM & Employee Management Platform',
+    default: 'Growth India — Enterprise Client & Workforce Management Platform',
     template: '%s | Growth India Platform',
   },
   description:
-    'Growth India offers all-in-one Enterprise CRM, HRMS, KYC Document Vault, Live Attendance Tracking, and Operational Governance Platform tailored for modern businesses across India.',
+    'Growth India offers all-in-one Enterprise CMS, HRMS, KYC Document Vault, Live Attendance Tracking, and Operational Governance Platform tailored for modern businesses across India.',
   keywords: [
     'Growth India',
-    'Growth India CRM',
+    'Growth India Platform',
+    'Client Management System',
     'Employee Management System',
     'HRMS India',
     'Attendance Management Software',
-    'Enterprise Sales CRM',
+    'Enterprise Operations Platform',
     'KYC Document Vault',
-    'B2B CRM Software',
+    'Workforce Management Software',
   ],
   authors: [{ name: 'Growth India Technologies' }],
   creator: 'Growth India',
@@ -40,23 +41,23 @@ export const metadata: Metadata = {
     locale: 'en_IN',
     url: 'https://growthindia.co',
     siteName: 'Growth India Platform',
-    title: 'Growth India — Enterprise CRM & Employee Management Platform',
+    title: 'Growth India — Enterprise Client & Workforce Management Platform',
     description:
-      'Manage sales pipelines, customer relations, employee attendance, leaves, KYC compliance, and business analytics seamlessly with Growth India.',
+      'Manage client accounts, workforce operations, employee attendance, leaves, KYC compliance, and business analytics seamlessly with Growth India.',
     images: [
       {
         url: '/growth-india-logo.png',
         width: 1200,
         height: 630,
-        alt: 'Growth India CRM & Employee Platform',
+        alt: 'Growth India Client & Workforce Platform',
       },
     ],
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'Growth India — Enterprise CRM & Employee Management Platform',
+    title: 'Growth India — Enterprise Client & Workforce Management Platform',
     description:
-      'Manage sales pipelines, customer relations, employee attendance, leaves, KYC compliance, and business analytics with Growth India.',
+      'Manage client accounts, workforce operations, employee attendance, leaves, KYC compliance, and business analytics with Growth India.',
     images: ['/growth-india-logo.png'],
   },
   icons: {
@@ -82,7 +83,7 @@ export default function RootLayout({
   const jsonLd = {
     '@context': 'https://schema.org',
     '@type': 'SoftwareApplication',
-    name: 'Growth India CRM & Employee Management Platform',
+    name: 'Growth India Client & Workforce Management Platform',
     applicationCategory: 'BusinessApplication',
     operatingSystem: 'Web, Android, iOS, Windows, macOS',
     offers: {
@@ -91,7 +92,7 @@ export default function RootLayout({
       priceCurrency: 'INR',
     },
     description:
-      'Enterprise B2B CRM, Attendance Workforce Management, KYC Compliance Vault, and Sales Pipeline solution.',
+      'Enterprise Client Management System (CMS), Attendance Workforce Management (HRM), KYC Compliance Vault, and Operations Governance solution.',
     url: 'https://growthindia.co',
     publisher: {
       '@type': 'Organization',

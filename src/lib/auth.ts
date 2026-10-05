@@ -1,7 +1,7 @@
 import jwt from 'jsonwebtoken';
 import { cookies } from 'next/headers';
 import { NextRequest } from 'next/server';
-import { prisma } from './prisma';
+import { prisma, isValidObjectId } from './prisma';
 import { AuthUser } from '@/types';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'growth-india-crm-secret-2026';
@@ -107,7 +107,14 @@ export async function getSessionUser(req?: NextRequest): Promise<AuthUser | null
           where: { id: user.invitationId },
           select: { status: true },
         });
-        if (!inv || inv.status === 'REVOKED') {
+        const adminInv = !inv
+          ? await prisma.adminInvitation.findUnique({
+              where: { id: user.invitationId },
+              select: { status: true },
+            })
+          : null;
+
+        if (inv?.status === 'REVOKED' || adminInv?.status === 'REVOKED') {
           return null;
         }
       }
@@ -136,8 +143,9 @@ export async function getSessionUser(req?: NextRequest): Promise<AuthUser | null
       const clientProfile = await prisma.client.findFirst({
         where: {
           OR: [
-            ...(user.parentClientId ? [{ id: user.parentClientId }] : []),
             { userId: user.id },
+            ...(user.parentClientId ? [{ clientId: user.parentClientId }] : []),
+            ...(isValidObjectId(user.parentClientId) ? [{ id: user.parentClientId }] : []),
             ...(user.parentUserId ? [{ userId: user.parentUserId }] : []),
           ],
         },

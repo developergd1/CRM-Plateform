@@ -1,10 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import bcrypt from 'bcryptjs';
-import { prisma } from '@/lib/prisma';
+import { prisma, isValidObjectId } from '@/lib/prisma';
 import { getSessionUser } from '@/lib/auth';
 import { isAdminOrHR } from '@/lib/rbac';
 import { logAuditEvent } from '@/lib/audit';
 import { generateClientId } from '@/lib/id-generator';
+import { SAAS_PLANS } from '@/lib/services/subscription-service';
 
 export async function GET(req: NextRequest) {
   try {
@@ -20,15 +21,20 @@ export async function GET(req: NextRequest) {
 
     // Role-based scoping: If user is CLIENT, only return their own client profile
     if (user.role === 'CLIENT') {
+      const orConditions: any[] = [{ userId: user.id }];
       if (user.clientId) {
-        where.OR = [
-          { clientId: user.clientId },
-          { id: user.clientId },
-          { userId: user.id },
-        ];
-      } else {
-        where.userId = user.id;
+        orConditions.push({ clientId: user.clientId });
+        if (isValidObjectId(user.clientId)) {
+          orConditions.push({ id: user.clientId });
+        }
       }
+      if (user.parentClientId) {
+        orConditions.push({ clientId: user.parentClientId });
+        if (isValidObjectId(user.parentClientId)) {
+          orConditions.push({ id: user.parentClientId });
+        }
+      }
+      where.OR = orConditions;
     } else if (user.role === 'EMPLOYEE') {
       const currentEmp = await prisma.employee.findFirst({
         where: {
@@ -88,6 +94,7 @@ export async function GET(req: NextRequest) {
       let companyType = c.companyType || 'Private Limited';
       let remarks = c.remarks || '';
       let assignedModules = Array.isArray(c.assignedModules) && c.assignedModules.length > 0 ? c.assignedModules : ['EMS'];
+      let maxEmployees: number | null = null;
       try {
         if (c.tags && c.tags.startsWith('{')) {
           const parsed = JSON.parse(c.tags);
@@ -99,8 +106,16 @@ export async function GET(req: NextRequest) {
           if ((!c.assignedModules || c.assignedModules.length === 0) && Array.isArray(parsed.assignedModules)) {
             assignedModules = parsed.assignedModules;
           }
+          if (parsed.maxEmployees !== undefined && parsed.maxEmployees !== null && Number(parsed.maxEmployees) > 0) {
+            maxEmployees = Number(parsed.maxEmployees);
+          }
         }
       } catch (e) {}
+
+      const planKey = (c.subscriptionPlan || 'STANDARD').toUpperCase();
+      const defaultMax = (SAAS_PLANS[planKey] || SAAS_PLANS.STANDARD).maxEmployees;
+      const effectiveLimit = maxEmployees ?? defaultMax;
+
       return {
         ...c,
         gstNumber,
@@ -109,6 +124,8 @@ export async function GET(req: NextRequest) {
         companyType,
         remarks,
         assignedModules,
+        maxEmployees: effectiveLimit,
+        customMaxEmployees: maxEmployees,
       };
     });
 
@@ -146,6 +163,7 @@ export async function POST(req: NextRequest) {
       status = 'ACTIVE',
       assignedModules = ['EMS'],
       subscriptionPlan = 'STANDARD',
+      maxEmployees,
       canBlockEmployees = false,
       canDeleteEmployees = false,
       customPassword,
@@ -288,6 +306,7 @@ export async function POST(req: NextRequest) {
           companyType,
           remarks,
           assignedModules: cleanModules,
+          maxEmployees: maxEmployees !== undefined && maxEmployees !== null && maxEmployees !== '' ? Number(maxEmployees) : undefined,
         }),
         // Backwards compatibility sync
         name: contactPerson.trim(),

@@ -4,8 +4,8 @@ export interface SendNotificationParams {
   recipientId: string; // Employee/Client/User ObjectId or String ID or 'ADMIN'
   title: string;
   message: string;
-  category: 'CRM' | 'WORKFORCE' | 'SECURITY' | 'ATTENDANCE' | 'SYSTEM';
-  entityType?: 'LEAD' | 'OPPORTUNITY' | 'DEAL' | 'TASK' | 'CLIENT' | 'EMPLOYEE' | 'FOLLOW_UP' | 'LEAVE' | 'REGULARIZATION' | 'AUTH';
+  category: 'OPERATIONS' | 'WORKFORCE' | 'SECURITY' | 'ATTENDANCE' | 'SYSTEM' | 'CRM';
+  entityType?: 'TASK' | 'CLIENT' | 'EMPLOYEE' | 'LEAVE' | 'REGULARIZATION' | 'AUTH' | 'LEAD' | 'DEAL' | 'FOLLOW_UP' | 'OPPORTUNITY';
   entityId?: string | null;
   actionUrl?: string | null;
 }
@@ -278,12 +278,12 @@ export async function notifyTaskComment(params: {
 }
 
 /**
- * Helper to notify assigned employee when a Lead / Task / Deal / Follow-up is assigned to them.
+ * Helper to notify assigned employee when a Task or Client is assigned to them.
  */
 export async function notifyAssignment(params: {
   employeeId: string; // Employee doc ObjectId
   assignerName: string;
-  itemType: 'Lead' | 'Deal' | 'Opportunity' | 'Task' | 'Follow-up';
+  itemType: 'Task' | 'Client' | 'Lead' | 'Deal' | 'Opportunity' | 'FollowUp' | 'Follow-up';
   itemTitle: string;
   itemId: string;
 }) {
@@ -291,8 +291,8 @@ export async function notifyAssignment(params: {
     recipientId: params.employeeId,
     title: `New ${params.itemType} Assigned`,
     message: `${params.assignerName} assigned you ${params.itemType}: "${params.itemTitle}"`,
-    category: 'CRM',
-    entityType: params.itemType === 'Follow-up' ? 'FOLLOW_UP' : (params.itemType.toUpperCase() as any),
+    category: 'OPERATIONS',
+    entityType: (params.itemType === 'Task' ? 'TASK' : 'CLIENT') as any,
     entityId: params.itemId,
     actionUrl: `/tasks?taskId=${params.itemId}`,
   });
@@ -302,7 +302,7 @@ export async function notifyReassignment(params: {
   toEmployeeId: string;
   fromEmployeeId?: string;
   assignerName: string;
-  itemType: 'Lead' | 'Deal' | 'Opportunity' | 'Task' | 'Follow-up';
+  itemType: 'Task' | 'Client' | 'Lead' | 'Deal' | 'Opportunity' | 'FollowUp' | 'Follow-up';
   itemTitle: string;
   itemId: string;
   reason?: string | null;
@@ -311,8 +311,8 @@ export async function notifyReassignment(params: {
     recipientId: params.toEmployeeId,
     title: `${params.itemType} Reassigned to You`,
     message: `${params.assignerName} reassigned ${params.itemType} "${params.itemTitle}" to you.${params.reason ? ` Reason: ${params.reason}` : ''}`,
-    category: 'CRM',
-    entityType: params.itemType === 'Follow-up' ? 'FOLLOW_UP' : (params.itemType.toUpperCase() as any),
+    category: 'OPERATIONS',
+    entityType: (params.itemType === 'Task' ? 'TASK' : 'CLIENT') as any,
     entityId: params.itemId,
     actionUrl: `/employee/attendance?tab=tasks&taskId=${params.itemId}`,
   });
@@ -321,7 +321,7 @@ export async function notifyReassignment(params: {
 export async function notifyStatusChange(params: {
   employeeId: string;
   changerName: string;
-  itemType: 'Lead' | 'Deal' | 'Opportunity' | 'Task' | 'Follow-up';
+  itemType: 'Task' | 'Client' | 'Lead' | 'Deal' | 'Opportunity' | 'FollowUp' | 'Follow-up';
   itemTitle: string;
   itemId: string;
   oldStatus: string;
@@ -331,26 +331,9 @@ export async function notifyStatusChange(params: {
     recipientId: params.employeeId,
     title: `${params.itemType} Status Changed`,
     message: `${params.changerName} updated "${params.itemTitle}" status from ${params.oldStatus} to ${params.newStatus}`,
-    category: 'CRM',
-    entityType: params.itemType === 'Follow-up' ? 'FOLLOW_UP' : (params.itemType.toUpperCase() as any),
+    category: 'OPERATIONS',
+    entityType: params.itemType === 'Task' ? 'TASK' : 'CLIENT',
     entityId: params.itemId,
-  });
-}
-
-export async function notifyFollowUpDue(params: {
-  employeeId: string;
-  leadTitle: string;
-  followUpId: string;
-  dueDate: string;
-  isOverdue?: boolean;
-}) {
-  return sendNotification({
-    recipientId: params.employeeId,
-    title: params.isOverdue ? `Overdue Follow-up: ${params.leadTitle}` : `Follow-up Due: ${params.leadTitle}`,
-    message: `Follow-up scheduled for ${params.dueDate} is ${params.isOverdue ? 'overdue' : 'due today'}.`,
-    category: 'CRM',
-    entityType: 'TASK',
-    entityId: params.followUpId,
   });
 }
 

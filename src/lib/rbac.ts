@@ -172,7 +172,7 @@ export function canFinalizePayroll(role?: string): boolean {
 }
 
 export function canManageSalaryStructure(role?: string): boolean {
-  return isAdmin(role);
+  return isAdmin(role) || role === 'CLIENT';
 }
 
 export function canConvertCandidate(role?: string): boolean {
@@ -190,5 +190,175 @@ export function getHrmResourceScope(role?: string): ResourceScope {
   if (role === 'MANAGER_TL') return 'TEAM';
   return 'OWN';
 }
+
+export type AdminDelegatedUser = {
+  role?: string;
+  isDelegated?: boolean;
+  delegatedPermissions?: string[] | null;
+} | null | undefined;
+
+/**
+ * Checks if an administrator has permission for a specific module, feature, or tab.
+ * Non-delegated admins and SUPER_ADMIN have full access to all features.
+ */
+export function hasAdminPermission(
+  user: AdminDelegatedUser,
+  requiredPermissionOrTab: string
+): boolean {
+  if (!user) return false;
+  // Non-admins do not use admin permissions
+  if (!isAdmin(user.role)) return false;
+  // Super Admins or non-delegated platform administrators have full unrestricted access
+  if (user.role === 'SUPER_ADMIN' || !user.isDelegated) return true;
+
+  const perms = Array.isArray(user.delegatedPermissions) ? user.delegatedPermissions : [];
+  if (perms.length === 0) return false;
+  if (perms.includes('all_access')) return true;
+
+  // Direct match
+  if (perms.includes(requiredPermissionOrTab)) return true;
+
+  // Granular to Scope Mappings:
+  // 1. CMS Suite
+  const cmsTabs = ['clients', 'clients-onboarding', 'clients-accounts', 'cms-hub', 'cms-dashboard', 'cms-onboarding', 'cms-clients', 'cms-selected-client', 'cms'];
+  if (cmsTabs.includes(requiredPermissionOrTab)) {
+    return perms.includes('cms_full') || perms.includes('clients') || perms.includes('CMS');
+  }
+
+  // 2. Core HRM Suite (Lifecycle, Directory, Recruitment, Organization, Performance, Helpdesk)
+  const hrmCoreTabs = [
+    'employees', 'hrm-dashboard', 'hrm-lifecycle', 'hrm-employees', 'hrm-organization',
+    'hrm-recruitment', 'hrm-performance', 'hrm-helpdesk', 'hrm-self-service', 'lifecycle'
+  ];
+  if (hrmCoreTabs.includes(requiredPermissionOrTab)) {
+    return perms.includes('hrm_full') || perms.includes('HRM') || perms.includes(requiredPermissionOrTab);
+  }
+
+  // 3. Workforce & Attendance
+  const workforceTabs = [
+    'attendance', 'workforce-live', 'workforce-policy', 'workforce-timesheets',
+    'leave', 'regularization', 'hrm-attendance', 'hrm-leave', 'hrm-shifts', 'shifts'
+  ];
+  if (workforceTabs.includes(requiredPermissionOrTab)) {
+    return perms.includes('workforce_full') || perms.includes('hrm_full') || perms.includes(requiredPermissionOrTab);
+  }
+
+  // 4. Payroll & Compensation
+  const payrollTabs = ['payroll', 'hrm-payroll', 'payroll_admin'];
+  if (payrollTabs.includes(requiredPermissionOrTab)) {
+    return perms.includes('payroll_admin') || perms.includes('hrm-payroll') || perms.includes('payroll');
+  }
+
+  // 5. Tasks & Delegation
+  const tasksTabs = ['tasks', 'tasks_admin'];
+  if (tasksTabs.includes(requiredPermissionOrTab)) {
+    return perms.includes('tasks_admin') || perms.includes('tasks');
+  }
+
+  // 6. Security & Governance
+  const securityTabs = ['security', 'audit-logs', 'block-history', 'password-requests', 'security_audit'];
+  if (securityTabs.includes(requiredPermissionOrTab)) {
+    return perms.includes('security_audit') || perms.includes('system_settings') || perms.includes(requiredPermissionOrTab);
+  }
+
+  // 7. System Administration & Delegated Invites
+  const systemTabs = ['admin-invites', 'system_settings', 'hrm-configuration', 'hrm-workflows'];
+  if (systemTabs.includes(requiredPermissionOrTab)) {
+    return perms.includes('system_settings') || perms.includes('admin-invites') || perms.includes(requiredPermissionOrTab);
+  }
+
+  // 8. General Reports
+  if (requiredPermissionOrTab === 'reports' || requiredPermissionOrTab === 'hrm-reports') {
+    return perms.some(p => ['hrm_full', 'workforce_full', 'security_audit', 'system_settings', 'reports'].includes(p));
+  }
+
+  // 9. Dashboard
+  if (requiredPermissionOrTab === 'dashboard' || requiredPermissionOrTab === 'executive-dashboard') {
+    return perms.length > 0;
+  }
+
+  return false;
+}
+
+/**
+ * Checks if an administrator can access an entire Platform profile (CMS, HRM, CRM).
+ */
+export function canAdminAccessPlatform(
+  user: AdminDelegatedUser,
+  platform: 'CMS' | 'HRM' | 'CRM' | 'GATEWAY' | 'EMS' | string
+): boolean {
+  if (!user) return false;
+  if (!isAdmin(user.role)) return false;
+  if (user.role === 'SUPER_ADMIN' || !user.isDelegated) return true;
+
+  const perms = Array.isArray(user.delegatedPermissions) ? user.delegatedPermissions : [];
+  if (perms.length === 0) return false;
+  if (perms.includes('all_access')) return true;
+
+  if (platform === 'GATEWAY') {
+    return true;
+  }
+
+  if (platform === 'CMS') {
+    return perms.some(p => ['cms_full', 'clients', 'CMS'].includes(p));
+  }
+
+  if (platform === 'HRM' || platform === 'EMS') {
+    return perms.some(p =>
+      ['hrm_full', 'workforce_full', 'payroll_admin', 'tasks_admin', 'HRM', 'EMS'].includes(p) ||
+      p.startsWith('hrm-') ||
+      ['attendance', 'leave', 'employees', 'shifts'].includes(p)
+    );
+  }
+
+  if (platform === 'CRM') {
+    return perms.some(p => p.startsWith('crm') || p.includes('crm') || p === 'CRM');
+  }
+
+  return false;
+}
+
+/**
+ * Checks if an admin can view and manage the Administrator Team & Invitations.
+ */
+export function canAccessAdminTeam(user: AdminDelegatedUser): boolean {
+  if (!user) return false;
+  if (!isAdmin(user.role)) return false;
+  if (user.role === 'SUPER_ADMIN' || !user.isDelegated) return true;
+
+  const perms = Array.isArray(user.delegatedPermissions) ? user.delegatedPermissions : [];
+  return perms.some(p => ['system_settings', 'admin-invites', 'all_access'].includes(p));
+}
+
+/**
+ * Checks if an admin can access a specific HRM section card.
+ */
+export function canAccessHrmSection(user: AdminDelegatedUser, sectionId: string): boolean {
+  if (!user) return false;
+  if (!isAdmin(user.role)) return false;
+  if (user.role === 'SUPER_ADMIN' || !user.isDelegated) return true;
+
+  const perms = Array.isArray(user.delegatedPermissions) ? user.delegatedPermissions : [];
+  if (perms.length === 0) return false;
+  if (perms.includes('all_access')) return true;
+
+  switch (sectionId) {
+    case 'dashboard':
+      return canAdminAccessPlatform(user, 'HRM');
+    case 'workforce':
+      return hasAdminPermission(user, 'hrm_full');
+    case 'attendance':
+      return hasAdminPermission(user, 'workforce_full') || hasAdminPermission(user, 'hrm_full');
+    case 'payroll':
+      return hasAdminPermission(user, 'payroll_admin');
+    case 'performance':
+      return hasAdminPermission(user, 'hrm_full');
+    case 'governance':
+      return hasAdminPermission(user, 'system_settings') || hasAdminPermission(user, 'security_audit') || hasAdminPermission(user, 'hrm_full');
+    default:
+      return hasAdminPermission(user, sectionId);
+  }
+}
+
 
 

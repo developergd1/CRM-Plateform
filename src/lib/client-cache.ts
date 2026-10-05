@@ -1,5 +1,5 @@
 /**
- * High-Performance Persistent Local Cache & SWR Sync Engine for Growth India CRM Platform.
+ * High-Performance Persistent Local Cache & SWR Sync Engine for Growth India Platform.
  * 
  * Features:
  * 1. Multi-tier caching: In-Memory (0ms) -> LocalStorage (persistent across browser restarts) -> Network

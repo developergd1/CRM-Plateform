@@ -22,6 +22,8 @@ import {
   AlertTriangle,
   Lock,
   ArrowUpRight,
+  ArrowLeft,
+  ArrowRight,
   KeyRound,
   Key,
   Edit,
@@ -62,22 +64,6 @@ import { PresenceTracker } from '../presence/PresenceTracker';
 import { ClientDocumentsView } from './ClientDocumentsView';
 import { ClientSubscriptionView } from './ClientSubscriptionView';
 
-// CRM Views
-import { CrmDashboardView } from '../crm/dashboard/CrmDashboardView';
-import { LeadsListView } from '../crm/leads/LeadsListView';
-import { LeadDetailView } from '../crm/leads/LeadDetailView';
-import { ContactsListView } from '../crm/contacts/ContactsListView';
-import { OpportunitiesListView } from '../crm/opportunities/OpportunitiesListView';
-import { DealsListView } from '../crm/deals/DealsListView';
-import { DealDetailView } from '../crm/deals/DealDetailView';
-import { PipelineKanbanView } from '../crm/pipeline/PipelineKanbanView';
-import { ActivitiesListView } from '../crm/activities/ActivitiesListView';
-import { ProductsListView } from '../crm/products/ProductsListView';
-import { QuotesListView } from '../crm/quotes/QuotesListView';
-import { ContractsListView } from '../crm/contracts/ContractsListView';
-import { RenewalsManagementView } from '../crm/contracts/RenewalsManagementView';
-import { CrmAnalyticsView } from '../crm/analytics/CrmAnalyticsView';
-import { CrmReportsView } from '../crm/reports/CrmReportsView';
 
 // HRM Views
 import { HrmDashboardView } from '../hrm/dashboard/HrmDashboardView';
@@ -112,22 +98,6 @@ export const normalizeClientTab = (rawTab: string | null | undefined): string =>
   if (t === 'documents' || t === 'vault' || t === 'docs') return 'documents';
   if (t === 'subscription' || t === 'billing' || t === 'plan') return 'subscription';
 
-  // CRM tabs
-  if (t === 'crm' || t === 'crm-dashboard') return 'crm-dashboard';
-  if (t === 'crm-leads' || t === 'leads') return 'crm-leads';
-  if (t === 'crm-lead-detail') return 'crm-lead-detail';
-  if (t === 'crm-contacts' || t === 'contacts') return 'crm-contacts';
-  if (t === 'crm-opportunities' || t === 'opportunities') return 'crm-opportunities';
-  if (t === 'crm-deals' || t === 'deals') return 'crm-deals';
-  if (t === 'crm-deal-detail') return 'crm-deal-detail';
-  if (t === 'crm-pipeline' || t === 'pipeline') return 'crm-pipeline';
-  if (t === 'crm-activities' || t === 'activities') return 'crm-activities';
-  if (t === 'crm-products' || t === 'products') return 'crm-products';
-  if (t === 'crm-quotes' || t === 'quotes') return 'crm-quotes';
-  if (t === 'crm-contracts' || t === 'contracts') return 'crm-contracts';
-  if (t === 'crm-renewals' || t === 'renewals') return 'crm-renewals';
-  if (t === 'crm-analytics') return 'crm-analytics';
-  if (t === 'crm-reports') return 'crm-reports';
 
   // HRM tabs
   if (t === 'hrm' || t === 'hrm-dashboard') return 'hrm-dashboard';
@@ -139,6 +109,19 @@ export const normalizeClientTab = (rawTab: string | null | undefined): string =>
   if (t === 'hrm-lifecycle' || t === 'lifecycle') return 'hrm-lifecycle';
 
   return t;
+};
+
+export type ClientSectionId = 'GATEWAY' | 'WORKSPACE' | 'EMS' | 'HRM' | 'SECURITY';
+
+export const getSectionForTab = (rawTab: string | null | undefined): ClientSectionId => {
+  if (!rawTab) return 'GATEWAY';
+  const t = rawTab.toLowerCase().trim();
+  if (t === 'gateway') return 'GATEWAY';
+  if (['overview', 'employees', 'onboarding'].includes(t)) return 'WORKSPACE';
+  if (['attendance', 'timesheets', 'reports', 'workforce', 'leave', 'tasks', 'documents'].includes(t)) return 'EMS';
+  if (t.startsWith('hrm-') || t === 'hrm') return 'HRM';
+  if (['subscription', 'history', 'requests', 'shared-access'].includes(t)) return 'SECURITY';
+  return 'WORKSPACE';
 };
 
 export const ClientPortalShell: React.FC<ClientPortalShellProps> = ({ initialTab = 'overview' }) => {
@@ -187,20 +170,58 @@ export const ClientPortalShell: React.FC<ClientPortalShellProps> = ({ initialTab
     return normalizeClientTab(initialTab);
   };
 
+  const getInitialSection = (): ClientSectionId => {
+    if (typeof window !== 'undefined') {
+      const p = new URLSearchParams(window.location.search).get('tab');
+      if (p) {
+        if (p.toLowerCase() === 'gateway') return 'GATEWAY';
+        if (!['overview', 'dashboard'].includes(p.toLowerCase())) {
+          return getSectionForTab(p);
+        }
+      }
+      try {
+        const saved = localStorage.getItem('gi_client_selected_section') as ClientSectionId;
+        if (saved && ['WORKSPACE', 'EMS', 'HRM', 'SECURITY'].includes(saved)) {
+          return saved;
+        }
+      } catch {}
+    }
+    return 'GATEWAY';
+  };
+
   const [activeTab, setActiveTab] = useState<string>(getInitialTab);
+  const [selectedSection, setSelectedSection] = useState<ClientSectionId>(getInitialSection);
+  const [sectionDropdownOpen, setSectionDropdownOpen] = useState(false);
+  const sectionDropdownRef = React.useRef<HTMLDivElement>(null);
   const [attendanceSubTab, setAttendanceSubTab] = useState<string>(getInitialSubTab);
   const [empViewMode, setEmpViewMode] = useState<'grid' | 'table'>('table');
+
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (sectionDropdownRef.current && !sectionDropdownRef.current.contains(e.target as Node)) {
+        setSectionDropdownOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   // Sync tab with browser back and forward buttons
   useEffect(() => {
     const handlePopState = (e: PopStateEvent) => {
       const urlParams = new URLSearchParams(window.location.search);
-      const tabParam = urlParams.get('tab') || (e.state && e.state.tab) || initialTab || 'overview';
+      const tabParam = urlParams.get('tab') || (e.state && e.state.tab) || initialTab || 'gateway';
       const rawLower = tabParam.toLowerCase();
+      if (rawLower === 'gateway') {
+        setSelectedSection('GATEWAY');
+        return;
+      }
       if (['attendance', 'timesheets', 'reports', 'workforce'].includes(rawLower)) {
         setAttendanceSubTab(rawLower);
       }
-      setActiveTab(normalizeClientTab(tabParam));
+      const canonical = normalizeClientTab(tabParam);
+      setActiveTab(canonical);
+      setSelectedSection(getSectionForTab(canonical));
     };
 
     window.addEventListener('popstate', handlePopState);
@@ -211,11 +232,26 @@ export const ClientPortalShell: React.FC<ClientPortalShellProps> = ({ initialTab
 
   const selectTab = (tabId: string, subTab?: string) => {
     const rawLower = tabId.toLowerCase();
+    if (rawLower === 'gateway') {
+      setSelectedSection('GATEWAY');
+      try { localStorage.removeItem('gi_client_selected_section'); } catch {}
+      if (typeof window !== 'undefined') {
+        const currentUrl = new URL(window.location.href);
+        currentUrl.searchParams.set('tab', 'gateway');
+        window.history.pushState({ tab: 'gateway' }, '', currentUrl.toString());
+      }
+      return;
+    }
     if (['attendance', 'timesheets', 'reports', 'workforce'].includes(rawLower)) {
       setAttendanceSubTab(subTab || rawLower);
     }
     const canonical = normalizeClientTab(tabId);
     setActiveTab(canonical);
+    const targetSec = getSectionForTab(canonical);
+    setSelectedSection(targetSec);
+    try {
+      localStorage.setItem('gi_client_selected_section', targetSec);
+    } catch {}
     if (typeof window !== 'undefined') {
       const currentUrl = new URL(window.location.href);
       const urlTab = subTab || (canonical === 'attendance' ? (subTab || attendanceSubTab || 'attendance') : canonical);
@@ -223,6 +259,16 @@ export const ClientPortalShell: React.FC<ClientPortalShellProps> = ({ initialTab
         currentUrl.searchParams.set('tab', urlTab);
         window.history.pushState({ tab: urlTab }, '', currentUrl.toString());
       }
+    }
+  };
+
+  const handleSelectSection = (secId: ClientSectionId, defaultTab?: string) => {
+    setSelectedSection(secId);
+    try {
+      localStorage.setItem('gi_client_selected_section', secId);
+    } catch {}
+    if (defaultTab) {
+      selectTab(defaultTab);
     }
   };
 
@@ -257,10 +303,6 @@ export const ClientPortalShell: React.FC<ClientPortalShellProps> = ({ initialTab
   const [quickResetLoading, setQuickResetLoading] = useState(false);
   const [quickResetResult, setQuickResetResult] = useState<string | null>(null);
 
-  // CRM specific navigation states for client
-  const [selectedDealId, setSelectedDealId] = useState<string>('');
-  const [selectedLeadId, setSelectedLeadId] = useState<string>('');
-  const [createDealContext, setCreateDealContext] = useState<{ leadId?: string; opportunityId?: string } | null>(null);
 
   const [actionLoading, setActionLoading] = useState(false);
   const [alertMsg, setAlertMsg] = useState<string | null>(null);
@@ -464,6 +506,7 @@ export const ClientPortalShell: React.FC<ClientPortalShellProps> = ({ initialTab
   }
 
   interface ClientNavSection {
+    id: ClientSectionId;
     title: string;
     items: ClientNavItem[];
   }
@@ -473,22 +516,13 @@ export const ClientPortalShell: React.FC<ClientPortalShellProps> = ({ initialTab
     ? (user as any).assignedModules.map((m: string) => m.toUpperCase())
     : ['EMS'];
 
-  const hasEMS = assigned.includes('EMS');
-  const hasCRM = assigned.includes('CRM');
-  const hasHRM = assigned.includes('HRM');
+  const userDelegatedPerms: string[] = (user as any)?.delegatedPermissions || [];
+  const hasEMS = assigned.includes('EMS') || (user?.isDelegated && userDelegatedPerms.some((p) => ['overview', 'employees', 'attendance', 'tasks', 'documents', 'onboarding'].includes(p)));
+  const hasHRM = assigned.includes('HRM') || (user?.isDelegated && userDelegatedPerms.some((p) => p.startsWith('hrm-')));
 
   const navSections: ClientNavSection[] = [
-    {
-      title: 'WORKSPACE',
-      items: [
-        { id: 'overview', label: 'Overview', icon: LayoutDashboard },
-        ...(hasEMS ? [
-          { id: 'employees', label: `My Employees (${totalStaff})`, icon: Users },
-          { id: 'onboarding', label: 'Employee Onboarding', icon: UserPlus },
-        ] : []),
-      ],
-    },
     ...(hasEMS ? [{
+      id: 'EMS' as ClientSectionId,
       title: 'TIME & WORKFORCE (EMS)',
       items: [
         { id: 'attendance', label: 'Attendance & Timesheets', icon: Calendar },
@@ -497,24 +531,8 @@ export const ClientPortalShell: React.FC<ClientPortalShellProps> = ({ initialTab
         { id: 'documents', label: 'Employee Documents', icon: FolderLock },
       ],
     }] : []),
-    ...(hasCRM ? [{
-      title: 'CUSTOMER RELATIONSHIP (CRM)',
-      items: [
-        { id: 'crm-dashboard', label: 'CRM Dashboard', icon: LayoutDashboard },
-        { id: 'crm-leads', label: 'Leads Management', icon: Users },
-        { id: 'crm-contacts', label: 'Contacts', icon: Users },
-        { id: 'crm-pipeline', label: 'Deals & Pipeline', icon: Layers },
-        { id: 'crm-opportunities', label: 'Opportunities', icon: Target },
-        { id: 'crm-activities', label: 'Activities & Calls', icon: Activity },
-        { id: 'crm-products', label: 'Products & Price Book', icon: Briefcase },
-        { id: 'crm-quotes', label: 'Quotes & Proposals', icon: FileSpreadsheet },
-        { id: 'crm-contracts', label: 'Contracts & SLA', icon: FileCheck2 },
-        { id: 'crm-renewals', label: 'Renewals', icon: RefreshCw },
-        { id: 'crm-analytics', label: 'CRM Analytics', icon: PieChart },
-        { id: 'crm-reports', label: 'Sales Reports', icon: FileBarChart },
-      ],
-    }] : []),
     ...(hasHRM ? [{
+      id: 'HRM' as ClientSectionId,
       title: 'HUMAN RESOURCES (HRM)',
       items: [
         { id: 'hrm-dashboard', label: 'HRM Dashboard', icon: LayoutDashboard },
@@ -527,6 +545,18 @@ export const ClientPortalShell: React.FC<ClientPortalShellProps> = ({ initialTab
       ],
     }] : []),
     {
+      id: 'WORKSPACE' as ClientSectionId,
+      title: 'WORKSPACE',
+      items: [
+        { id: 'overview', label: 'Overview', icon: LayoutDashboard },
+        ...(hasEMS ? [
+          { id: 'employees', label: `My Employees (${totalStaff})`, icon: Users },
+          { id: 'onboarding', label: 'Employee Onboarding', icon: UserPlus },
+        ] : []),
+      ],
+    },
+    {
+      id: 'SECURITY' as ClientSectionId,
       title: 'SECURITY & GOVERNANCE',
       items: [
         { id: 'subscription', label: 'Subscription & Quota', icon: CreditCard },
@@ -539,100 +569,285 @@ export const ClientPortalShell: React.FC<ClientPortalShellProps> = ({ initialTab
     },
   ];
 
+  const availableSections = [
+    ...(hasEMS ? [{
+      id: 'EMS' as ClientSectionId,
+      code: 'EMS',
+      title: 'Time & Workforce Management',
+      subtitle: 'Attendance, Timesheets, Leaves & Tasks',
+      icon: Calendar,
+      defaultTab: 'attendance',
+      optionsSummary: 'Attendance • Leaves • Tasks • Documents',
+    }] : []),
+    ...(hasHRM ? [{
+      id: 'HRM' as ClientSectionId,
+      code: 'HRM',
+      title: 'Human Resource Management',
+      subtitle: 'Recruitment ATS, Payroll, Lifecycle & PMS',
+      icon: Users,
+      defaultTab: 'hrm-dashboard',
+      optionsSummary: 'HRM Dashboard • Lifecycle • Payroll • ATS',
+    }] : []),
+    {
+      id: 'WORKSPACE' as ClientSectionId,
+      code: 'WORKSPACE',
+      title: 'Workspace Portal',
+      subtitle: 'Overview, Staff Directory & Onboarding',
+      icon: Building2,
+      defaultTab: 'overview',
+      optionsSummary: 'Overview • My Employees • Onboarding',
+    },
+    {
+      id: 'SECURITY' as ClientSectionId,
+      code: 'SECURITY',
+      title: 'Security & Governance Engine',
+      subtitle: 'Subscriptions, Access Control & Logs',
+      icon: ShieldCheck,
+      defaultTab: 'subscription',
+      optionsSummary: 'Subscriptions • Block History • Password Queue',
+    },
+  ];
+
+  const currentSectionMeta = availableSections.find((s) => s.id === selectedSection) || availableSections[0];
+  const activeSectionNav = navSections.find((s) => s.id === selectedSection);
+
   const isAllowed = (tabId: string) => {
     if (!user?.isDelegated) return true;
     if (!user?.delegatedPermissions || user.delegatedPermissions.length === 0) return false;
     return user.delegatedPermissions.includes(tabId);
   };
 
+  useEffect(() => {
+    if (user?.isDelegated && user.delegatedPermissions && user.delegatedPermissions.length > 0) {
+      if (!isAllowed(activeTab)) {
+        for (const sec of navSections) {
+          const firstAllowed = sec.items.find((item) => isAllowed(item.id));
+          if (firstAllowed) {
+            setActiveTab(firstAllowed.id);
+            break;
+          }
+        }
+      }
+    }
+  }, [user?.isDelegated, user?.delegatedPermissions, activeTab]);
+
+  // 1. GATEWAY MODE: Big, bold Title-based boxes that float in from left and right
+  if (selectedSection === 'GATEWAY') {
+    return (
+      <div className="h-screen max-h-screen bg-slate-50 text-slate-900 flex flex-col justify-between overflow-hidden font-sans select-none w-full">
+        {/* Subtle brand ambient glow */}
+        <div className="absolute top-0 right-1/4 w-[450px] h-[450px] bg-[#0D9488]/5 rounded-full blur-[140px] pointer-events-none" />
+
+        {/* Top Header Bar */}
+        <header className="h-16 flex items-center justify-between border-b border-slate-200 bg-white shrink-0 px-4 md:px-6 z-20">
+          <div className="flex items-center gap-3">
+            <GrowthIndiaLogo size="sm" />
+            <span className="text-slate-300 hidden sm:inline">|</span>
+            <div className="hidden sm:flex items-center gap-2">
+              <span className="text-[11px] font-bold text-[#0D9488] bg-[#0D9488]/10 px-2.5 py-0.5 rounded-full border border-[#0D9488]/20">
+                Client Workspace Hub
+              </span>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-3">
+            {/* Password Reset Requests Button */}
+            <button
+              type="button"
+              onClick={() => setShowResetRequests(true)}
+              className="relative flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-bold border shadow-xs transition-all bg-slate-50 hover:bg-slate-100 text-slate-800 border-slate-200 cursor-pointer"
+              title="Password Reset Requests"
+            >
+              <KeyRound className="w-3.5 h-3.5 text-slate-600 shrink-0" />
+              <span className="hidden sm:inline">Reset Requests</span>
+              {pendingResetCount > 0 && (
+                <span className="px-1.5 py-0.2 rounded-full bg-rose-500 text-white text-[9px] font-black animate-pulse shadow-xs">
+                  {pendingResetCount}
+                </span>
+              )}
+            </button>
+
+            {/* Notification Bell */}
+            <NotificationBell variant="light" />
+
+            {/* User details */}
+            <div className="text-right hidden md:block">
+              <p className="text-xs font-bold text-slate-900 leading-tight">{user?.fullName || 'Client Administrator'}</p>
+              <p className="text-[10px] font-mono text-slate-500 leading-tight">{user?.companyName || user?.clientId}</p>
+            </div>
+            <div className="w-8 h-8 rounded-lg bg-[#0D9488] text-white flex items-center justify-center font-bold text-xs shadow-xs">
+              {user?.fullName?.charAt(0) || 'C'}
+            </div>
+
+            <button
+              type="button"
+              onClick={handleSignOut}
+              className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-all border border-slate-200 hover:border-rose-200 cursor-pointer"
+              title="Sign Out"
+            >
+              <LogOut className="w-4 h-4" />
+            </button>
+          </div>
+        </header>
+
+        {/* Main Content Area */}
+        <main className="flex-1 flex flex-col justify-center py-4 md:py-6 my-auto overflow-y-auto z-10">
+          {/* Title */}
+          <div className="text-center max-w-xl mx-auto mb-6 md:mb-10 shrink-0 px-4">
+            <h1 className="text-2xl md:text-3xl lg:text-4xl font-extrabold text-slate-900 tracking-tight">
+              Select Operating Workspace
+            </h1>
+          </div>
+
+          {/* Title-Based Boxes Grid (Flows left from left, right from right in a single horizontal line) */}
+          <div
+            className={`grid gap-4 xl:gap-6 mx-auto w-full px-4 ${
+              availableSections.length <= 2
+                ? 'grid-cols-1 sm:grid-cols-2 max-w-2xl'
+                : availableSections.length === 3
+                ? 'grid-cols-1 sm:grid-cols-3 max-w-4xl'
+                : 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 max-w-6xl'
+            }`}
+          >
+            {availableSections.map((sec, idx) => {
+              const isLeft = idx < Math.ceil(availableSections.length / 2);
+              const SecIcon = sec.icon;
+              return (
+                <div
+                  key={sec.id}
+                  onClick={() => handleSelectSection(sec.id, sec.defaultTab)}
+                  className={`${
+                    isLeft ? 'animate-flow-left' : 'animate-flow-right'
+                  } group relative bg-white hover:bg-slate-50/80 border-2 border-slate-200 hover:border-[#0D9488] rounded-2xl p-5 md:p-6 transition-all duration-300 shadow-sm hover:shadow-xl hover:-translate-y-1.5 cursor-pointer flex flex-col justify-between items-center text-center`}
+                >
+                  {/* Top Icon */}
+                  <div className="w-12 h-12 rounded-xl bg-[#0D9488]/10 border border-[#0D9488]/20 flex items-center justify-center text-[#0D9488] group-hover:scale-110 group-hover:bg-[#0D9488] group-hover:text-white transition-all duration-300 shadow-xs mb-3">
+                    <SecIcon className="w-6 h-6" />
+                  </div>
+
+                  {/* Prominent Bold Letters (Medium Size) */}
+                  <div className="my-auto py-2">
+                    <h2 className="text-2xl md:text-3xl font-black text-slate-900 group-hover:text-[#0D9488] tracking-tight transition-colors">
+                      {sec.code}
+                    </h2>
+                    <p className="text-xs font-bold text-slate-600 mt-1 transition-colors">
+                      {sec.title}
+                    </p>
+                    <p className="text-[10px] text-slate-400 mt-1 line-clamp-1">
+                      {sec.optionsSummary}
+                    </p>
+                  </div>
+
+                  {/* Launch Button */}
+                  <div className="w-full pt-3">
+                    <div className="w-full py-2.5 px-3 rounded-xl bg-slate-100 group-hover:bg-[#0D9488] text-slate-700 group-hover:text-white font-bold text-xs flex items-center justify-center gap-1.5 transition-all duration-300 shadow-xs group-hover:shadow-md">
+                      <span>Enter {sec.code}</span>
+                      <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-1.5 transition-transform duration-300" />
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </main>
+
+        {/* Clean Bottom Footer */}
+        <footer className="h-10 flex items-center justify-between border-t border-slate-200 text-[11px] text-slate-500 bg-white shrink-0 px-4 md:px-6">
+          <span className="font-semibold text-slate-700">Growth India Platform Suite</span>
+          <span className="text-slate-500 font-medium">Enterprise Client Portal</span>
+        </footer>
+
+        {/* Password Reset Requests Modal */}
+        <PasswordResetRequestsModal
+          isOpen={showResetRequests}
+          onClose={() => {
+            setShowResetRequests(false);
+            fetchResetRequestsCount();
+          }}
+          userRole="CLIENT"
+          onPasswordResetSuccess={() => {
+            fetchResetRequestsCount();
+          }}
+        />
+      </div>
+    );
+  }
+
+  // 2. OPERATING SECTION WORKSPACE VIEW
   return (
     <div className="flex h-screen bg-slate-100/70 overflow-hidden font-sans">
       <PresenceTracker activeTab={activeTab} />
 
-      {/* LEFT SIDEBAR (Clean Light Theme Matching Admin Panel) */}
+      {/* LEFT SIDEBAR (Clean Light Theme with Active Section Only) */}
       <aside className="w-64 bg-white text-slate-800 flex flex-col shrink-0 border-r border-slate-200 select-none">
         {/* Brand Header */}
         <div className="h-16 flex items-center px-5 border-b border-slate-200 bg-white">
           <GrowthIndiaLogo size="sm" />
         </div>
 
-        {/* Client Platform Badge */}
-        <div className="mx-3 mt-3.5 p-2.5 bg-teal-50 border border-teal-200 rounded-xl flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <div className="w-2 h-2 rounded-full bg-teal-600 animate-pulse" />
-            <span className="text-[11px] font-bold text-teal-950 uppercase tracking-wider">
-              {user?.isDelegated ? 'DELEGATED TEAM' : 'CLIENT'}
+        {/* Section Header with Quick Hub Switcher (Replaces the old Client Title Bar) */}
+        <div className="px-4 py-3 border-b border-slate-100 flex items-center justify-between bg-slate-50/70">
+          <div className="flex items-center gap-2 min-w-0">
+            <currentSectionMeta.icon className="w-4 h-4 text-teal-600 shrink-0" />
+            <span className="text-[11px] font-black uppercase tracking-wider text-slate-800 truncate">
+              {currentSectionMeta.code} Suite
             </span>
           </div>
-          <span className="text-[9px] font-mono font-black uppercase px-1.5 py-0.5 rounded bg-teal-600 text-white shadow-xs">
-            {user?.isDelegated ? 'SHARED' : (user?.clientId || 'PORTAL')}
-          </span>
+          <button
+            type="button"
+            onClick={() => {
+              setSelectedSection('GATEWAY');
+              try { localStorage.removeItem('gi_client_selected_section'); } catch {}
+            }}
+            className="text-[10px] font-bold text-teal-600 hover:text-teal-800 flex items-center gap-1 shrink-0 px-2 py-1 rounded-lg hover:bg-teal-50 transition-colors cursor-pointer"
+            title="Return to Workspace Hub"
+          >
+            <ArrowLeft className="w-3 h-3" />
+            <span>Hub</span>
+          </button>
         </div>
 
-        {/* Assigned Modules Badge */}
-        <div className="mx-3 mt-2 px-2.5 py-1.5 bg-slate-50/80 rounded-xl border border-slate-200 flex items-center justify-between">
-          <span className="text-[10px] font-bold text-slate-500">Assigned Modules</span>
-          <div className="flex items-center gap-1">
-            {((user as any)?.assignedModules && (user as any).assignedModules.length > 0 ? (user as any).assignedModules : ['EMS']).map((m: string) => (
-              <span key={m} className="px-1.5 py-0.5 rounded text-[9px] font-black bg-teal-50 text-teal-700 border border-teal-200">
-                {m}
-              </span>
-            ))}
+        {/* Navigation Links Area (Filtered strictly to active Title / Section) */}
+        <div className="flex-1 overflow-y-auto py-3 px-3 space-y-1">
+          <div className="px-3 py-1 text-[10px] font-extrabold uppercase tracking-wider text-slate-400">
+            {activeSectionNav?.title || currentSectionMeta.title}
           </div>
-        </div>
-
-        {/* Navigation Links Area */}
-        <div className="flex-1 overflow-y-auto py-4 px-3 space-y-4">
-          {navSections.map((sec) => {
-            const visibleItems = sec.items.filter((item) => isAllowed(item.id));
-            if (visibleItems.length === 0) return null;
+          {activeSectionNav?.items.filter((item) => isAllowed(item.id)).map((item) => {
+            const ItemIcon = item.icon;
+            const isActive = activeTab === item.id;
 
             return (
-              <div key={sec.title} className="space-y-1">
-                <div className="px-3 py-1 text-[10px] font-extrabold uppercase tracking-wider text-slate-400">
-                  {sec.title}
+              <button
+                key={item.id}
+                type="button"
+                onClick={() => selectTab(item.id)}
+                className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all cursor-pointer group ${
+                  isActive
+                    ? 'bg-teal-600 text-white font-bold shadow-xs'
+                    : 'text-slate-600 hover:text-teal-700 hover:bg-teal-50/70 hover:font-bold'
+                }`}
+              >
+                <div className="flex items-center gap-3 min-w-0">
+                  <ItemIcon
+                    className={`w-4 h-4 shrink-0 transition-transform group-hover:scale-110 ${
+                      isActive ? 'text-white' : 'text-slate-400 group-hover:text-teal-600'
+                    }`}
+                  />
+                  <span className="truncate">{item.label}</span>
                 </div>
-                <div className="space-y-1">
-                  {visibleItems.map((item) => {
-                    const ItemIcon = item.icon;
-                    const isActive = activeTab === item.id;
-
-                    return (
-                      <button
-                        key={item.id}
-                        type="button"
-                        onClick={() => selectTab(item.id)}
-                        className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all cursor-pointer group ${
-                          isActive
-                            ? 'bg-teal-600 text-white font-bold shadow-xs'
-                            : 'text-slate-600 hover:text-teal-700 hover:bg-teal-50/70 hover:font-bold'
-                        }`}
-                      >
-                        <div className="flex items-center gap-3 min-w-0">
-                          <ItemIcon
-                            className={`w-4 h-4 shrink-0 transition-transform group-hover:scale-110 ${
-                              isActive ? 'text-white' : 'text-slate-400 group-hover:text-teal-600'
-                            }`}
-                          />
-                          <span className="truncate">{item.label}</span>
-                        </div>
-                        <div className="flex items-center gap-1.5 shrink-0">
-                          {item.isLive && (
-                            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-                          )}
-                          {Boolean(item.badge && item.badge > 0) && (
-                            <span className={`px-1.5 py-0.2 rounded-full text-[9px] font-black ${
-                              isActive ? 'bg-white text-teal-700' : 'bg-teal-600 text-white animate-pulse'
-                            }`}>
-                              {item.badge}
-                            </span>
-                          )}
-                        </div>
-                      </button>
-                    );
-                  })}
+                <div className="flex items-center gap-1.5 shrink-0">
+                  {item.isLive && (
+                    <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                  )}
+                  {Boolean(item.badge && item.badge > 0) && (
+                    <span className={`px-1.5 py-0.2 rounded-full text-[9px] font-black ${
+                      isActive ? 'bg-white text-teal-700' : 'bg-teal-600 text-white animate-pulse'
+                    }`}>
+                      {item.badge}
+                    </span>
+                  )}
                 </div>
-              </div>
+              </button>
             );
           })}
         </div>
@@ -684,22 +899,6 @@ export const ClientPortalShell: React.FC<ClientPortalShellProps> = ({ initialTab
               {activeTab === 'history' && 'Security Block & Audit History'}
               {activeTab === 'requests' && 'Employee Password Reset Queue'}
               {activeTab === 'shared-access' && 'Shared Team Access & Delegated RBAC'}
-              {/* CRM tabs */}
-              {activeTab === 'crm-dashboard' && 'CRM Executive Dashboard'}
-              {activeTab === 'crm-leads' && 'Leads Management & Pipeline Ingestion'}
-              {activeTab === 'crm-lead-detail' && 'Lead 360 & Engagement Detail'}
-              {activeTab === 'crm-contacts' && 'Customer Contacts Directory'}
-              {activeTab === 'crm-pipeline' && 'Deals & Revenue Pipeline Kanban'}
-              {activeTab === 'crm-deals' && 'Deals & Pipeline Management'}
-              {activeTab === 'crm-deal-detail' && 'Deal 360 & Pipeline Detail'}
-              {activeTab === 'crm-opportunities' && 'Opportunity Management'}
-              {activeTab === 'crm-activities' && 'Customer Activities & Engagements'}
-              {activeTab === 'crm-products' && 'Product Catalog & Price Book'}
-              {activeTab === 'crm-quotes' && 'Quotes & Commercial Proposals'}
-              {activeTab === 'crm-contracts' && 'Contracts & Master Service Agreements'}
-              {activeTab === 'crm-renewals' && 'Contract Renewals & SLA Continuity'}
-              {activeTab === 'crm-analytics' && 'CRM Revenue & Conversion Analytics'}
-              {activeTab === 'crm-reports' && 'CRM Intelligence & Sales Reports'}
               {/* HRM tabs */}
               {activeTab === 'hrm-dashboard' && 'Human Resources Intelligence Dashboard'}
               {activeTab === 'hrm-lifecycle' && 'Employee Lifecycle & Governance Board'}
@@ -715,6 +914,73 @@ export const ClientPortalShell: React.FC<ClientPortalShellProps> = ({ initialTab
           </div>
 
           <div className="flex items-center gap-2.5">
+            {/* Section Switcher Dropdown */}
+            <div className="relative" ref={sectionDropdownRef}>
+              <button
+                type="button"
+                onClick={() => setSectionDropdownOpen(!sectionDropdownOpen)}
+                className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg bg-white border border-slate-200 shadow-xs hover:border-teal-600 hover:bg-slate-50 transition-all text-xs font-semibold text-slate-800 cursor-pointer"
+                title="Switch Operating Workspace"
+              >
+                <div className="w-2 h-2 rounded-full bg-teal-600 animate-pulse shrink-0" />
+                <span className="font-bold text-slate-900 hidden sm:inline">{currentSectionMeta.code}</span>
+                <ChevronDown className={`w-3 h-3 text-slate-400 transition-transform ${sectionDropdownOpen ? 'rotate-180' : ''}`} />
+              </button>
+
+              {sectionDropdownOpen && (
+                <div className="absolute right-0 mt-2 w-64 rounded-2xl bg-white shadow-xl border border-slate-200 p-1.5 z-50 animate-fadeIn divide-y divide-slate-100">
+                  <div className="p-1">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSelectedSection('GATEWAY');
+                        setSectionDropdownOpen(false);
+                        try { localStorage.removeItem('gi_client_selected_section'); } catch {}
+                      }}
+                      className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-bold text-slate-700 hover:bg-teal-50 hover:text-teal-800 transition-colors text-left cursor-pointer"
+                    >
+                      <LayoutGrid className="w-4 h-4 text-slate-400" />
+                      <div>
+                        <div className="font-black">Workspace Hub</div>
+                        <div className="text-[10px] text-slate-400 font-normal">Return to all section boxes</div>
+                      </div>
+                    </button>
+                  </div>
+
+                  <div className="p-1 space-y-0.5">
+                    {availableSections.map((sec) => {
+                      const SecIcon = sec.icon;
+                      const isCurrent = selectedSection === sec.id;
+                      return (
+                        <button
+                          key={sec.id}
+                          type="button"
+                          onClick={() => {
+                            handleSelectSection(sec.id, sec.defaultTab);
+                            setSectionDropdownOpen(false);
+                          }}
+                          className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-bold transition-colors text-left cursor-pointer ${
+                            isCurrent
+                              ? 'bg-teal-50 text-teal-800'
+                              : 'text-slate-700 hover:bg-slate-50 hover:text-slate-900'
+                          }`}
+                        >
+                          <div className="flex items-center gap-2.5">
+                            <SecIcon className={`w-4 h-4 ${isCurrent ? 'text-teal-600' : 'text-slate-400'}`} />
+                            <div>
+                              <div className="font-black">{sec.code}</div>
+                              <div className="text-[10px] text-slate-400 font-normal">{sec.title}</div>
+                            </div>
+                          </div>
+                          {isCurrent && <div className="w-1.5 h-1.5 rounded-full bg-teal-600" />}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+            </div>
+
             <button
               onClick={handleRefreshCurrentSection}
               disabled={sectionRefreshing || loading}
@@ -849,6 +1115,11 @@ export const ClientPortalShell: React.FC<ClientPortalShellProps> = ({ initialTab
                 </div>
 
                 {/* Assigned Modules Launchpad */}
+                {(() => {
+                  const hasEMS = true;
+                  const hasCRM = true;
+                  const hasHRM = true;
+                  return (
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   {/* EMS Card */}
                   <div
@@ -943,6 +1214,8 @@ export const ClientPortalShell: React.FC<ClientPortalShellProps> = ({ initialTab
                     )}
                   </div>
                 </div>
+                  );
+                })()}
 
                 {/* Quick Staff Table */}
                 <div className="panel-premium bg-white border border-slate-200 rounded-3xl p-6 shadow-sm space-y-4">
@@ -1460,77 +1733,6 @@ export const ClientPortalShell: React.FC<ClientPortalShellProps> = ({ initialTab
             )}
             {activeTab === 'subscription' && <ClientSubscriptionView />}
 
-            {/* CRM VIEWS */}
-            {activeTab === 'crm-dashboard' && (
-              <CrmDashboardView
-                onNavigate={(tab, id) => {
-                  if (id) {
-                    if (tab === 'crm-deal-detail') setSelectedDealId(id);
-                    if (tab === 'crm-lead-detail') setSelectedLeadId(id);
-                  }
-                  selectTab(tab);
-                }}
-              />
-            )}
-            {activeTab === 'crm-leads' && (
-              <LeadsListView
-                initialClientId={user?.clientId}
-                onSelectLead={(leadId) => {
-                  setSelectedLeadId(leadId);
-                  selectTab('crm-lead-detail');
-                }}
-              />
-            )}
-            {activeTab === 'crm-lead-detail' && (
-              <LeadDetailView
-                leadId={selectedLeadId}
-                onBack={() => selectTab('crm-leads')}
-                onCreateDeal={(lead: any) => {
-                  setCreateDealContext({ leadId: lead?.id || selectedLeadId });
-                  selectTab('crm-pipeline');
-                }}
-              />
-            )}
-            {activeTab === 'crm-contacts' && (
-              <ContactsListView initialClientId={user?.clientId} />
-            )}
-            {activeTab === 'crm-opportunities' && (
-              <OpportunitiesListView initialClientId={user?.clientId} />
-            )}
-            {(activeTab === 'crm-deals' || activeTab === 'crm-pipeline') && (
-              <PipelineKanbanView
-                initialLeadId={createDealContext?.leadId}
-                initialOpportunityId={createDealContext?.opportunityId}
-                initialOpenCreateModal={!!createDealContext}
-                onSelectDeal={(id) => {
-                  setSelectedDealId(id);
-                  selectTab('crm-deal-detail');
-                }}
-              />
-            )}
-            {activeTab === 'crm-deal-detail' && (
-              <DealDetailView
-                dealId={selectedDealId}
-                onBack={() => selectTab('crm-pipeline')}
-                onLeadClick={(leadId) => {
-                  if (leadId) {
-                    setSelectedLeadId(leadId);
-                    selectTab('crm-lead-detail');
-                  } else {
-                    selectTab('crm-leads');
-                  }
-                }}
-              />
-            )}
-            {activeTab === 'crm-activities' && (
-              <ActivitiesListView initialClientId={user?.clientId} />
-            )}
-            {activeTab === 'crm-products' && <ProductsListView />}
-            {activeTab === 'crm-quotes' && <QuotesListView />}
-            {activeTab === 'crm-contracts' && <ContractsListView />}
-            {activeTab === 'crm-renewals' && <RenewalsManagementView />}
-            {activeTab === 'crm-analytics' && <CrmAnalyticsView />}
-            {activeTab === 'crm-reports' && <CrmReportsView />}
 
             {/* HRM VIEWS */}
             {activeTab === 'hrm-dashboard' && (
@@ -1562,6 +1764,14 @@ export const ClientPortalShell: React.FC<ClientPortalShellProps> = ({ initialTab
                 currentTenant={{
                   id: user?.clientId || 'default',
                   name: user?.companyName || 'My Organization',
+                  slug: (user?.companyName || 'org').toLowerCase().replace(/\s+/g, '-'),
+                  industry: 'Enterprise Client',
+                  plan: 'Enterprise Suite',
+                  contactEmail: user?.email || 'client@growthindia.in',
+                  timezone: 'Asia/Kolkata (IST)',
+                  currency: 'INR (₹)',
+                  locations: ['Headquarters (Primary)', 'Regional Center'],
+                  workDays: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'],
                   departments: [],
                   designations: [],
                 } as any}
@@ -1572,6 +1782,14 @@ export const ClientPortalShell: React.FC<ClientPortalShellProps> = ({ initialTab
                 currentTenant={{
                   id: user?.clientId || 'default',
                   name: user?.companyName || 'My Organization',
+                  slug: (user?.companyName || 'org').toLowerCase().replace(/\s+/g, '-'),
+                  industry: 'Enterprise Client',
+                  plan: 'Enterprise Suite',
+                  contactEmail: user?.email || 'client@growthindia.in',
+                  timezone: 'Asia/Kolkata (IST)',
+                  currency: 'INR (₹)',
+                  locations: ['Headquarters (Primary)', 'Regional Center'],
+                  workDays: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'],
                   departments: [],
                   designations: [],
                 } as any}

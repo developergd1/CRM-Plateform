@@ -3,6 +3,8 @@ import { prisma } from '@/lib/prisma';
 import { getSessionUser } from '@/lib/auth';
 import { ensureDefaultLeaveTypes } from '@/services/hrm/leave.service';
 import { ensureDefaultSalaryComponentsAndStructures } from '@/services/hrm/payroll.service';
+import { ensureDefaultStatutoryRules } from '@/services/hrm/statutory.service';
+import { ensureDefaultPerformanceCycle } from '@/services/hrm/performance.service';
 
 export async function GET(req: NextRequest) {
   try {
@@ -21,121 +23,128 @@ export async function GET(req: NextRequest) {
     await Promise.all([
       ensureDefaultLeaveTypes(),
       ensureDefaultSalaryComponentsAndStructures(),
+      ensureDefaultStatutoryRules(),
+      ensureDefaultPerformanceCycle(),
     ]);
 
     const todayStr = new Date().toISOString().split('T')[0];
 
-    const employeeWhere: any = {
-      status: 'ACTIVE',
+    const baseEmployeeFilter: any = {
       employeeId: { not: 'GI-EMP-000001' },
       ...(targetClientId ? { clientId: targetClientId } : (tenantContext?.isAdmin ? {} : { clientId: null })),
     };
 
-    const attendanceWhere: any = {
+    const activeEmployeeFilter: any = {
+      ...baseEmployeeFilter,
+      status: 'ACTIVE',
+    };
+
+    const attendanceFilter: any = {
       date: todayStr,
-      status: { in: ['PRESENT', 'LATE'] },
       ...(targetClientId ? { employee: { clientId: targetClientId } } : {}),
     };
-
-    const leaveWhere: any = {
-      status: 'PENDING',
-      ...(targetClientId ? { employee: { clientId: targetClientId } } : {}),
-    };
-
-    const ticketWhere: any = {
-      status: { in: ['OPEN', 'IN_PROGRESS'] },
-      ...(targetClientId ? { employee: { clientId: targetClientId } } : {}),
-    };
-
-    const jobWhere: any = {
-      status: 'OPEN',
-      ...(targetClientId ? { requisition: { requestedById: user.id } } : {}),
-    };
-
-    const candidateWhere: any = {
-      stage: { notIn: ['HIRED', 'REJECTED', 'WITHDRAWN'] },
-      ...(targetClientId ? { opening: { requisition: { requestedById: user.id } } } : {}),
-    };
-
-    const auditWhere: any = targetClientId
-      ? { actorUserId: user.id }
-      : {};
 
     const [
       totalEmployees,
-      todayAttendanceCount,
-      openJobsCount,
-      activeCandidatesCount,
-      pendingLeavesCount,
-      openTicketsCount,
+      activeEmployees,
+      todayPresent,
+      todayLate,
+      todayOnLeave,
+      pendingLeaveRequests,
+      activeGoals,
+      pendingReviews,
+      pendingAdjustments,
+      pendingAppraisals,
+      openJobs,
       recentAuditLogs,
     ] = await Promise.all([
-      prisma.employee.count({ where: employeeWhere }),
-      prisma.attendance.count({ where: attendanceWhere }),
-      prisma.jobOpening.count({ where: jobWhere }),
-      prisma.candidate.count({ where: candidateWhere }),
-      prisma.leaveRequest.count({ where: leaveWhere }),
-      prisma.helpdeskTicket.count({ where: ticketWhere }),
+      prisma.employee.count({ where: baseEmployeeFilter }),
+      prisma.employee.count({ where: activeEmployeeFilter }),
+      prisma.attendance.count({ where: { ...attendanceFilter, status: 'PRESENT' } }),
+      prisma.attendance.count({ where: { ...attendanceFilter, status: 'LATE' } }),
+      prisma.attendance.count({ where: { ...attendanceFilter, status: { in: ['ON_LEAVE', 'HALF_DAY'] } } }),
+      prisma.leaveRequest.count({
+        where: {
+          status: 'PENDING',
+          ...(targetClientId ? { employee: { clientId: targetClientId } } : {}),
+        },
+      }),
+      prisma.goal.count({
+        where: {
+          status: 'IN_PROGRESS',
+          ...(targetClientId ? { employee: { clientId: targetClientId } } : {}),
+        },
+      }),
+      prisma.performanceReview.count({
+        where: {
+          status: { in: ['PENDING_SELF', 'PENDING_MANAGER'] },
+          ...(targetClientId ? { employee: { clientId: targetClientId } } : {}),
+        },
+      }),
+      prisma.payrollAdjustment.count({
+        where: {
+          status: 'PENDING',
+          ...(targetClientId ? { employee: { clientId: targetClientId } } : {}),
+        },
+      }),
+      prisma.pmsAppraisal.count({
+        where: {
+          status: 'PENDING',
+          ...(targetClientId ? { employee: { clientId: targetClientId } } : {}),
+        },
+      }),
+      prisma.jobOpening.count({ where: { status: 'OPEN' } }),
       prisma.auditLog.findMany({
-        where: auditWhere,
+        where: targetClientId ? { actorUserId: user.id } : {},
         orderBy: { timestamp: 'desc' },
         take: 10,
       }),
     ]);
 
-    let latestPayroll: any = null;
+    // Payroll telemetry
+    const latestPeriod = await prisma.payrollPeriod.findFirst({
+      where: targetClientId ? { clientId: targetClientId } : {},
+      orderBy: [{ year: 'desc' }, { month: 'desc' }],
+      include: {
+        _count: { select: { payrollRecords: true, exceptions: true } },
+      },
+    });
 
-    if (targetClientId) {
-      const latestClientRecord = await prisma.payrollRecord.findFirst({
-        where: { employee: { clientId: targetClientId } },
-        include: { period: true },
-        orderBy: { createdAt: 'desc' },
-      });
+    const pendingExceptionsCount = latestPeriod
+      ? await prisma.payrollException.count({
+          where: { periodId: latestPeriod.id, status: 'OPEN' },
+        })
+      : 0;
 
-      if (latestClientRecord) {
-        const clientRecords = await prisma.payrollRecord.findMany({
-          where: {
-            periodId: latestClientRecord.periodId,
-            employee: { clientId: targetClientId },
-          },
-        });
-
-        const totalGross = clientRecords.reduce((sum, r) => sum + (r.totalEarnings || 0), 0);
-        const totalNet = clientRecords.reduce((sum, r) => sum + (r.netPay || 0), 0);
-
-        latestPayroll = {
-          ...latestClientRecord.period,
-          recordsCount: clientRecords.length,
-          totalGrossPay: totalGross,
-          totalNetPay: totalNet,
-        };
-      }
-    } else {
-      const latestPayrollPeriod = await prisma.payrollPeriod.findFirst({
-        orderBy: [{ year: 'desc' }, { month: 'desc' }],
-      });
-      if (latestPayrollPeriod) {
-        latestPayroll = {
-          ...latestPayrollPeriod,
-          recordsCount: latestPayrollPeriod.totalEmployees,
-          totalGrossPay: latestPayrollPeriod.totalGross,
-          totalNetPay: latestPayrollPeriod.totalNet,
-        };
-      }
-    }
+    const pendingApprovalsCount = pendingLeaveRequests + pendingAdjustments + pendingAppraisals;
 
     return NextResponse.json({
       success: true,
       metrics: {
+        totalEmployees,
         totalHeadcount: totalEmployees,
-        todayPresent: todayAttendanceCount,
-        attendanceRate: totalEmployees > 0 ? Math.round((todayAttendanceCount / totalEmployees) * 100) : 0,
-        openJobs: openJobsCount,
-        activeCandidates: activeCandidatesCount,
-        pendingLeaves: pendingLeavesCount,
-        openTickets: openTicketsCount,
+        activeEmployees,
+        presentToday: todayPresent + todayLate,
+        lateToday: todayLate,
+        onLeave: todayOnLeave,
+        pendingLeaveRequests,
+        pendingLeaves: pendingLeaveRequests,
+        openJobs,
+        payrollStatus: latestPeriod?.status || 'NO_PERIOD',
+        currentPayrollPeriod: latestPeriod?.periodCode || 'N/A',
+        pendingPayrollExceptions: pendingExceptionsCount,
+        pendingApprovals: pendingApprovalsCount,
+        activeGoals,
+        pendingPerformanceReviews: pendingReviews,
+        attendanceRate: activeEmployees > 0 ? Math.round(((todayPresent + todayLate) / activeEmployees) * 100) : 0,
       },
-      latestPayroll,
+      latestPayroll: latestPeriod ? {
+        ...latestPeriod,
+        recordsCount: latestPeriod.totalEmployees,
+        totalGrossPay: latestPeriod.totalGross,
+        totalNetPay: latestPeriod.totalNet,
+        pendingExceptions: pendingExceptionsCount,
+      } : null,
       recentActivities: recentAuditLogs.map((l) => ({
         id: l.id,
         action: l.action,

@@ -81,7 +81,6 @@ export async function GET(req: NextRequest) {
 
     // 5. Module Distribution Computation
     let emsCount = 0;
-    let crmCount = 0;
     let hrmCount = 0;
 
     for (const c of allClientsWithCounts) {
@@ -89,7 +88,6 @@ export async function GET(req: NextRequest) {
         ? c.assignedModules
         : ['EMS'];
       if (modules.includes('EMS')) emsCount++;
-      if (modules.includes('CRM')) crmCount++;
       if (modules.includes('HRM')) hrmCount++;
     }
 
@@ -126,7 +124,6 @@ export async function GET(req: NextRequest) {
         },
         moduleDistribution: {
           EMS: emsCount,
-          CRM: crmCount,
           HRM: hrmCount,
           totalSubscribedClients: allClientsWithCounts.length,
         },

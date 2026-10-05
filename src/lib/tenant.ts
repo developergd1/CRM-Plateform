@@ -27,7 +27,8 @@ export async function getTenantContext(req: NextRequest): Promise<TenantContext 
           { userId: user.id },
           ...(user.clientId ? [{ clientId: user.clientId }] : []),
           ...(isValidObjectId(user.clientId) ? [{ id: user.clientId }] : []),
-          ...(user.parentClientId ? [{ id: user.parentClientId }, { clientId: user.parentClientId }] : []),
+          ...(user.parentClientId ? [{ clientId: user.parentClientId }] : []),
+          ...(isValidObjectId(user.parentClientId) ? [{ id: user.parentClientId }] : []),
         ],
       },
       select: { id: true },
@@ -143,7 +144,7 @@ export async function verifyClientOrganizationAccess(
 }
 
 /**
- * Verifies whether a user has permission to access a specific module (e.g. 'CRM', 'HRM', 'EMS').
+ * Verifies whether a user has permission to access a specific module (e.g. 'CMS', 'HRM', 'EMS').
  * Returns null if allowed, or a 403 NextResponse if forbidden.
  */
 export function checkModuleAccess(user: AuthUser, moduleName: string): NextResponse | null {
@@ -167,7 +168,7 @@ export function checkModuleAccess(user: AuthUser, moduleName: string): NextRespo
 }
 
 /**
- * Builds Prisma `where` clause for tenant-scoped CRM entities (Lead, Contact, Opportunity, Deal, Task).
+ * Builds Prisma `where` clause for tenant-scoped entities (Task, Department, Document).
  */
 export async function buildTenantWhereClause(
   user: AuthUser,
@@ -183,7 +184,7 @@ export async function buildTenantWhereClause(
 
   if (user.role === 'CLIENT') {
     const assigned = (user.assignedModules || []).map((m) => m.toUpperCase());
-    if (!assigned.includes('CRM') && !assigned.includes('ALL')) {
+    if (!assigned.includes('CMS') && !assigned.includes('HRM') && !assigned.includes('ALL')) {
       return { clientId: '000000000000000000000000' };
     }
 
@@ -193,7 +194,8 @@ export async function buildTenantWhereClause(
           { userId: user.id },
           ...(user.clientId ? [{ clientId: user.clientId }] : []),
           ...(isValidObjectId(user.clientId) ? [{ id: user.clientId }] : []),
-          ...(user.parentClientId ? [{ id: user.parentClientId }, { clientId: user.parentClientId }] : []),
+          ...(user.parentClientId ? [{ clientId: user.parentClientId }] : []),
+          ...(isValidObjectId(user.parentClientId) ? [{ id: user.parentClientId }] : []),
         ],
       },
       select: { id: true },

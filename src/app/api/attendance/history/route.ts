@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
+import { prisma, isValidObjectId } from '@/lib/prisma';
 import { getSessionUser } from '@/lib/auth';
 import { isManagerOrAbove } from '@/lib/rbac';
 
@@ -35,7 +35,9 @@ export async function GET(req: NextRequest) {
           OR: [
             { userId: user.id },
             ...(user.clientId ? [{ clientId: user.clientId }] : []),
-            ...(user.parentClientId ? [{ id: user.parentClientId }, { clientId: user.parentClientId }] : []),
+            ...(isValidObjectId(user.clientId) ? [{ id: user.clientId }] : []),
+            ...(user.parentClientId ? [{ clientId: user.parentClientId }] : []),
+            ...(isValidObjectId(user.parentClientId) ? [{ id: user.parentClientId }] : []),
           ],
         },
       });
